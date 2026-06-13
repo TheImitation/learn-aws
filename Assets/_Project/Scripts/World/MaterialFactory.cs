@@ -40,6 +40,19 @@ namespace LearnAWS.World
             return m;
         }
 
+        /// <summary>An unlit, alpha-blended material showing a texture (an AWS service icon) — works on URP and built-in.</summary>
+        public static Material CreateIconMaterial(Texture texture)
+        {
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null) shader = Shader.Find("Unlit/Transparent");
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
+
+            var m = new Material(shader);
+            m.mainTexture = texture;
+            if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", texture);
+            return m;
+        }
+
         private static void ApplyColor(Material m, Color color)
         {
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color);

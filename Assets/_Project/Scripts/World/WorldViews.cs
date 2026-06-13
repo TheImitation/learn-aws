@@ -37,7 +37,16 @@ namespace LearnAWS.World
         }
     }
 
-    /// <summary>A placed service (a coloured cube + nameplate). Selectable via raycast for the inspector.</summary>
+    /// <summary>Keeps a standalone label (e.g. scenery text) facing the camera.</summary>
+    internal sealed class LabelBillboard : MonoBehaviour
+    {
+        private void LateUpdate() => Billboard.Face(transform);
+    }
+
+    /// <summary>
+    /// A placed service. Architecture view = coloured cube + AWS icon card; Story view = a low-poly model
+    /// (if one is provided in Resources/Models) else the cube. Selectable via raycast for the inspector.
+    /// </summary>
     public sealed class BlockView : MonoBehaviour
     {
         public BlockSpec Spec { get; private set; }
@@ -47,6 +56,8 @@ namespace LearnAWS.World
         private TextMesh _label;
         private Color _baseColor;
         private Vector3 _baseScale;
+        private GameObject _model;
+        private GameObject _iconCard;
 
         public void Build(BlockSpec spec, Transform parent)
         {
@@ -60,17 +71,64 @@ namespace LearnAWS.World
             _body.SetParent(transform, false);
             _baseScale = new Vector3(1.1f, 1.1f, 1.1f);
             _body.localScale = _baseScale;
-
             _baseColor = MaterialFactory.ColorForCategory(spec.category);
             _renderer = body.GetComponent<Renderer>();
             _renderer.material = MaterialFactory.CreateLit(_baseColor);
 
+            // Optional low-poly model used as the building in story view.
+            var prefab = AssetCatalog.LoadModel(AssetCatalog.ModelKeyFor(spec));
+            if (prefab != null)
+            {
+                _model = Instantiate(prefab, _body);
+                _model.transform.localPosition = Vector3.zero;
+                _model.transform.localRotation = Quaternion.identity;
+                foreach (var col in _model.GetComponentsInChildren<Collider>()) Destroy(col);
+                FitModel(_model, 1.1f);
+                _model.SetActive(false);
+            }
+
+            // Optional AWS service icon shown in architecture view.
+            var icon = AssetCatalog.LoadIcon(AssetCatalog.IconKeyFor(spec));
+            if (icon != null)
+            {
+                var card = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                card.name = "Icon";
+                var cc = card.GetComponent<Collider>();
+                if (cc != null) Destroy(cc);
+                card.transform.SetParent(transform, false);
+                card.transform.localPosition = new Vector3(0f, 1.8f, 0f);
+                card.transform.localScale = Vector3.one * 1.25f;
+                card.GetComponent<Renderer>().material = MaterialFactory.CreateIconMaterial(icon);
+                _iconCard = card;
+            }
+
             _label = Billboard.MakeLabel(transform, spec.displayName, new Vector3(0f, 1.05f, 0f));
+            SetVisualMode(false);
+        }
+
+        private static void FitModel(GameObject m, float target)
+        {
+            var rends = m.GetComponentsInChildren<Renderer>();
+            if (rends.Length == 0) return;
+            Bounds b = rends[0].bounds;
+            for (int i = 1; i < rends.Length; i++) b.Encapsulate(rends[i].bounds);
+            float maxd = Mathf.Max(b.size.x, b.size.y, b.size.z);
+            if (maxd > 0.0001f) m.transform.localScale *= target / maxd;
+        }
+
+        /// <summary>Swap visual emphasis: architecture (cube + icon) vs story (model if present).</summary>
+        public void SetVisualMode(bool story)
+        {
+            bool hasModel = _model != null;
+            if (_renderer != null) _renderer.enabled = !(story && hasModel);
+            if (_model != null) _model.SetActive(story);
+            if (_iconCard != null) _iconCard.SetActive(!story);
         }
 
         private void LateUpdate()
         {
             if (_label != null) Billboard.Face(_label.transform);
+            if (_iconCard != null) Billboard.Face(_iconCard.transform);
         }
 
         public void SetVisible(bool v) => gameObject.SetActive(v);
@@ -79,13 +137,19 @@ namespace LearnAWS.World
         {
             if (_renderer == null) return;
             Color c = d ? new Color(_baseColor.r * 0.32f, _baseColor.g * 0.32f, _baseColor.b * 0.32f, _baseColor.a) : _baseColor;
-            _renderer.material.color = c;
-            if (_renderer.material.HasProperty("_BaseColor")) _renderer.material.SetColor("_BaseColor", c);
+            SetColor(c);
         }
 
         public void SetHighlighted(bool h)
         {
             if (_body != null) _body.localScale = h ? _baseScale * 1.16f : _baseScale;
+        }
+
+        public void SetWorldPosition(Vector3 worldPos) => transform.position = worldPos;
+
+        public void SetLabel(string text)
+        {
+            if (_label != null) _label.text = text;
         }
 
         public void Flash(Color color, int times = 3)
@@ -126,6 +190,23 @@ namespace LearnAWS.World
                 yield return null;
             }
             if (_body != null) _body.localScale = _baseScale;
+        }
+
+        public void Shake(float duration = 1f, float magnitude = 0.12f)
+        {
+            if (isActiveAndEnabled) StartCoroutine(ShakeRoutine(duration, magnitude));
+        }
+
+        private IEnumerator ShakeRoutine(float duration, float magnitude)
+        {
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                if (_body != null) _body.localPosition = Random.insideUnitSphere * magnitude;
+                yield return null;
+            }
+            if (_body != null) _body.localPosition = Vector3.zero;
         }
     }
 
@@ -260,25 +341,47 @@ namespace LearnAWS.World
             if (_line != null) _line.startColor = _line.endColor = c;
         }
 
-        public void PlayPulse()
+        public void SetEndpoints(Vector3 from, Vector3 to)
+        {
+            _from = from;
+            _to = to;
+            if (_line != null)
+            {
+                _line.SetPosition(0, from);
+                _line.SetPosition(1, to);
+            }
+        }
+
+        public void PlayPulse() => StartMotion(MovePulse(1.2f));
+
+        /// <summary>Several quick pulses in a row — used to show a flood of arrivals.</summary>
+        public void PlayBurst(int count = 5) => StartMotion(BurstRoutine(count));
+
+        private void StartMotion(IEnumerator routine)
         {
             if (!isActiveAndEnabled) return;
             if (_running != null) StopCoroutine(_running);
-            _running = StartCoroutine(PulseRoutine());
+            _running = StartCoroutine(routine);
         }
 
-        private IEnumerator PulseRoutine()
+        private IEnumerator BurstRoutine(int count)
+        {
+            for (int i = 0; i < count; i++)
+                yield return MovePulse(0.4f);
+            _running = null;
+        }
+
+        private IEnumerator MovePulse(float duration)
         {
             _pulse.gameObject.SetActive(true);
             float t = 0f;
             while (t < 1f)
             {
-                t += Time.deltaTime / 1.2f;
+                t += Time.deltaTime / Mathf.Max(0.05f, duration);
                 _pulse.position = Vector3.Lerp(_from, _to, Mathf.Clamp01(t));
                 yield return null;
             }
             _pulse.gameObject.SetActive(false);
-            _running = null;
         }
     }
 }

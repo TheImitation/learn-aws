@@ -30,6 +30,11 @@ course map → 3D build journey (9 stages, replay + scrub, animated request flow
 Built **code-first** to run on a stock Unity 6 URP project with **no extra packages and no scene setup**.
 See [SETUP.md](SETUP.md): create a URP project, ensure legacy input is on, press Play.
 
+## Visuals
+The architecture view shows official **AWS service icons** on each block — run `bash scripts/fetch-assets.sh`
+to fetch them locally (they're gitignored, not redistributed). The story view can use **low-poly building
+models** dropped into `Resources/Models/`. Both fall back to coloured cubes if absent. See [ASSETS.md](ASSETS.md).
+
 ## Layout
 ```
 Assets/_Project/Scripts/

@@ -37,6 +37,7 @@ namespace LearnAWS.App
         private AppScreen _screen = AppScreen.CourseMap;
         private string _selectedBlockId;
         private bool _inspectorOpen;
+        private WorldViewMode _viewMode = WorldViewMode.Architecture;
         private QuizResult _lastResult;
 
         private Vector2 _pressPos;
@@ -56,6 +57,7 @@ namespace LearnAWS.App
         public AdGatekeeper Ads => _ads;
         public string SelectedBlockId => _selectedBlockId;
         public bool InspectorOpen => _inspectorOpen;
+        public bool StoryView => _viewMode == WorldViewMode.Story;
         public QuizResult LastResult => _lastResult;
         public string LastTappedBlockId { get; private set; }
         public void ClearTapped() => LastTappedBlockId = null;
@@ -195,6 +197,7 @@ namespace LearnAWS.App
             _ads.HideBanner();
             _ads.IsLearningInProgress = true;
             _progress.MarkLearning(topic.id);
+            _viewMode = WorldViewMode.Architecture;
             _journey.Begin(topic, _world, _rig);
             if (_journey.Current != null) _selectedBlockId = _journey.Current.focusBlockId;
         }
@@ -209,6 +212,13 @@ namespace LearnAWS.App
         }
 
         public void ToggleInspector() => _inspectorOpen = !_inspectorOpen;
+
+        public void ToggleViewMode()
+        {
+            _viewMode = _viewMode == WorldViewMode.Story ? WorldViewMode.Architecture : WorldViewMode.Story;
+            _world.SetViewMode(_viewMode);
+            _journey.Replay(); // re-apply the current stage in the new layout and re-frame the camera
+        }
 
         public void StartAssessment()
         {

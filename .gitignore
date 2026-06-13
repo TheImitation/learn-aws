@@ -47,6 +47,13 @@ crashlytics-build.properties
 # ---- Claude Code (local/personal) ----
 .claude/settings.local.json
 
+# ---- Third-party visual assets (fetched locally via scripts/fetch-assets.sh; not redistributed) ----
+/Assets/_Project/Resources/Icons/
+/Assets/_Project/Resources/Models/
+
+# ---- Stray nested Unity project (accidental duplicate; safe to delete from disk) ----
+/Learn-aws/
+
 # ---- OS ----
 .DS_Store
 .DS_Store?

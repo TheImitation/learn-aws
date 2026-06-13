@@ -157,6 +157,8 @@ namespace LearnAWS.UI
             GUILayout.Space(12f);
             if (GUILayout.Button(app.InspectorOpen ? "Hide inspector" : "Inspect", UiStyles.Button, GUILayout.Width(140f), GUILayout.Height(34f)))
                 app.ToggleInspector();
+            if (GUILayout.Button(app.StoryView ? "View: Story" : "View: Architecture", UiStyles.Button, GUILayout.Width(178f), GUILayout.Height(34f)))
+                app.ToggleViewMode();
             GUILayout.FlexibleSpace();
             GUILayout.Label("Drag: orbit    Scroll/pinch: zoom    Right-drag: pan", UiStyles.Small);
             GUILayout.FlexibleSpace();

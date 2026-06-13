@@ -15,8 +15,16 @@ namespace LearnAWS.Content
         public ServiceCategory category = ServiceCategory.Generic;
 
         public bool isContainer;          // Region / VPC / Subnet -> drawn as a wireframe plot
-        public Vector3 position;          // world position (container = centre)
+        public Vector3 position;          // architecture-view world position (container = centre)
         public Vector3 size = Vector3.one; // container extents
+
+        // Story ("town") view:
+        public Vector3 storyPosition;     // where this block sits in the town layout
+        public string storyName;          // friendly name shown in story view (falls back to displayName)
+
+        // Visual assets (optional overrides; otherwise derived from kind). Files live under Resources/Icons & Resources/Models.
+        public string iconKey;            // AWS service icon shown in architecture view
+        public string modelKey;           // low-poly model used as the building in story view
 
         // "Peel the label" detail:
         public ArnInfo arn;
@@ -51,9 +59,11 @@ namespace LearnAWS.Content
     public enum StageAnimation
     {
         None,
-        Pulse,      // a request travels along a connection
-        Spike,      // overload / traffic spike
-        Failover    // an AZ drops; traffic reroutes
+        Pulse,       // a request travels along one connection
+        Spike,       // a surge -> the Auto Scaling group adds a worker
+        Overload,    // a single thing is swamped by arrivals and buckles
+        Chain,       // a request hops the whole path, link by link
+        Failover     // an AZ drops; traffic reroutes to the other
     }
 
     /// <summary>One step of the guided journey. Visibility lists are absolute, so scrubbing/replay is trivial.</summary>
@@ -65,7 +75,8 @@ namespace LearnAWS.Content
         public string concept;
         public string focusBlockId;
         public StageAnimation animation = StageAnimation.None;
-        public string animationConnectionId;
+        public string animationConnectionId;                                    // for Pulse
+        public List<string> animationChainConnectionIds = new List<string>();   // for Chain (ordered hops)
         public List<string> visibleBlockIds = new List<string>();
         public List<string> visibleConnectionIds = new List<string>();
     }
