@@ -24,7 +24,8 @@ namespace LearnAWS.Content
 
         // Visual assets (optional overrides; otherwise derived from kind). Files live under Resources/Icons & Resources/Models.
         public string iconKey;            // AWS service icon shown in architecture view
-        public string modelKey;           // low-poly model used as the building in story view
+        public string modelKey;           // low-poly model used as the prop in story view
+        public string storyProp;          // which generated story prop to use (e.g. "cook", "larder"); else derived from kind
 
         // "Peel the label" detail:
         public ArnInfo arn;
@@ -71,7 +72,8 @@ namespace LearnAWS.Content
     {
         public int index;
         public string title;
-        public string narration;
+        public string narration;        // Architecture view: plain AWS
+        public string storyNarration;   // Story view: the kitchen analog (falls back to narration)
         public string concept;
         public string focusBlockId;
         public StageAnimation animation = StageAnimation.None;
@@ -103,12 +105,15 @@ namespace LearnAWS.Content
         public List<QuestionSpec> questions = new List<QuestionSpec>();
     }
 
+    public enum StorySceneryStyle { OpenFloor, KitchenLines }
+
     public class TopicSpec
     {
         public string id;
         public string title;
         public string examDomain;
         public string summary;
+        public StorySceneryStyle sceneryStyle = StorySceneryStyle.OpenFloor;
 
         public List<BlockSpec> blocks = new List<BlockSpec>();
         public List<ConnectionSpec> connections = new List<ConnectionSpec>();

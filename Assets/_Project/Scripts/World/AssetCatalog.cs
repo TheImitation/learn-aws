@@ -52,6 +52,8 @@ namespace LearnAWS.World
                 case AwsBlockKind.InternetGateway: return "InternetGateway";
                 case AwsBlockKind.NatGateway: return "NATGateway";
                 case AwsBlockKind.User: return "User";
+                case AwsBlockKind.S3Bucket: return "S3";
+                case AwsBlockKind.GlacierVault: return "S3Glacier";
                 default: return "";
             }
         }
@@ -60,15 +62,15 @@ namespace LearnAWS.World
         {
             switch (kind)
             {
-                case AwsBlockKind.ApplicationLoadBalancer: return "frontdesk";
-                case AwsBlockKind.Ec2Instance: return "worker";
+                case AwsBlockKind.ApplicationLoadBalancer: return "pass";
+                case AwsBlockKind.Ec2Instance: return "cook";
                 case AwsBlockKind.RdsPrimary:
-                case AwsBlockKind.RdsStandby: return "records";
-                case AwsBlockKind.CloudFront: return "kiosk";
-                case AwsBlockKind.Route53: return "signpost";
-                case AwsBlockKind.User: return "person";
-                case AwsBlockKind.GenericServer: return "shop";
-                case AwsBlockKind.InternetGateway: return "gate";
+                case AwsBlockKind.RdsStandby: return "pantry";
+                case AwsBlockKind.CloudFront: return "grabandgo";
+                case AwsBlockKind.Route53: return "host";
+                case AwsBlockKind.User: return "customer";
+                case AwsBlockKind.GenericServer: return "linecook";
+                case AwsBlockKind.InternetGateway: return "servicedoor";
                 default: return "";
             }
         }

@@ -14,8 +14,8 @@ namespace LearnAWS.UI
     /// </summary>
     internal static class UiStyles
     {
-        public static GUIStyle Title, H2, Body, Small, SmallEmph, Button, Toggle, Ok, Bad, CenteredSmall, Card;
-        private static Texture2D _white, _cardBg;
+        public static GUIStyle Title, H2, Body, Small, SmallEmph, Button, Toggle, Ok, Bad, CenteredSmall, Card, KeyPoint, Analogy, Callout;
+        private static Texture2D _white, _cardBg, _calloutBg;
         private static bool _ready;
 
         private static readonly Color PanelColor = new Color(0.12f, 0.13f, 0.16f, 0.97f);
@@ -48,6 +48,12 @@ namespace LearnAWS.UI
 
             Card = new GUIStyle { padding = new RectOffset(14, 14, 12, 12) };
             Card.normal.background = _cardBg;
+
+            _calloutBg = Tex(new Color(0.22f, 0.18f, 0.10f));
+            KeyPoint = Mk(14, FontStyle.Bold, new Color(0.97f, 0.80f, 0.38f));
+            Analogy = Mk(13, FontStyle.Italic, new Color(0.56f, 0.80f, 0.86f));
+            Callout = new GUIStyle { padding = new RectOffset(10, 10, 7, 7) };
+            Callout.normal.background = _calloutBg;
         }
 
         private static GUIStyle Mk(int size, FontStyle fs, Color col)
@@ -114,6 +120,8 @@ namespace LearnAWS.UI
 
     public sealed class TopicHudView
     {
+        private bool _showAnalogy;
+
         public void Draw(AppRoot app)
         {
             var j = app.Journey;
@@ -134,8 +142,22 @@ namespace LearnAWS.UI
             UiStyles.Fill(new Rect(0, Screen.height - h, Screen.width, h), UiStyles.Panel);
             GUILayout.BeginArea(new Rect(16f, Screen.height - h + 12f, Screen.width - 32f, h - 22f));
 
-            GUILayout.Label(s.narration, UiStyles.Body);
-            GUILayout.Label("Why it matters:  " + s.concept, UiStyles.SmallEmph);
+            string narr = app.StoryView && !string.IsNullOrEmpty(s.storyNarration) ? s.storyNarration : s.narration;
+            GUILayout.Label(narr, UiStyles.Body);
+
+            if (_showAnalogy)
+            {
+                string other = app.StoryView ? s.narration : s.storyNarration;
+                if (!string.IsNullOrEmpty(other))
+                    GUILayout.Label((app.StoryView ? "In AWS:  " : "In the kitchen:  ") + other, UiStyles.Analogy);
+            }
+
+            if (!string.IsNullOrEmpty(s.concept))
+            {
+                GUILayout.BeginVertical(UiStyles.Callout);
+                GUILayout.Label("KEY POINT    " + s.concept, UiStyles.KeyPoint);
+                GUILayout.EndVertical();
+            }
             GUILayout.Space(4);
 
             GUILayout.BeginHorizontal();
@@ -159,6 +181,8 @@ namespace LearnAWS.UI
                 app.ToggleInspector();
             if (GUILayout.Button(app.StoryView ? "View: Story" : "View: Architecture", UiStyles.Button, GUILayout.Width(178f), GUILayout.Height(34f)))
                 app.ToggleViewMode();
+            if (GUILayout.Button(_showAnalogy ? "Hide analogy" : "Analogy", UiStyles.Button, GUILayout.Width(120f), GUILayout.Height(34f)))
+                _showAnalogy = !_showAnalogy;
             GUILayout.FlexibleSpace();
             GUILayout.Label("Drag: orbit    Scroll/pinch: zoom    Right-drag: pan", UiStyles.Small);
             GUILayout.FlexibleSpace();

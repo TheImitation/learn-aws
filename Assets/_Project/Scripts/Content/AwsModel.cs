@@ -32,7 +32,9 @@ namespace LearnAWS.Content
         RdsPrimary,
         RdsStandby,
         CloudFront,
-        Route53
+        Route53,
+        S3Bucket,
+        GlacierVault
     }
 
     public enum ConnectionFlowKind

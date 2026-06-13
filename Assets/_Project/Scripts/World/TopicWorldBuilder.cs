@@ -104,16 +104,27 @@ namespace LearnAWS.World
 
         private void BuildScenery()
         {
-            _scenery = new GameObject("TownScenery");
+            _scenery = new GameObject("StoryScenery");
             _scenery.transform.SetParent(_root, false);
 
-            AddPad(new Vector3(0f, -0.04f, -2.5f), new Vector3(15f, 0.08f, 16f), new Color(0.15f, 0.16f, 0.19f));   // ground
-            AddPad(new Vector3(-3.4f, 0.0f, 0.8f), new Vector3(4.8f, 0.06f, 7.6f), new Color(0.18f, 0.26f, 0.34f)); // neighbourhood A
-            AddPad(new Vector3(3.4f, 0.0f, 0.8f), new Vector3(4.8f, 0.06f, 7.6f), new Color(0.18f, 0.32f, 0.24f));  // neighbourhood B
-            AddPad(new Vector3(0f, 0.03f, -4.5f), new Vector3(0.7f, 0.05f, 11f), new Color(0.30f, 0.30f, 0.32f));   // main road
-
-            AddSceneryLabel("Neighbourhood A (AZ-a)", new Vector3(-3.4f, 0.7f, 4.9f));
-            AddSceneryLabel("Neighbourhood B (AZ-b)", new Vector3(3.4f, 0.7f, 4.9f));
+            if (_topic != null && _topic.sceneryStyle == StorySceneryStyle.KitchenLines)
+            {
+                AddPad(new Vector3(-1.5f, -0.04f, 0f), new Vector3(16f, 0.08f, 8.5f), new Color(0.15f, 0.15f, 0.17f));  // floor
+                AddPad(new Vector3(2.6f, 0.0f, -2.2f), new Vector3(7.6f, 0.06f, 1.8f), new Color(0.22f, 0.27f, 0.33f)); // line A
+                AddPad(new Vector3(2.6f, 0.0f, 2.2f), new Vector3(7.6f, 0.06f, 1.8f), new Color(0.20f, 0.30f, 0.24f));  // line B
+                AddPad(new Vector3(-6.0f, 0.0f, 0f), new Vector3(3.2f, 0.06f, 4.6f), new Color(0.27f, 0.24f, 0.20f));   // front of house
+                AddSceneryLabel("Kitchen line A", new Vector3(2.6f, 0.7f, -3.4f));
+                AddSceneryLabel("Kitchen line B", new Vector3(2.6f, 0.7f, 3.4f));
+                AddSceneryLabel("Front of house", new Vector3(-6.0f, 0.7f, 2.7f));
+            }
+            else
+            {
+                AddPad(new Vector3(-1.5f, -0.04f, 0f), new Vector3(16f, 0.08f, 8f), new Color(0.15f, 0.15f, 0.17f));    // floor
+                AddPad(new Vector3(3.0f, 0.0f, 0f), new Vector3(7f, 0.06f, 5f), new Color(0.24f, 0.22f, 0.18f));        // the store
+                AddPad(new Vector3(-5.5f, 0.0f, 0f), new Vector3(3.2f, 0.06f, 4.6f), new Color(0.20f, 0.24f, 0.27f));   // service area
+                AddSceneryLabel("The store", new Vector3(3.0f, 0.7f, 2.9f));
+                AddSceneryLabel("Service area", new Vector3(-5.5f, 0.7f, 2.7f));
+            }
 
             _scenery.SetActive(false);
         }

@@ -32,8 +32,9 @@ See [SETUP.md](SETUP.md): create a URP project, ensure legacy input is on, press
 
 ## Visuals
 The architecture view shows official **AWS service icons** on each block — run `bash scripts/fetch-assets.sh`
-to fetch them locally (they're gitignored, not redistributed). The story view can use **low-poly building
-models** dropped into `Resources/Models/`. Both fall back to coloured cubes if absent. See [ASSETS.md](ASSETS.md).
+to fetch them locally (they're gitignored, not redistributed). The story view is a restaurant **kitchen
+service line** and can use **low-poly kitchen models** dropped into `Resources/Models/`. Both fall back to
+generated primitives if absent. See [ASSETS.md](ASSETS.md).
 
 ## Layout
 ```

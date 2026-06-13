@@ -75,7 +75,7 @@ namespace LearnAWS.World
             _renderer = body.GetComponent<Renderer>();
             _renderer.material = MaterialFactory.CreateLit(_baseColor);
 
-            // Optional low-poly model used as the building in story view.
+            // Story-view building: a dropped-in model if present, else a generated stylized building.
             var prefab = AssetCatalog.LoadModel(AssetCatalog.ModelKeyFor(spec));
             if (prefab != null)
             {
@@ -84,8 +84,13 @@ namespace LearnAWS.World
                 _model.transform.localRotation = Quaternion.identity;
                 foreach (var col in _model.GetComponentsInChildren<Collider>()) Destroy(col);
                 FitModel(_model, 1.1f);
-                _model.SetActive(false);
             }
+            else
+            {
+                string prop = !string.IsNullOrEmpty(spec.storyProp) ? spec.storyProp : StoryBuildingFactory.DefaultStoryProp(spec.kind);
+                _model = StoryBuildingFactory.Create(prop, _baseColor, _body);
+            }
+            if (_model != null) _model.SetActive(false);
 
             // Optional AWS service icon shown in architecture view.
             var icon = AssetCatalog.LoadIcon(AssetCatalog.IconKeyFor(spec));

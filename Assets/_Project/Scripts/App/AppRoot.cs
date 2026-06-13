@@ -20,7 +20,7 @@ namespace LearnAWS.App
     {
         public enum AppScreen { CourseMap, Topic, Assessment, Results }
 
-        public const float BottomPanelH = 184f;
+        public const float BottomPanelH = 214f;
         public const float InspectorW = 372f;
         public const float AssessW = 466f;
 

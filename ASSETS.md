@@ -27,26 +27,27 @@ Key mapping (block kind → file):
 (`VPC`, `Region`, `AutoScaling`, `NATGateway` are also fetched for future use.)
 Override per block with `BlockSpec.iconKey`; otherwise it's derived from the block kind.
 
-## Story view — low-poly building models (optional, drop-in)
-In story view each service becomes a building. If a model exists it's used; otherwise the coloured cube remains.
+## Story view — kitchen models (optional, drop-in)
+The story view is a restaurant **kitchen service line**. If a model exists for a station it's used; otherwise
+a stylized primitive prop is generated.
 
 - Location: `Assets/_Project/Resources/Models/{key}` (a prefab, or an `.fbx` / `.glb` Unity imports)
-- Suggested CC0 source: Kenney "City Kit" / "Building Kit" (https://kenney.nl/assets — public domain),
-  or Quaternius. No attribution required for CC0.
-- Author models roughly **1 unit** in size, centred, facing +Z. The loader auto-scales to fit, but a sane base helps.
+- Suggested CC0 sources: Kenney **"Food Kit"** + **"Mini Characters"** / **"Blocky Characters"** + **"Furniture Kit"**
+  (https://kenney.nl/assets — public domain, no attribution), or Quaternius.
+- Author models roughly **1 unit** in size, centred, facing +Z. The loader auto-scales to fit.
 
 Model keys (block kind → key):
 
-| Building | Model key |
+| Station | Model key |
 |------|------|
-| Front desk (ALB) | `frontdesk` |
-| Worker (EC2) | `worker` |
-| Records office (RDS) | `records` |
-| Pickup point (CloudFront) | `kiosk` |
-| Signpost (Route 53) | `signpost` |
-| Visitor (user) | `person` |
-| The one shop | `shop` |
-| Road to outside (IGW) | `gate` |
+| The pass (ALB) | `pass` |
+| Cook (EC2) | `cook` |
+| Pantry (RDS primary/standby) | `pantry` |
+| Grab-and-go (CloudFront) | `grabandgo` |
+| Host stand (Route 53) | `host` |
+| Customer (user) | `customer` |
+| The one cook (single server) | `linecook` |
+| Service door (IGW) | `servicedoor` |
 
 Override per block with `BlockSpec.modelKey`.
 

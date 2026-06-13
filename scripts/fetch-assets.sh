@@ -29,4 +29,6 @@ fetch NATGateway      NetworkingContentDelivery/VPCNATGateway.png
 fetch AutoScaling     Groups/AutoScalingGroup.png
 fetch Region          Groups/Region.png
 fetch User            General/User.png
+fetch S3              Storage/SimpleStorageService.png
+fetch S3Glacier       Storage/SimpleStorageServiceGlacier.png
 echo "Done."
