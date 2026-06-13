@@ -54,6 +54,9 @@ namespace LearnAWS.World
                 case AwsBlockKind.User: return "User";
                 case AwsBlockKind.S3Bucket: return "S3";
                 case AwsBlockKind.GlacierVault: return "S3Glacier";
+                case AwsBlockKind.IamService: return "IAM";
+                case AwsBlockKind.BastionHost: return "EC2";
+                case AwsBlockKind.SqsQueue: return "SQS";
                 default: return "";
             }
         }

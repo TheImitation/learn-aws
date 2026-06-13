@@ -180,10 +180,11 @@ namespace LearnAWS.World
                 case StageAnimation.Spike:
                     if (_blocks.TryGetValue("ec2A2", out var scaled) && scaled.gameObject.activeSelf) scaled.PlayPop();
                     PulseIfPresent("c_alb_ec2A2");
+                    if (_blocks.TryGetValue(stage.focusBlockId, out var grew) && grew.gameObject.activeSelf) grew.PlayPop();
                     break;
 
                 case StageAnimation.Overload:
-                    BurstIfPresent("c_user_server", 6);
+                    BurstIfPresent(!string.IsNullOrEmpty(stage.animationConnectionId) ? stage.animationConnectionId : "c_user_server", 6);
                     if (_blocks.TryGetValue(stage.focusBlockId, out var swamped) && swamped.gameObject.activeSelf)
                     {
                         swamped.Shake(1.4f);

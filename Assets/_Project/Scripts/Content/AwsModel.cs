@@ -34,7 +34,11 @@ namespace LearnAWS.Content
         CloudFront,
         Route53,
         S3Bucket,
-        GlacierVault
+        GlacierVault,
+        IamService,
+        SecurityGroup,
+        BastionHost,
+        SqsQueue
     }
 
     public enum ConnectionFlowKind

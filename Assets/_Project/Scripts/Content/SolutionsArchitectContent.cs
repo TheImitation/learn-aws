@@ -20,7 +20,7 @@ namespace LearnAWS.Content
             {
                 id = "saa-c03",
                 title = "AWS Solutions Architect",
-                topics = new List<TopicSpec> { BuildHighlyAvailableWebApp(), BuildStorage() }
+                topics = new List<TopicSpec> { BuildHighlyAvailableWebApp(), BuildStorage(), BuildIam(), BuildNetworking(), BuildMessaging() }
             };
         }
 
@@ -165,6 +165,149 @@ namespace LearnAWS.Content
             t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "You have data you rarely access but must keep cheaply. What fits?", options = new[] { "A lifecycle rule moving it to S3 Glacier", "Delete it", "Keep it on an EC2 disk", "Cache it in CloudFront forever" }, correctIndices = new[] { 0 }, explanation = "Lifecycle rules transition cold objects to cheaper classes such as Glacier." });
             t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "Where does S3's durability come from?", options = new[] { "It automatically stores redundant copies across multiple Availability Zones", "You configure RAID yourself", "A single disk with nightly backups", "CloudFront edge caches" }, correctIndices = new[] { 0 }, explanation = "S3 redundantly stores each object across multiple AZs within the Region." });
             t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.TapToFix, prompt = "Downloads are slow for users worldwide and your S3 origin is overloaded. Tap the component to add in front of S3.", tapTargetBlockId = "cf", explanation = "CloudFront caches content at edge locations near users, cutting latency and offloading the S3 origin." });
+
+            return t;
+        }
+
+        private static TopicSpec BuildIam()
+        {
+            var t = new TopicSpec
+            {
+                id = "secure-access-iam",
+                title = "Secure Access with IAM",
+                examDomain = "Design Secure Architectures",
+                summary = "Hand out the right keys: individual identities, least privilege, temporary badges, and a second lock.",
+                sceneryStyle = StorySceneryStyle.OpenFloor
+            };
+
+            t.blocks.Add(new BlockSpec { id = "staff", kind = AwsBlockKind.User, displayName = "Person / app", category = ServiceCategory.Generic, position = new Vector3(-7f, 0.7f, 0f), storyPosition = new Vector3(-7f, 0.7f, 0f), storyName = "Staff member", plainSummary = "Someone (or something) that needs access.", realSummary = "An IAM identity: a user, a federated principal, or a role." });
+            t.blocks.Add(new BlockSpec { id = "iam", kind = AwsBlockKind.IamService, displayName = "IAM", category = ServiceCategory.Security, position = new Vector3(-2f, 0.7f, 0f), storyPosition = new Vector3(-2f, 0.7f, 0f), storyName = "Security desk", plainSummary = "Issues identities and decides who can do what.", realSummary = "IAM: users, roles, and policies that allow or deny actions on resources." });
+            t.blocks.Add(new BlockSpec { id = "stockroom", kind = AwsBlockKind.S3Bucket, displayName = "Assets bucket", category = ServiceCategory.Storage, position = new Vector3(2.5f, 0.7f, -1.6f), storyPosition = new Vector3(2.5f, 0.7f, -1.6f), storyName = "Stockroom", arn = new ArnInfo("s3", "", "", "app-assets"), plainSummary = "A resource this identity is allowed to use.", realSummary = "An S3 bucket the identity's policy permits." });
+            t.blocks.Add(new BlockSpec { id = "safe", kind = AwsBlockKind.S3Bucket, displayName = "Payroll bucket", category = ServiceCategory.Storage, position = new Vector3(2.5f, 0.7f, 1.6f), storyPosition = new Vector3(2.5f, 0.7f, 1.6f), storyName = "Payroll safe", storyProp = "coldroom", arn = new ArnInfo("s3", "", "", "payroll"), plainSummary = "A resource this identity must NOT use.", realSummary = "An S3 bucket the policy doesn't grant — least privilege keeps it off-limits." });
+
+            t.connections.Add(new ConnectionSpec { id = "c_staff_iam", fromBlockId = "staff", toBlockId = "iam", flow = ConnectionFlowKind.Request, plainSummary = "Collect a badge from the security desk.", requirement = new ConnectionRequirement { addressNote = "the identity (user or role)", permissionNote = "authenticated (password/keys, ideally + MFA)", routeNote = "AWS sign-in / STS" } });
+            t.connections.Add(new ConnectionSpec { id = "c_staff_stock", fromBlockId = "staff", toBlockId = "stockroom", flow = ConnectionFlowKind.Request, plainSummary = "The badge opens the stockroom — the policy allows it.", requirement = new ConnectionRequirement { addressNote = "the bucket ARN", permissionNote = "the attached policy grants s3:GetObject on this bucket", iam = new IamGrant("assets-reader", "s3:GetObject on app-assets"), routeNote = "evaluated by IAM on every request" } });
+
+            t.stages.Add(new StageSpec { index = 0, title = "Lock away the master key", focusBlockId = "iam", animation = StageAnimation.Pulse, animationConnectionId = "c_staff_iam",
+                narration = "The account root user can do anything and can't be restricted. Using it day-to-day is dangerous — one leak exposes everything. Lock it away behind MFA and create individual IAM identities for real work.",
+                storyNarration = "There's one master key that opens every door in the building. If a manager carries it around and loses it, you're finished. Lock it in the safe and give people their own keys.",
+                concept = "Never use the account root user for daily work.", visibleBlockIds = Ids("staff", "iam"), visibleConnectionIds = Ids("c_staff_iam") });
+            t.stages.Add(new StageSpec { index = 1, title = "Everyone gets their own key", focusBlockId = "staff",
+                narration = "Give each person and application its own IAM identity. Now every action is traceable to someone, and you can rotate or revoke one set of credentials without disturbing the rest.",
+                storyNarration = "Issue each staff member their own keycard from the security desk. You can see who opened what, and cancel one card without re-keying the whole building.",
+                concept = "Individual identities = traceable, independently revocable access.", visibleBlockIds = Ids("staff", "iam", "stockroom"), visibleConnectionIds = Ids("c_staff_iam", "c_staff_stock") });
+            t.stages.Add(new StageSpec { index = 2, title = "Least privilege", focusBlockId = "safe", animation = StageAnimation.Pulse, animationConnectionId = "c_staff_stock",
+                narration = "Attach policies that grant only what each identity needs. The assets role can read the assets bucket but not the payroll bucket. Start closed, and add permissions deliberately.",
+                storyNarration = "The badge opens the stockroom — but NOT the payroll safe. Each badge opens only the doors that job needs, and nothing more.",
+                concept = "Least privilege: grant only the permissions actually needed.", visibleBlockIds = Ids("staff", "iam", "stockroom", "safe"), visibleConnectionIds = Ids("c_staff_iam", "c_staff_stock") });
+            t.stages.Add(new StageSpec { index = 3, title = "Roles, not long-lived keys", focusBlockId = "iam", animation = StageAnimation.Pulse, animationConnectionId = "c_staff_iam",
+                narration = "For temporary access and for services, use IAM roles — short-lived credentials assumed on demand — instead of long-lived access keys. An EC2 instance assumes a role to reach S3; no secrets are baked into the app.",
+                storyNarration = "Don't hand out permanent keys. Issue a shift badge that expires at the end of the shift — and even the delivery van (a service) gets a temporary badge, never the master key.",
+                concept = "Prefer roles (temporary credentials) over long-lived access keys.", visibleBlockIds = Ids("staff", "iam", "stockroom", "safe"), visibleConnectionIds = Ids("c_staff_iam", "c_staff_stock") });
+            t.stages.Add(new StageSpec { index = 4, title = "Add a second lock (MFA)", focusBlockId = "staff",
+                narration = "Require MFA for privileged users and sensitive actions. Even if a password leaks, an attacker can't get in without the second factor.",
+                storyNarration = "Put a second lock on the important doors: the keycard AND a code from the staff member's phone. A stolen card alone won't open it.",
+                concept = "MFA stops a stolen password from being enough.", visibleBlockIds = Ids("staff", "iam", "stockroom", "safe"), visibleConnectionIds = Ids("c_staff_iam", "c_staff_stock") });
+
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "Should you use the AWS account root user for day-to-day work?", options = new[] { "No — lock it away with MFA and use individual IAM identities", "Yes, it's simplest", "Only on weekdays", "Only for read-only tasks" }, correctIndices = new[] { 0 }, explanation = "Root is unrestricted and a single point of compromise. Secure it with MFA and use least-privilege IAM identities instead." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "What does 'least privilege' mean?", options = new[] { "Grant only the permissions an identity actually needs", "Give everyone admin to avoid blockers", "Turn off logging", "Share one user across the team" }, correctIndices = new[] { 0 }, explanation = "Start closed and grant only the specific actions and resources required." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "An EC2 instance needs to read an S3 bucket. Best practice?", options = new[] { "Attach an IAM role the instance assumes (temporary credentials)", "Hard-code an access key in the app", "Use the root user", "Make the bucket public" }, correctIndices = new[] { 0 }, explanation = "Roles provide rotating, short-lived credentials with no secrets stored in the app." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "Why require MFA?", options = new[] { "A stolen password alone can't grant access", "It makes logins faster", "It replaces IAM policies", "It encrypts data at rest" }, correctIndices = new[] { 0 }, explanation = "MFA adds a second factor, so a leaked password isn't enough on its own." });
+
+            return t;
+        }
+
+        private static TopicSpec BuildNetworking()
+        {
+            var t = new TopicSpec
+            {
+                id = "network-boundaries-vpc",
+                title = "Network Boundaries",
+                examDomain = "Design Secure Architectures",
+                summary = "Keep servers off the street: private rooms, a bouncer on every door, and one guarded entrance.",
+                sceneryStyle = StorySceneryStyle.OpenFloor
+            };
+
+            t.blocks.Add(new BlockSpec { id = "admin", kind = AwsBlockKind.User, displayName = "Admin", category = ServiceCategory.Generic, position = new Vector3(-8f, 0.7f, 0f), storyPosition = new Vector3(-8f, 0.7f, 0f), storyName = "Admin", plainSummary = "An operator who needs to manage the server.", realSummary = "An administrator connecting from the internet." });
+            t.blocks.Add(new BlockSpec { id = "igw", kind = AwsBlockKind.InternetGateway, displayName = "Internet gateway", category = ServiceCategory.Networking, position = new Vector3(-4.5f, 0.7f, 0f), storyPosition = new Vector3(-4.5f, 0.7f, 0f), storyName = "Front door", plainSummary = "The only route between the VPC and the internet.", realSummary = "Internet gateway; only public subnets route to it." });
+            t.blocks.Add(new BlockSpec { id = "bastion", kind = AwsBlockKind.BastionHost, displayName = "Bastion host", category = ServiceCategory.Compute, position = new Vector3(-1.5f, 0.7f, 0f), storyPosition = new Vector3(-1.5f, 0.7f, 0f), storyName = "Guard post", plainSummary = "The one hardened, audited way in to private servers.", realSummary = "Bastion host in a public subnet (or use SSM Session Manager instead)." });
+            t.blocks.Add(new BlockSpec { id = "sg", kind = AwsBlockKind.SecurityGroup, displayName = "Security group", category = ServiceCategory.Security, position = new Vector3(2f, 0.7f, 0f), storyPosition = new Vector3(2f, 0.7f, 0f), storyName = "Bouncer", plainSummary = "Allows only specific traffic to the server.", realSummary = "Stateful, instance-level firewall; deny by default, allow named sources and ports." });
+            t.blocks.Add(new BlockSpec { id = "web", kind = AwsBlockKind.Ec2Instance, displayName = "Web server", category = ServiceCategory.Compute, position = new Vector3(5f, 0.7f, 0f), storyPosition = new Vector3(5f, 0.7f, 0f), storyName = "Back-of-house server", ports = new[] { "443" }, plainSummary = "The server doing the work, kept private.", realSummary = "EC2 in a private subnet; reachable only via the load balancer/bastion per its security group." });
+
+            t.connections.Add(new ConnectionSpec { id = "c_admin_web", fromBlockId = "admin", toBlockId = "web", flow = ConnectionFlowKind.Request, plainSummary = "Anyone on the internet reaching the server directly.", requirement = new ConnectionRequirement { addressNote = "the server's public IP", permissionNote = "wide-open SG (22 from 0.0.0.0/0) — dangerous", securityGroup = new SecurityGroupRule("inbound", "TCP", "22", "0.0.0.0/0"), routeNote = "public subnet, public IP" } });
+            t.connections.Add(new ConnectionSpec { id = "c_admin_bastion", fromBlockId = "admin", toBlockId = "bastion", flow = ConnectionFlowKind.Request, plainSummary = "Admins enter only through the guarded post.", requirement = new ConnectionRequirement { addressNote = "the bastion's address", permissionNote = "bastion SG allows the admin source only", securityGroup = new SecurityGroupRule("inbound", "TCP", "22", "admin office IP"), routeNote = "public subnet" } });
+            t.connections.Add(new ConnectionSpec { id = "c_bastion_web", fromBlockId = "bastion", toBlockId = "web", flow = ConnectionFlowKind.Network, plainSummary = "From the guard post, reach the private server.", requirement = new ConnectionRequirement { addressNote = "the server's private IP", permissionNote = "server SG allows the bastion's SG only", securityGroup = new SecurityGroupRule("inbound", "TCP", "22", "bastion SG"), routeNote = "private subnet, internal" } });
+            t.connections.Add(new ConnectionSpec { id = "c_sg_web", fromBlockId = "sg", toBlockId = "web", flow = ConnectionFlowKind.Network, plainSummary = "The bouncer controls who reaches the server's door.", requirement = new ConnectionRequirement { addressNote = "applied to the instance", permissionNote = "allow 443 from the load balancer; deny the rest", securityGroup = new SecurityGroupRule("inbound", "TCP", "443", "load-balancer SG"), routeNote = "evaluated on every packet to the instance" } });
+
+            t.stages.Add(new StageSpec { index = 0, title = "Don't leave the door open", focusBlockId = "web", animation = StageAnimation.Overload, animationConnectionId = "c_admin_web",
+                narration = "A server with a public IP and SSH/RDP open to 0.0.0.0/0 is found and attacked within minutes. Direct, unrestricted exposure is the most common mistake.",
+                storyNarration = "Leaving the kitchen's street door propped open means anyone can wander straight in — and bots rattle the handle around the clock.",
+                concept = "Don't expose servers directly to the whole internet.", visibleBlockIds = Ids("admin", "web"), visibleConnectionIds = Ids("c_admin_web") });
+            t.stages.Add(new StageSpec { index = 1, title = "Move it to a private room", focusBlockId = "web",
+                narration = "Place servers in private subnets — there is no route from the internet to them. Only what you deliberately put in a public subnet (a load balancer, a bastion) is reachable.",
+                storyNarration = "Move the kitchen to the back of house. There simply is no door from the street to it — you come through the front and get let through.",
+                concept = "Private subnets have no inbound route from the internet.", visibleBlockIds = Ids("admin", "igw", "web") });
+            t.stages.Add(new StageSpec { index = 2, title = "A bouncer on the door", focusBlockId = "sg", animation = StageAnimation.Pulse, animationConnectionId = "c_sg_web",
+                narration = "A security group is a stateful firewall on the instance: allow only the ports and sources you need (e.g. 443 from the load balancer's group); everything else is denied by default. A NACL adds a coarser, stateless check at the subnet edge.",
+                storyNarration = "Post a bouncer at the door with a guest list: only the front desk's people get in, on the one door that matters. Everyone else is turned away.",
+                concept = "Security groups: stateful, instance-level allow-lists (deny by default).", visibleBlockIds = Ids("admin", "igw", "sg", "web"), visibleConnectionIds = Ids("c_sg_web") });
+            t.stages.Add(new StageSpec { index = 3, title = "One guarded entrance", focusBlockId = "bastion", animation = StageAnimation.Chain, animationChainConnectionIds = Ids("c_admin_bastion", "c_bastion_web"),
+                narration = "Admins shouldn't open SSH to the world. Reach private servers through a single hardened, audited entry point — a bastion host, or better, SSM Session Manager with no open inbound ports at all.",
+                storyNarration = "Staff don't each get a street door. They check in at one guarded post, and only from there can they step into the back of house.",
+                concept = "One hardened, audited entrance beats exposing every server.", visibleBlockIds = Ids("admin", "igw", "bastion", "sg", "web"), visibleConnectionIds = Ids("c_admin_bastion", "c_bastion_web", "c_sg_web") });
+
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "A web server should accept traffic only from the load balancer. Best tool?", options = new[] { "A security group allowing 443 from the load balancer's group", "Give the server a public IP", "A NAT gateway", "An S3 bucket policy" }, correctIndices = new[] { 0 }, explanation = "Security groups are stateful, instance-level firewalls; allow only the needed port from the specific source group." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "Security groups are…", options = new[] { "Stateful firewalls at the instance level", "Stateless and only at the subnet level", "A DNS service", "A storage class" }, correctIndices = new[] { 0 }, explanation = "Security groups are stateful and instance-level; NACLs are the stateless, subnet-level control." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "How should admins reach servers in private subnets?", options = new[] { "Via a bastion host or SSM Session Manager", "Open SSH to 0.0.0.0/0 on every server", "Give every server a public IP", "Disable the security group" }, correctIndices = new[] { 0 }, explanation = "A single hardened, audited entry point minimises exposure; SSM needs no open inbound ports at all." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.TapToFix, prompt = "This server is exposed to the whole internet on SSH. Tap the component to route admin access through instead.", tapTargetBlockId = "bastion", explanation = "A bastion host (or SSM) is the single guarded door to private servers; don't take SSH from the world on each server." });
+
+            return t;
+        }
+
+        private static TopicSpec BuildMessaging()
+        {
+            var t = new TopicSpec
+            {
+                id = "decouple-with-queue-sqs",
+                title = "Decouple with a Queue",
+                examDomain = "Design Resilient Architectures",
+                summary = "Stop the waiter waiting on the cook: a ticket rail buffers orders so neither side ever stalls.",
+                sceneryStyle = StorySceneryStyle.KitchenLines
+            };
+
+            t.blocks.Add(new BlockSpec { id = "waiter", kind = AwsBlockKind.Ec2Instance, displayName = "Producer", category = ServiceCategory.Compute, position = new Vector3(-6f, 0.7f, 0f), storyPosition = new Vector3(-6f, 0.7f, 0f), storyName = "Waiter", storyProp = "customer", plainSummary = "Creates work (sends messages).", realSummary = "A producer app that sends messages to the queue." });
+            t.blocks.Add(new BlockSpec { id = "queue", kind = AwsBlockKind.SqsQueue, displayName = "SQS queue", category = ServiceCategory.Generic, position = new Vector3(-1f, 0.7f, 0f), storyPosition = new Vector3(-1f, 0.7f, 0f), storyName = "Ticket rail", endpoint = "https://sqs.eu-west-1.amazonaws.com/123/orders", plainSummary = "Holds messages until a consumer is ready.", realSummary = "An SQS queue; messages wait, are processed at-least-once, then deleted." });
+            t.blocks.Add(new BlockSpec { id = "cookA", kind = AwsBlockKind.Ec2Instance, displayName = "Consumer", category = ServiceCategory.Compute, position = new Vector3(3f, 0.7f, -1.6f), storyPosition = new Vector3(3f, 0.7f, -1.6f), storyName = "Cook", ports = new[] { "80" }, plainSummary = "Does the work (processes messages).", realSummary = "A consumer that polls the queue and processes messages." });
+            t.blocks.Add(new BlockSpec { id = "cookB", kind = AwsBlockKind.Ec2Instance, displayName = "Consumer (scaled out)", category = ServiceCategory.Compute, position = new Vector3(4.4f, 0.7f, 1.6f), storyPosition = new Vector3(4.4f, 0.7f, 1.6f), storyName = "Extra cook", ports = new[] { "80" }, plainSummary = "An extra consumer added to clear a backlog.", realSummary = "A consumer added by scaling on queue depth." });
+            t.blocks.Add(new BlockSpec { id = "dlq", kind = AwsBlockKind.SqsQueue, displayName = "Dead-letter queue", category = ServiceCategory.Generic, position = new Vector3(3f, 0.7f, 3.2f), storyPosition = new Vector3(3f, 0.7f, 3.2f), storyName = "Lost-tickets bin", plainSummary = "Holds messages that keep failing, for review.", realSummary = "Dead-letter queue; messages move here after N failed receives." });
+
+            t.connections.Add(new ConnectionSpec { id = "c_waiter_cook", fromBlockId = "waiter", toBlockId = "cookA", flow = ConnectionFlowKind.Request, plainSummary = "The waiter hands the order straight to the cook and waits.", requirement = new ConnectionRequirement { addressNote = "the consumer's address", permissionNote = "the consumer must be up right now", routeNote = "synchronous call" } });
+            t.connections.Add(new ConnectionSpec { id = "c_waiter_queue", fromBlockId = "waiter", toBlockId = "queue", flow = ConnectionFlowKind.Data, plainSummary = "The waiter clips the ticket to the rail and moves on.", requirement = new ConnectionRequirement { addressNote = "the queue URL", permissionNote = "sqs:SendMessage", routeNote = "fire-and-forget send" } });
+            t.connections.Add(new ConnectionSpec { id = "c_queue_cookA", fromBlockId = "queue", toBlockId = "cookA", flow = ConnectionFlowKind.Data, plainSummary = "A cook pulls the next ticket when free.", requirement = new ConnectionRequirement { addressNote = "the queue URL", permissionNote = "sqs:ReceiveMessage / DeleteMessage", routeNote = "consumer polls" } });
+            t.connections.Add(new ConnectionSpec { id = "c_queue_cookB", fromBlockId = "queue", toBlockId = "cookB", flow = ConnectionFlowKind.Data, plainSummary = "Extra cooks pull tickets to clear the backlog.", requirement = new ConnectionRequirement { addressNote = "the same queue", permissionNote = "sqs:ReceiveMessage", routeNote = "more consumers share the load" } });
+            t.connections.Add(new ConnectionSpec { id = "c_queue_dlq", fromBlockId = "queue", toBlockId = "dlq", flow = ConnectionFlowKind.Data, plainSummary = "A ticket that keeps failing is set aside in the bin.", requirement = new ConnectionRequirement { addressNote = "the dead-letter queue", permissionNote = "redrive policy after maxReceiveCount", routeNote = "automatic on repeated failures" } });
+
+            t.stages.Add(new StageSpec { index = 0, title = "Stuck at the pass", focusBlockId = "cookA", animation = StageAnimation.Overload, animationConnectionId = "c_waiter_cook",
+                narration = "When a producer calls a consumer directly and waits, a slow or failed consumer stalls the producer — and work is lost if the consumer is down. The two are tightly coupled.",
+                storyNarration = "The waiter carries each order straight to a cook and waits for it to be taken. If the cook is slammed, the waiter is stuck at the pass and new orders pile up at the door.",
+                concept = "Direct coupling: a slow or failed consumer stalls the producer.", visibleBlockIds = Ids("waiter", "cookA"), visibleConnectionIds = Ids("c_waiter_cook") });
+            t.stages.Add(new StageSpec { index = 1, title = "Hang a ticket rail", focusBlockId = "queue", animation = StageAnimation.Chain, animationChainConnectionIds = Ids("c_waiter_queue", "c_queue_cookA"),
+                narration = "Put an SQS queue between them. The producer sends a message and returns immediately; the consumer polls and processes when ready. Neither waits on the other.",
+                storyNarration = "Hang a ticket rail at the pass. The waiter clips the order to the rail and heads back to the floor; cooks pull the next ticket whenever a pair of hands is free.",
+                concept = "A queue decouples producer from consumer — neither blocks the other.", visibleBlockIds = Ids("waiter", "queue", "cookA"), visibleConnectionIds = Ids("c_waiter_queue", "c_queue_cookA") });
+            t.stages.Add(new StageSpec { index = 2, title = "Absorb the rush", focusBlockId = "cookB", animation = StageAnimation.Spike,
+                narration = "During a surge the queue buffers the backlog so nothing is dropped, and you scale consumers on queue depth to work through it.",
+                storyNarration = "A rush fills the rail with tickets — none are lost. Call in extra cooks who pull tickets until the rail clears.",
+                concept = "A queue buffers spikes; scale consumers on queue depth.", visibleBlockIds = Ids("waiter", "queue", "cookA", "cookB"), visibleConnectionIds = Ids("c_waiter_queue", "c_queue_cookA", "c_queue_cookB") });
+            t.stages.Add(new StageSpec { index = 3, title = "Set aside the bad tickets", focusBlockId = "dlq", animation = StageAnimation.Pulse, animationConnectionId = "c_queue_dlq",
+                narration = "Configure a dead-letter queue: a message that fails repeatedly is moved aside after N attempts, so one poison message doesn't block the queue. You inspect and fix it later.",
+                storyNarration = "A ticket nobody can cook — out of an ingredient — keeps coming back. After a few tries it goes in the lost-tickets bin for the manager, and never jams the rail.",
+                concept = "A dead-letter queue isolates poison messages so the queue keeps flowing.", visibleBlockIds = Ids("waiter", "queue", "cookA", "cookB", "dlq"), visibleConnectionIds = Ids("c_waiter_queue", "c_queue_cookA", "c_queue_cookB", "c_queue_dlq") });
+
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "Why put an SQS queue between a producer and a consumer?", options = new[] { "So a slow or failed consumer doesn't stall the producer, and work isn't lost", "To make the consumer run faster", "To store files cheaply", "To replace IAM" }, correctIndices = new[] { 0 }, explanation = "A queue decouples the two: the producer returns immediately and messages wait safely until consumed." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "Traffic spikes far beyond what consumers can handle. With a queue…", options = new[] { "Messages buffer in the queue; scale consumers to work through the backlog", "Messages are dropped immediately", "The producer crashes", "Nothing can be done" }, correctIndices = new[] { 0 }, explanation = "The queue absorbs the spike; scale consumers on queue depth to drain it." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.SingleChoice, prompt = "A message fails processing again and again. Best practice?", options = new[] { "Send it to a dead-letter queue after N attempts for later inspection", "Retry it forever", "Delete the whole queue", "Ignore all failures" }, correctIndices = new[] { 0 }, explanation = "A DLQ isolates poison messages so they don't block healthy ones; you review them separately." });
+            t.quiz.questions.Add(new QuestionSpec { kind = QuestionKind.TapToFix, prompt = "The waiter (producer) is stuck waiting on a busy cook. Tap what to add between them so neither stalls.", tapTargetBlockId = "queue", explanation = "An SQS queue buffers messages: the producer sends and returns; consumers process when ready." });
 
             return t;
         }

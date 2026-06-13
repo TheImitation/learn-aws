@@ -32,6 +32,10 @@ namespace LearnAWS.World
                 case "cook": Cook(root.transform, tint); break;
                 case "larder": Larder(root.transform, tint); break;
                 case "coldroom": ColdRoom(root.transform, tint); break;
+                case "securitydesk": SecurityDesk(root.transform, tint); break;
+                case "bouncer": Bouncer(root.transform, tint); break;
+                case "guardpost": GuardPost(root.transform, tint); break;
+                case "ticketrail": TicketRail(root.transform, tint); break;
                 default: Station(root.transform, tint); break;
             }
             return root;
@@ -53,6 +57,10 @@ namespace LearnAWS.World
                 case AwsBlockKind.GenericServer: return "cook";
                 case AwsBlockKind.S3Bucket: return "larder";
                 case AwsBlockKind.GlacierVault: return "coldroom";
+                case AwsBlockKind.IamService: return "securitydesk";
+                case AwsBlockKind.SecurityGroup: return "bouncer";
+                case AwsBlockKind.BastionHost: return "guardpost";
+                case AwsBlockKind.SqsQueue: return "ticketrail";
                 default: return "station";
             }
         }
@@ -166,6 +174,47 @@ namespace LearnAWS.World
             Prim(p, PrimitiveType.Cube, new Vector3(0f, -0.05f, 0.31f), new Vector3(0.5f, 0.7f, 0.04f), new Color(0.82f, 0.9f, 0.95f)); // door
             Prim(p, PrimitiveType.Cube, new Vector3(0.18f, -0.05f, 0.34f), new Vector3(0.04f, 0.3f, 0.04f), new Color(0.5f, 0.52f, 0.55f)); // handle
             Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.45f, 0f), new Vector3(0.76f, 0.08f, 0.66f), Shade(tint, 0.7f)); // accent
+        }
+
+        // A reception desk with a key board behind it — the security desk / manager's office (IAM).
+        private static void SecurityDesk(Transform p, Color tint)
+        {
+            Color key = new Color(0.85f, 0.78f, 0.40f);
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, -0.2f, 0.1f), new Vector3(0.7f, 0.4f, 0.4f), tint);
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.03f, 0.3f), new Vector3(0.74f, 0.06f, 0.06f), Shade(tint, 0.7f));
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.2f, -0.2f), new Vector3(0.66f, 0.5f, 0.05f), Shade(tint, 0.8f)); // key board
+            Prim(p, PrimitiveType.Cube, new Vector3(-0.2f, 0.22f, -0.16f), new Vector3(0.05f, 0.12f, 0.03f), key);
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.22f, -0.16f), new Vector3(0.05f, 0.12f, 0.03f), key);
+            Prim(p, PrimitiveType.Cube, new Vector3(0.2f, 0.22f, -0.16f), new Vector3(0.05f, 0.12f, 0.03f), key);
+        }
+
+        // A doorperson in a dark suit beside a rope post — a security group (the bouncer).
+        private static void Bouncer(Transform p, Color tint)
+        {
+            Prim(p, PrimitiveType.Capsule, new Vector3(-0.12f, -0.1f, 0f), new Vector3(0.3f, 0.32f, 0.3f), new Color(0.20f, 0.20f, 0.24f));
+            Prim(p, PrimitiveType.Sphere, new Vector3(-0.12f, 0.24f, 0f), new Vector3(0.24f, 0.24f, 0.24f), new Color(0.92f, 0.78f, 0.62f));
+            Prim(p, PrimitiveType.Cylinder, new Vector3(0.22f, -0.18f, 0f), new Vector3(0.06f, 0.4f, 0.06f), tint);          // rope post
+            Prim(p, PrimitiveType.Sphere, new Vector3(0.22f, 0.24f, 0f), new Vector3(0.12f, 0.12f, 0.12f), tint);           // post top
+        }
+
+        // A guarded booth with a barrier — a bastion host (the one guarded entrance).
+        private static void GuardPost(Transform p, Color tint)
+        {
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, -0.05f, 0f), new Vector3(0.55f, 0.8f, 0.5f), Shade(tint, 0.85f));
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.12f, 0.26f), new Vector3(0.4f, 0.3f, 0.04f), new Color(0.7f, 0.85f, 0.95f)); // window
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.46f, 0f), new Vector3(0.66f, 0.1f, 0.6f), Shade(tint, 0.6f));               // roof
+            Prim(p, PrimitiveType.Cube, new Vector3(0.42f, -0.2f, 0.0f), new Vector3(0.5f, 0.05f, 0.05f), new Color(0.9f, 0.5f, 0.2f)); // barrier
+        }
+
+        // A rail hung with order tickets — the queue buffer (SQS).
+        private static void TicketRail(Transform p, Color tint)
+        {
+            Prim(p, PrimitiveType.Cube, new Vector3(-0.42f, 0.28f, 0f), new Vector3(0.05f, 0.55f, 0.05f), Steel); // post
+            Prim(p, PrimitiveType.Cube, new Vector3(0.42f, 0.28f, 0f), new Vector3(0.05f, 0.55f, 0.05f), Steel);
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.5f, 0f), new Vector3(0.92f, 0.04f, 0.04f), Steel);      // rail
+            for (int i = 0; i < 5; i++)
+                Prim(p, PrimitiveType.Cube, new Vector3(-0.32f + i * 0.16f, 0.39f, 0f), new Vector3(0.11f, 0.15f, 0.01f), Color.white);
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, -0.28f, 0f), new Vector3(0.92f, 0.1f, 0.3f), Shade(tint, 0.8f)); // base
         }
     }
 }
