@@ -14,7 +14,7 @@ export class Journey {
   _apply(instant) { this.world.applyStage(this.i); this._frame(instant); this._notify(); }
   _notify() { this.onStage && this.onStage(this.stage, this.i, this.count); }
   _frame(instant) {
-    this._goal = this.world.focusPoint(this.stage.focus);
+    this._goal = this.world.stageCenter(this.stage);
     if (instant && this._goal) { this.controls.target.copy(this._goal); this._goal = null; }
   }
   update(dt) {

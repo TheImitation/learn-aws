@@ -84,7 +84,7 @@ function openTopic(t) {
   world = new World(scene, t);
   world.setMode('story');
   journey = new Journey(world, controls, onStage);
-  camera.position.set(-0.5, 13, 16.5);
+  camera.position.set(...vantage('story', t.scenery));
   journey.begin();
   $('p-scrub').max = String(journey.count - 1);
   showScreen('topic');
@@ -111,9 +111,15 @@ function updateAnalogy(stage) {
   el.classList.remove('hidden');
 }
 
+// Camera vantage per view + scenery. Open-floor topics span a wider line than the restaurant,
+// so the story camera sits further back and centred.
+function vantage(m, scenery) {
+  if (m === 'arch') return [0, 16, 21];
+  return scenery === 'open' ? [-1.5, 14.5, 20.5] : [-0.5, 13, 16.5];
+}
 function setView(m) {
   mode = m;
-  if (m === 'arch') camera.position.set(0, 16, 21); else camera.position.set(-0.5, 13, 16.5);
+  camera.position.set(...vantage(m, topic.scenery));
   journey.setMode(m);
   $('inspector').classList.add('hidden');
 }

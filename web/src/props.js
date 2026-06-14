@@ -151,6 +151,35 @@ function ticketrail(color) {
   return g;
 }
 
+// A small object that travels along a connection — shaped by the kind of flow.
+export function makeToken(flow) {
+  const g = new THREE.Group();
+  if (flow === 'data') {                 // a plate of food
+    add(g, cyl(0.12, 0.025, 0xf2f2f2), 0, 0, 0);
+    add(g, sph(0.06, 0xd27a4d), 0, 0.05, 0);
+  } else if (flow === 'network') {       // a glowing network packet
+    add(g, box(0.15, 0.15, 0.15, 0x8fd0ff, true), 0, 0.04, 0);
+  } else if (flow === 'replication') {   // a duplicated ledger
+    add(g, box(0.2, 0.05, 0.15, 0xece6f7), -0.02, 0, 0.02);
+    add(g, box(0.2, 0.05, 0.15, 0xcdbef0), 0.03, 0.06, -0.03);
+  } else {                               // request: an order ticket on a clip
+    add(g, box(0.13, 0.18, 0.02, 0xffffff), 0, 0.05, 0);
+    add(g, box(0.13, 0.035, 0.03, WARM), 0, 0.15, 0);
+  }
+  return g;
+}
+
+// A neutral courier who walks the floor carrying a token on a tray.
+export function makeRunner(color) {
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.26, 6, 12), mat(0x3a4150)), 0, 0.27, 0);
+  add(g, sph(0.13, SKIN), 0, 0.62, 0);
+  add(g, box(0.28, 0.04, 0.2, STEEL), 0, 0.44, 0.17);   // tray, held out front (+z)
+  add(g, box(0.06, 0.05, 0.06, color), 0.16, 0.46, 0.17); // colour tab = which service it serves
+  g.userData.tray = new THREE.Vector3(0, 0.52, 0.18);
+  return g;
+}
+
 export function makeProp(kind, color) {
   switch (kind) {
     case 'customer': return person(color);
