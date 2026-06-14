@@ -28,9 +28,20 @@ function buildRestaurant(group) {
     const plate = box(0.18, 0.03, 0.18, 0xf2f2f2); put(plate, -6.2, 0.52, z);
   }
 }
+// A warm "back of house" room (the other topics happen behind the same front door as the kitchen).
 function buildOpenFloor(group) {
-  const f = box(17, 0.16, 9, 0x2a2c33); f.position.set(0, -0.08, 0); group.add(f);
+  const FLOOR = 0x423a33, WALL = 0x726c61, TRIM = 0x534f47;
+  const put = (m, x, y, z) => { m.position.set(x, y, z); group.add(m); };
+  put(box(18, 0.16, 11, FLOOR), -1.5, -0.08, 0);          // warm floor
+  put(box(18, 1.4, 0.25, WALL), -1.5, 0.7, -5.45);        // back wall
+  put(box(0.25, 1.4, 11, WALL), -10.4, 0.7, 0);           // left wall
+  put(box(0.25, 1.4, 11, WALL), 7.4, 0.7, 0);             // right wall
+  put(box(18, 0.18, 0.07, TRIM), -1.5, 0.16, -5.31);      // back baseboard
+  put(box(18, 0.3, 0.22, TRIM), -1.5, 0.15, 5.45);        // low front lip
+  put(box(2.6, 0.12, 0.5, TRIM), -7.0, 1.15, -5.2);       // a back-of-house shelf
+  put(box(2.6, 0.12, 0.5, TRIM), 2.0, 1.15, -5.2);
 }
+
 
 export class World {
   constructor(scene, topic) {
