@@ -36,6 +36,12 @@ controls.target.set(-0.8, 0.3, 0);
 controls.enableDamping = true;
 controls.update();
 
+// Cinematic camera ease — used to "arrive" into a topic and to smooth view toggles.
+let camTween = null;
+function flyCamera(to, dur = 1.4) {
+  camTween = { from: camera.position.clone(), to: new THREE.Vector3(to[0], to[1], to[2]), t: 0, dur };
+}
+
 scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x35301f, 0.6));   // sky / warm-ground ambient
 const sun = new THREE.DirectionalLight(0xfff1dc, 1.2); sun.position.set(6, 14, 8);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -97,8 +103,10 @@ function openTopic(t) {
   world = new World(scene, t);
   world.setMode('story');
   journey = new Journey(world, controls, onStage);
-  camera.position.set(...vantage('story', t.scenery));
+  const van = vantage('story', t.scenery);
+  camera.position.set(van[0] + 1.5, van[1] + 4, van[2] + 5.5); // start wider/higher...
   journey.begin();
+  flyCamera(van, 1.6);                                          // ...then settle into the space
   $('p-scrub').max = String(journey.count - 1);
   showScreen('topic');
 }
@@ -132,7 +140,7 @@ function vantage(m, scenery) {
 }
 function setView(m) {
   mode = m;
-  camera.position.set(...vantage(m, topic.scenery));
+  flyCamera(vantage(m, topic.scenery), 0.9);
   journey.setMode(m);
   $('inspector').classList.add('hidden');
 }
@@ -254,6 +262,12 @@ $('r-retry').onclick = startAssessment;
 let last = performance.now();
 renderer.setAnimationLoop(() => {
   const now = performance.now(); const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  if (camTween) {
+    camTween.t = Math.min(camTween.t + dt, camTween.dur);
+    const k = 1 - Math.pow(1 - camTween.t / camTween.dur, 3); // easeOutCubic
+    camera.position.lerpVectors(camTween.from, camTween.to, k);
+    if (camTween.t >= camTween.dur) camTween = null;
+  }
   controls.update();
   if (journey) journey.update(dt);
   if (world) world.update(dt);

@@ -10,7 +10,7 @@ export class Journey {
   next() { if (this.i < this.count - 1) this.goto(this.i + 1); }
   prev() { if (this.i > 0) this.goto(this.i - 1); }
   replay() { this._apply(false); }
-  setMode(mode) { this.world.setMode(mode); this._frame(true); this._notify(); }
+  setMode(mode) { this.world.setMode(mode); this._frame(false); this._notify(); }
   _apply(instant) { this.world.applyStage(this.i); this._frame(instant); this._notify(); }
   _notify() { this.onStage && this.onStage(this.stage, this.i, this.count); }
   _frame(instant) {
