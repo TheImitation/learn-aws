@@ -23,12 +23,12 @@ function buildRestaurant(group) {
   for (const z of [-1.6, 1.6]) { put(box(0.9, 0.1, 0.9, TABLE), -6.2, 0.45, z); put(box(0.12, 0.5, 0.12, TABLE), -6.2, 0.2, z); }
 }
 function buildOpenFloor(group) {
-  group.add(Object.assign(box(17, 0.16, 9, 0x2a2c33), { position: new THREE.Vector3(0, -0.08, 0) }));
+  const f = box(17, 0.16, 9, 0x2a2c33); f.position.set(0, -0.08, 0); group.add(f);
 }
 
 export class World {
   constructor(scene, topic) {
-    this.scene = scene; this.topic = topic; this.mode = 'story'; this.stageIndex = 0; this.tweens = [];
+    this.scene = scene; this.topic = topic; this.mode = 'story'; this.stageIndex = 0; this.tweens = []; this.animators = []; this.t = 0;
     this.archGroup = new THREE.Group(); this.storyGroup = new THREE.Group();
     scene.add(this.archGroup, this.storyGroup);
     this.blocks = {}; this.conns = {};
@@ -89,7 +89,8 @@ export class World {
     this.stageIndex = i;
     const st = this.topic.stages[i];
     const vis = new Set(st.blocks), vc = new Set(st.conns);
-    this.tweens = [];
+    for (const tw of this.tweens) tw.done && tw.done();
+    this.tweens = []; this.animators = [];
     for (const id in this.blocks) {
       const e = this.blocks[id], b = e.spec, visible = vis.has(id), isC = !!b.arch.container;
       if (e.arch) { e.arch.position.set(...b.arch.pos); e.arch.scale.setScalar(1); e.arch.visible = visible && this.mode === 'arch'; }
@@ -112,7 +113,7 @@ export class World {
       c.archLine.visible = visible && this.mode === 'arch';
       c.storyLine.visible = visible && this.mode === 'story';
     }
-    this._runAnimation(st);
+    this._setupAnimation(st);
   }
 
   focusPoint(id) {
@@ -133,24 +134,52 @@ export class World {
     return [v3(a.spec.story.pos, 0.6), v3(d.spec.story.pos, 0.6)];
   }
   _pulse(connId, delay = 0, dur = 1.0) {
-    const ep = this._endpoints(connId); if (!ep) return;
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const c = this.conns[connId]; const ep = this._endpoints(connId); if (!ep || !c) return;
+    const color = FLOW[c.spec.flow] ?? 0xffffff;
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), new THREE.MeshBasicMaterial({ color }));
     dot.visible = false; this.scene.add(dot);
     this.tweens.push({ t: -delay, dur, update(tw) { if (tw.t < 0) { dot.visible = false; return; } dot.visible = true; dot.position.lerpVectors(ep[0], ep[1], Math.min(tw.t / tw.dur, 1)); }, done: () => { this.scene.remove(dot); dot.geometry.dispose(); } });
   }
   _obj(id) { const e = this.blocks[id]; if (!e) return null; return this.mode === 'story' ? e.story : e.arch; }
-  _shake(id) { const o = this._obj(id); if (!o) return; const bx = o.position.x; this.tweens.push({ t: 0, dur: 1.2, update(tw) { o.position.x = bx + (Math.random() - 0.5) * 0.08; }, done: () => { o.position.x = bx; } }); }
   _pop(id) { const o = this._obj(id); if (!o) return; this.tweens.push({ t: 0, dur: 0.5, update(tw) { o.scale.setScalar(0.2 + 0.8 * Math.min(tw.t / 0.5, 1)); }, done: () => o.scale.setScalar(1) }); }
-  _runAnimation(st) {
-    if (!st.anim) return;
-    if (st.anim === 'pulse' && st.animConn) this._pulse(st.animConn);
-    else if (st.anim === 'chain' && st.chain) st.chain.forEach((id, i) => this._pulse(id, i * 0.55));
-    else if (st.anim === 'overload') { if (st.animConn) for (let i = 0; i < 5; i++) this._pulse(st.animConn, i * 0.18, 0.45); this._shake(st.focus); }
-    else if (st.anim === 'spike') { this._pop(st.focus); }
-    else if (st.anim === 'failover') { this._pulse('c_alb_ec2B', 0.3); this._pulse('c_ec2B_rds', 0.9); this._pop('rdsStandby'); this._shake('rdsPrimary'); }
+  _bob(id) { const o = this._obj(id); if (!o) return; const by = o.position.y, ph = Math.random() * 6.28; this.animators.push({ fn: (t) => { o.position.y = by + Math.sin(t * 2.4 + ph) * 0.05; } }); }
+  _shakeLoop(id) { const o = this._obj(id); if (!o) return; const bx = o.position.x; this.animators.push({ fn: () => { o.position.x = bx + (Math.random() - 0.5) * 0.07; } }); }
+  // Repeatedly send a wave of pulses along a path (orders continuously flowing through the system).
+  _flow(connIds, interval = 2.6, hop = 0.5) {
+    if (!connIds.length) return;
+    const wave = () => connIds.forEach((id, i) => this._pulse(id, i * hop, hop * 1.2));
+    wave();
+    this.animators.push({ timer: 0, fn: (t, dt, a) => { a.timer += dt; if (a.timer >= interval) { a.timer = 0; wave(); } } });
+  }
+  _floodConn(connId, interval = 0.3) {
+    if (!connId) return;
+    this.animators.push({ timer: 0, fn: (t, dt, a) => { a.timer += dt; if (a.timer >= interval) { a.timer = 0; this._pulse(connId, 0, 0.5); } } });
+  }
+  // Ambient + event animation for a stage; loops while the stage is active so the scene feels alive.
+  _setupAnimation(st) {
+    if (this.mode === 'story') {
+      for (const id in this.blocks) {
+        const e = this.blocks[id]; if (!e.story || !e.story.visible) continue;
+        const p = e.spec.story.prop;
+        if (p === 'cook' || p === 'customer' || p === 'host' || p === 'bouncer') this._bob(id);
+      }
+    }
+    const a = st.anim;
+    if (a === 'overload') { this._floodConn(st.animConn); this._shakeLoop(st.focus); return; }
+    const flowConns = this.topic.connections.filter((c) => st.conns.includes(c.id) && c.flow !== 'replication').map((c) => c.id);
+    if (a === 'failover') {
+      this._shakeLoop('rdsPrimary'); this._pop('rdsStandby');
+      const reroute = flowConns.filter((id) => !id.includes('ec2A'));
+      this._flow(reroute.length ? reroute : flowConns, 1.9, 0.45);
+      return;
+    }
+    if (a === 'spike') this._pop(st.focus);
+    this._flow(flowConns);
   }
 
   update(dt) {
+    this.t += dt;
+    for (const a of this.animators) a.fn(this.t, dt, a);
     for (const tw of this.tweens) { tw.t += dt; tw.update(tw); if (tw.t >= tw.dur && !tw._done) { tw._done = true; tw.done && tw.done(); } }
     this.tweens = this.tweens.filter((tw) => !tw._done);
   }
@@ -161,6 +190,7 @@ export class World {
     return arr;
   }
   dispose() {
+    for (const tw of this.tweens) tw.done && tw.done();
     this.scene.remove(this.archGroup); this.scene.remove(this.storyGroup);
     for (const id in this.blocks) this.scene.remove(this.blocks[id].label);
   }

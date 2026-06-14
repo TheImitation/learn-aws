@@ -98,6 +98,59 @@ export function containerWire(w, h, d, color) {
   return new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color }));
 }
 
+function larder(color) {
+  const g = new THREE.Group(); const stock = 0xa9855a, dk = darker(color, 0.6);
+  add(g, box(0.05, 0.9, 0.42, dk), -0.34, 0.45, 0);
+  add(g, box(0.05, 0.9, 0.42, dk), 0.34, 0.45, 0);
+  add(g, box(0.7, 0.9, 0.05, darker(color, 0.75)), 0, 0.45, -0.2);
+  for (const y of [0.2, 0.45, 0.7]) add(g, box(0.66, 0.05, 0.4, darker(color, 0.85)), 0, y, 0);
+  add(g, box(0.18, 0.18, 0.18, stock), -0.16, 0.3, 0.05);
+  add(g, box(0.18, 0.18, 0.18, stock), 0.16, 0.55, 0.05);
+  add(g, box(0.18, 0.18, 0.18, stock), -0.04, 0.78, 0.05);
+  return g;
+}
+function coldroom(color) {
+  const g = new THREE.Group(); const ice = 0xb8d2e6;
+  add(g, box(0.7, 0.85, 0.6, ice), 0, 0.43, 0);
+  add(g, box(0.5, 0.7, 0.04, 0xd2e6f2), 0, 0.4, 0.31);
+  add(g, box(0.04, 0.3, 0.04, 0x808890), 0.18, 0.4, 0.34);
+  add(g, box(0.76, 0.08, 0.66, darker(color, 0.7)), 0, 0.89, 0);
+  return g;
+}
+function securitydesk(color) {
+  const g = new THREE.Group(); const key = 0xd9c766;
+  add(g, box(0.7, 0.4, 0.4, color), 0, 0.2, 0.1);
+  add(g, box(0.74, 0.06, 0.06, darker(color, 0.7)), 0, 0.4, 0.3);
+  add(g, box(0.66, 0.5, 0.05, darker(color, 0.8)), 0, 0.55, -0.2);
+  for (const x of [-0.2, 0, 0.2]) add(g, box(0.05, 0.12, 0.03, key), x, 0.57, -0.16);
+  return g;
+}
+function bouncer(color) {
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.34, 6, 14), mat(0x33343c)), -0.12, 0.33, 0);
+  add(g, sph(0.15, SKIN), -0.12, 0.72, 0);
+  add(g, cyl(0.06, 0.5, color), 0.22, 0.25, 0);
+  add(g, sph(0.1, color), 0.22, 0.5, 0);
+  return g;
+}
+function guardpost(color) {
+  const g = new THREE.Group();
+  add(g, box(0.55, 0.8, 0.5, darker(color, 0.85)), 0, 0.4, 0);
+  add(g, box(0.4, 0.3, 0.04, 0xb8d4e6), 0, 0.55, 0.26);
+  add(g, box(0.66, 0.1, 0.6, darker(color, 0.6)), 0, 0.85, 0);
+  add(g, box(0.5, 0.05, 0.05, 0xe68033), 0.42, 0.3, 0);
+  return g;
+}
+function ticketrail(color) {
+  const g = new THREE.Group();
+  add(g, box(0.05, 0.55, 0.05, STEEL), -0.42, 0.55, 0);
+  add(g, box(0.05, 0.55, 0.05, STEEL), 0.42, 0.55, 0);
+  add(g, box(0.92, 0.04, 0.04, STEEL), 0, 0.78, 0);
+  for (let i = 0; i < 5; i++) add(g, box(0.11, 0.15, 0.01, 0xffffff), -0.32 + i * 0.16, 0.66, 0);
+  add(g, box(0.92, 0.1, 0.3, darker(color, 0.8)), 0, 0.06, 0);
+  return g;
+}
+
 export function makeProp(kind, color) {
   switch (kind) {
     case 'customer': return person(color);
@@ -107,6 +160,12 @@ export function makeProp(kind, color) {
     case 'host': return hostStand(color);
     case 'servicedoor': return serviceDoor(color);
     case 'pantry': return pantry(color);
+    case 'larder': return larder(color);
+    case 'coldroom': return coldroom(color);
+    case 'securitydesk': return securitydesk(color);
+    case 'bouncer': return bouncer(color);
+    case 'guardpost': return guardpost(color);
+    case 'ticketrail': return ticketrail(color);
     default: return station(color);
   }
 }
