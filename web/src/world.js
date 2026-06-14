@@ -204,6 +204,28 @@ export class World {
     } });
   }
 
+  // The chef works up and down the range, pausing at stations, with a busy bob and a lean to the heat.
+  _workRange(id) {
+    const o = this._obj(id); if (!o || !o.userData.chef) return;
+    const chef = o.userData.chef, baseZ = chef.position.z, ph = Math.random() * 10, span = 0.5, cyc = 6.0;
+    this.animators.push({ fn: (t) => {
+      const p = ((t + ph) % cyc) / cyc, tri = p < 0.5 ? p * 2 : 2 - p * 2, e = tri * tri * (3 - 2 * tri);
+      chef.position.x = (e - 0.5) * 2 * span;
+      chef.position.y = Math.abs(Math.sin((t + ph) * 4)) * 0.03;
+      chef.position.z = baseZ + Math.sin((t + ph) * 2) * 0.02;
+    } });
+  }
+  // Burner flames flicker.
+  _flicker(id) {
+    const o = this._obj(id); if (!o || !o.userData.flames || !o.userData.flames.length) return;
+    const flames = o.userData.flames, ph = flames.map(() => Math.random() * 10);
+    this.animators.push({ fn: (t) => {
+      flames.forEach((f, i) => {
+        const k = 0.7 + 0.3 * Math.sin(t * 14 + ph[i]) + 0.1 * Math.sin(t * 23 + ph[i]);
+        f.scale.set(1, 1.3 * k, 1); f.material.emissiveIntensity = 1.7 + 0.9 * k; f.material.opacity = 0.8 + 0.18 * k;
+      });
+    } });
+  }
   // Continuously send waves of tokens along a path (work flowing through the system).
   _flow(connIds, interval = 2.6, hop = 0.5) {
     if (!connIds || !connIds.length) return;
@@ -224,6 +246,12 @@ export class World {
   _carry(connId, opts = {}) {
     const c = this.conns[connId]; const ep = this._endpoints(connId); if (!ep || !c) return;
     if (this.mode !== 'story') { this._flow([connId], opts.interval || 2.4); return; }
+    const isPerson = opts.mover === 'person';
+    const cycle = opts.cycle || (isPerson ? 5.2 : 4.4), count = Math.max(1, opts.count || 1);
+    for (let i = 0; i < count; i++) this._carryOne(connId, ep, { ...opts, cycle, delay: (opts.delay || 0) + i * (cycle / count) });
+  }
+  _carryOne(connId, ep, opts) {
+    const c = this.conns[connId];
     const A = ep[0].clone(); A.y = 0; const B = ep[1].clone(); B.y = 0;
     const isPerson = opts.mover === 'person';
     let mover, token = null;
@@ -235,7 +263,7 @@ export class World {
     }
     mover.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     mover.visible = false; this.scene.add(mover); this._stageObjs.push(mover);
-    const cycle = opts.cycle || (isPerson ? 5.2 : 4.4), reach = opts.stuck ? 0.74 : 1.0;
+    const cycle = opts.cycle || 4.4, reach = opts.stuck ? 0.74 : 1.0;
     const oneWay = opts.oneWay ?? isPerson, fetch = !!opts.fetch;
     const fwd = Math.atan2(B.x - A.x, B.z - A.z), back = Math.atan2(A.x - B.x, A.z - B.z);
     this.animators.push({ timer: -(opts.delay || 0), fn: (t, dt, a) => {
@@ -257,8 +285,8 @@ export class World {
     if (!spec) return {};
     const fromProp = this.blocks[spec.from]?.spec.story?.prop;
     const toProp = this.blocks[spec.to]?.spec.story?.prop;
-    if (spec.flow === 'request' && fromProp === 'customer') return { mover: 'person', oneWay: true }; // a guest walks in
-    return { mover: 'porter', fetch: FETCH_FROM.has(toProp) };                                        // a runner fulfils it
+    if (spec.flow === 'request' && fromProp === 'customer') return { mover: 'person', oneWay: true, count: 2 }; // a stream of guests
+    return { mover: 'porter', fetch: FETCH_FROM.has(toProp), count: 2 };                                        // runners fulfilling it
   }
 
   // Run a list of beats. A stage can author `script: [...]` for bespoke choreography, or rely on
@@ -280,10 +308,10 @@ export class World {
   // each relationship is told by movement; only the overflow streams as faint tokens.
   _beatsFromAnim(st) {
     const vis = this.topic.connections.filter((c) => st.conns.includes(c.id));
-    const a = st.anim, CAP = 5;
+    const a = st.anim, CAP = 6;
     if (a === 'overload') {
       const m = this._moverFor(this.conns[st.animConn]?.spec);
-      return [{ type: 'carry', conn: st.animConn, stuck: true, ...m, oneWay: false }, { type: 'shake', id: st.focus }];
+      return [{ type: 'carry', conn: st.animConn, stuck: true, ...m, oneWay: false, count: 1 }, { type: 'shake', id: st.focus }];
     }
     if (a === 'failover') {
       const reroute = vis.filter((c) => !c.id.includes('ec2A')).map((c) => c.id);
@@ -318,8 +346,9 @@ export class World {
       for (const id in this.blocks) {
         const e = this.blocks[id]; if (!e.story || !e.story.visible) continue;
         const p = e.spec.story.prop;
-        if (p === 'cook' || p === 'customer' || p === 'host' || p === 'bouncer') this._bob(id);
-        if (p === 'cook' || p === 'pass') this._steam(v3(e.spec.story.pos, p === 'pass' ? 0.9 : 0.55));
+        if (p === 'cook') { this._workRange(id); this._flicker(id); }
+        else if (p === 'customer' || p === 'host' || p === 'bouncer') this._bob(id);
+        if (p === 'cook' || p === 'pass') this._steam(v3(e.spec.story.pos, p === 'pass' ? 0.9 : 0.78));
       }
     }
     this._choreograph(st.script || this._beatsFromAnim(st));

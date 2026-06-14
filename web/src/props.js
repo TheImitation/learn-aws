@@ -30,12 +30,34 @@ function person(color) {
 }
 function cook(color) {
   const g = new THREE.Group();
-  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.32, 6, 14), mat(CHEF)), -0.12, 0.31, -0.05);
-  add(g, sph(0.14, SKIN), -0.12, 0.66, -0.05);
-  add(g, cyl(0.15, 0.12, CHEF), -0.12, 0.78, -0.05);   // toque band
-  add(g, sph(0.17, CHEF), -0.12, 0.9, -0.05);           // toque puff
-  add(g, box(0.46, 0.34, 0.4, color), 0.2, 0.17, 0.12); // station (carries the category colour)
-  add(g, cyl(0.12, 0.04, 0x2a2a30), 0.2, 0.36, 0.12);   // burner
+  const RW = 1.3, body = darker(color, 0.7), top = 0x484c55, steel = STEEL;
+  // The chef lives in a movable sub-group so they can work up and down the range.
+  const chef = new THREE.Group();
+  add(chef, new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.32, 6, 14), mat(CHEF)), 0, 0.31, 0);
+  add(chef, sph(0.14, SKIN), 0, 0.66, 0);
+  add(chef, cyl(0.15, 0.12, CHEF), 0, 0.78, 0);    // toque band
+  add(chef, sph(0.17, CHEF), 0, 0.9, 0);           // toque puff
+  chef.position.set(0, 0, -0.24);   // stands behind the line, facing the cooktop / viewer
+  g.add(chef); g.userData.chef = chef;
+  // The range, in front of the chef (toward the viewer) so the cooktop reads from above.
+  add(g, box(RW, 0.5, 0.5, body), 0, 0.25, 0.2);                       // cabinet
+  add(g, box(RW, 0.09, 0.06, color), 0, 0.06, 0.45);                  // colour kickplate (front, category accent)
+  add(g, box(RW, 0.06, 0.52, top), 0, 0.53, 0.2);                     // cooktop
+  add(g, box(RW - 0.18, 0.32, 0.03, darker(color, 0.85)), 0, 0.24, 0.46); // oven door (front face)
+  add(g, box(RW - 0.34, 0.03, 0.05, steel), 0, 0.37, 0.48);           // oven handle
+  add(g, box(RW, 0.04, 0.04, steel), 0, 1.05, 0.34);                  // hanging utensil rail (high)
+  add(g, box(0.03, 0.2, 0.03, steel), -0.4, 0.95, 0.34);
+  add(g, box(0.03, 0.2, 0.03, steel), 0.4, 0.95, 0.34);
+  // Burners on top: exposed flickering flames on the middle pair, pots on the outer pair.
+  const flames = [];
+  [-0.46, -0.16, 0.16, 0.46].forEach((x) => add(g, cyl(0.1, 0.02, 0x202227), x, 0.57, 0.2));
+  [-0.16, 0.16].forEach((x) => {
+    const fl = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffc24a, emissive: 0xff6400, emissiveIntensity: 2.2, transparent: true, opacity: 0.95 }));
+    fl.position.set(x, 0.61, 0.2); fl.scale.y = 1.3; g.add(fl); flames.push(fl);
+  });
+  g.userData.flames = flames;
+  add(g, cyl(0.12, 0.15, 0x73777f), -0.46, 0.67, 0.2);  // pot
+  add(g, cyl(0.13, 0.06, 0x73777f), 0.46, 0.63, 0.2);   // pan
   return g;
 }
 function pass(color) {
