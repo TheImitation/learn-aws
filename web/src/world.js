@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { makeProp, makeToken, makeRunner, archBlock, containerWire, box, PALETTE } from './props.js';
+import { makeProp, makeToken, makeRunner, applyModel, archBlock, containerWire, box, PALETTE } from './props.js';
 
 const FLOW = { request: 0x66ccff, data: 0x6cda7f, replication: 0xa680e6, network: 0xaeb4bf };
 const CONTAINER = { networking: 0x4a9fe0, compute: 0xf2b25a, database: 0x9a86e6, edge: 0x4fc7a3, generic: 0xb0b4b0 };
@@ -62,6 +62,7 @@ export class World {
         story.rotation.y = THREE.MathUtils.degToRad(b.story.yaw || 0);
         story.userData.blockId = b.id;
         this.storyGroup.add(story);
+        applyModel(story, b.story.prop);
       }
 
       const el = document.createElement('div'); el.className = 'label';

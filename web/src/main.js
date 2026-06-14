@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { COURSE } from './content.js';
 import { World } from './world.js';
 import { Journey } from './journey.js';
@@ -25,6 +26,9 @@ app.appendChild(labelRenderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0e1016);
+// Image-based lighting so PBR materials (incl. loaded glTF models) light realistically.
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 1000);
 camera.position.set(-0.5, 13, 16.5);
 const controls = new OrbitControls(camera, renderer.domElement);

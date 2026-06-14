@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Category → colour (mirrors the Unity MaterialFactory palette).
 export const PALETTE = {
@@ -178,6 +179,35 @@ export function makeRunner(color) {
   add(g, box(0.06, 0.05, 0.06, color), 0.16, 0.46, 0.17); // colour tab = which service it serves
   g.userData.tray = new THREE.Vector3(0, 0.52, 0.18);
   return g;
+}
+
+// ---- Optional real glTF models (CC0) -----------------------------------------------------------
+// Registry maps a prop kind to a model. A kind with no entry keeps its procedural prop. Models load
+// async and swap in when ready, so nothing blocks. Use only where the prop's colour is NOT semantic
+// (people are cat 'generic'), so the service-category colour-coding on the other props survives.
+export const MODELS = {
+  customer: { url: './assets/models/human.glb', scale: 0.8, yaw: 0, y: 0.13 },
+};
+
+const _gltf = new GLTFLoader();
+const _modelCache = new Map(); // url -> Promise<Object3D>
+function _loadModel(url) {
+  if (!_modelCache.has(url)) _modelCache.set(url, new Promise((res, rej) => _gltf.load(url, (g) => res(g.scene), undefined, rej)));
+  return _modelCache.get(url);
+}
+// Swap a prop group's procedural children for a registered model, keeping the group's own
+// position/rotation/userData. Silent fallback to the procedural prop on any failure.
+export function applyModel(group, kind) {
+  const m = MODELS[kind]; if (!m) return;
+  _loadModel(m.url).then((scene) => {
+    const model = scene.clone(true);
+    model.scale.setScalar(m.scale || 1);
+    model.rotation.y = m.yaw || 0;
+    model.position.y = m.y || 0;
+    model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    for (let i = group.children.length - 1; i >= 0; i--) group.remove(group.children[i]);
+    group.add(model);
+  }).catch(() => { /* keep procedural prop */ });
 }
 
 export function makeProp(kind, color) {
