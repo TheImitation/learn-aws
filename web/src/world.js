@@ -38,6 +38,7 @@ export class World {
     this.blocks = {}; this.conns = {};
     if (topic.scenery === 'restaurant') buildRestaurant(this.storyGroup); else buildOpenFloor(this.storyGroup);
     this._buildBlocks(); this._buildConns();
+    this.storyGroup.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.applyStage(0);
   }
 
@@ -187,6 +188,7 @@ export class World {
     if (this.mode !== 'story') { this._flow([connId], opts.interval || 2.4); return; }
     const A = ep[0].clone(); A.y = 0; const B = ep[1].clone(); B.y = 0;
     const runner = makeRunner(FLOW[c.spec.flow] ?? 0xffffff);
+    runner.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const token = makeToken(c.spec.flow); token.position.copy(runner.userData.tray); runner.add(token);
     runner.visible = false; this.scene.add(runner); this._stageObjs.push(runner);
     const cycle = opts.cycle || 4.4, reach = opts.stuck ? 0.74 : 1.0;
