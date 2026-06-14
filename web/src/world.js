@@ -93,6 +93,7 @@ export class World {
   applyStage(i) {
     this.stageIndex = i;
     const st = this.topic.stages[i];
+    this._focusId = st.focus;
     const vis = new Set(st.blocks), vc = new Set(st.conns);
     for (const tw of this.tweens) tw.done && tw.done();
     for (const o of this._stageObjs) this._disposeObj(o);
@@ -260,6 +261,31 @@ export class World {
     for (const a of this.animators) a.fn(this.t, dt, a);
     for (const tw of this.tweens) { tw.t += dt; tw.update(tw); if (tw.t >= tw.dur && !tw._done) { tw._done = true; tw.done && tw.done(); } }
     this.tweens = this.tweens.filter((tw) => !tw._done);
+  }
+
+  // Screen-space declutter: when projected labels overlap, keep the highest-priority one
+  // (focus block > service names > container chrome, nearer wins) and fade the rest. Re-runs each
+  // frame, so hidden labels reappear as the camera moves. Mostly matters in the dense arch view.
+  declutterLabels(camera) {
+    const v = new THREE.Vector3(); const entries = [];
+    const W = window.innerWidth, H = window.innerHeight;
+    for (const id in this.blocks) {
+      const e = this.blocks[id], el = e.label.element;
+      if (!e.label.visible) { el.style.opacity = ''; continue; }
+      v.copy(e.label.position).project(camera);
+      if (v.z > 1) { el.style.opacity = '0'; continue; }   // behind camera
+      const px = (v.x * 0.5 + 0.5) * W, py = (-v.y * 0.5 + 0.5) * H;
+      const w = (el.offsetWidth || 80) + 8, h = (el.offsetHeight || 18) + 6;   // pad so neighbours don't touch
+      entries.push({ el, l: px - w / 2, r: px + w / 2, t: py - h / 2, b: py + h / 2, dist: camera.position.distanceTo(e.label.position), isC: e.spec.arch.container ? 1 : 0, focus: id === this._focusId ? 1 : 0 });
+    }
+    // priority: service names always beat container chrome; focus and camera distance break ties
+    entries.sort((a, b) => (a.isC - b.isC) || (b.focus - a.focus) || (a.dist - b.dist));
+    const kept = [];
+    for (const en of entries) {
+      const clash = kept.some((k) => en.l < k.r && en.r > k.l && en.t < k.b && en.b > k.t); // AABB overlap
+      if (clash) { en.el.style.opacity = '0'; }
+      else { en.el.style.opacity = ''; kept.push(en); }
+    }
   }
 
   raycastTargets() {

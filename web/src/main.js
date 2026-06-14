@@ -254,6 +254,7 @@ renderer.setAnimationLoop(() => {
   if (journey) journey.update(dt);
   if (world) world.update(dt);
   renderer.render(scene, camera);
+  if (world) world.declutterLabels(camera);
   labelRenderer.render(scene, camera);
 });
 
