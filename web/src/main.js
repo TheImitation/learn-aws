@@ -78,19 +78,41 @@ function showScreen(name) {
 }
 
 // ---------- course map ----------
+// Per-topic card presentation (kitchen glyph + category accent).
+const CARD = {
+  'ha-web-app': { icon: '🍳', accent: '#f2b25a' },
+  'store-serve-content': { icon: '🥫', accent: '#d9842e' },
+  'secure-access-iam': { icon: '🔑', accent: '#d15656' },
+  'network-boundaries-vpc': { icon: '🚪', accent: '#3585c6' },
+  'decouple-with-queue-sqs': { icon: '🧾', accent: '#33b38c' },
+};
+
 function openCourseMap() {
   const list = $('topic-list'); list.innerHTML = '';
+  let mastered = 0;
   for (const t of COURSE.topics) {
-    const card = document.createElement('div'); card.className = 'topic-card';
     const m = masteryOf(t.id), b = bestOf(t.id);
-    card.innerHTML = `<h2>${t.title}</h2>
-      <div class="meta">${t.examDomain} &nbsp;•&nbsp; Mastery: ${m}${b ? ' &nbsp;•&nbsp; Best: ' + b + '%' : ''}</div>
-      <p>${t.summary}</p>`;
-    const btn = document.createElement('button'); btn.className = 'primary';
-    btn.textContent = m === 'Not started' ? 'Start' : (m === 'Mastered' ? 'Review' : 'Continue');
-    btn.onclick = () => openTopic(t);
-    card.appendChild(btn); list.appendChild(card);
+    if (m === 'Mastered') mastered++;
+    const th = CARD[t.id] || { icon: '•', accent: '#9ea3a0' };
+    const badge = m === 'Mastered' ? `<span class="badge mastered">✓ Mastered${b ? ' · ' + b + '%' : ''}</span>`
+      : m === 'Assessed' ? `<span class="badge assessed">Assessed${b ? ' · ' + b + '%' : ''}</span>`
+        : `<span class="badge new">Not started</span>`;
+    const card = document.createElement('div'); card.className = 'topic-card';
+    card.style.setProperty('--card-accent', th.accent);
+    card.tabIndex = 0; card.setAttribute('role', 'button');
+    card.innerHTML = `
+      <div class="card-glyph">${th.icon}</div>
+      <div class="card-body">
+        <div class="card-row"><h2>${t.title}</h2>${badge}</div>
+        <div class="meta"><span class="chip">${t.examDomain}</span></div>
+        <p>${t.summary}</p>
+      </div>
+      <div class="card-cta">›</div>`;
+    card.onclick = () => openTopic(t);
+    card.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTopic(t); } };
+    list.appendChild(card);
   }
+  $('map-progress').textContent = `${mastered} / ${COURSE.topics.length} mastered`;
   showScreen('map');
 }
 
