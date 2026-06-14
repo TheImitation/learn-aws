@@ -83,6 +83,8 @@ namespace LearnAWS.UI
 
     public sealed class CourseMapView
     {
+        private Vector2 _scroll;
+
         public void Draw(AppRoot app)
         {
             UiStyles.Fill(new Rect(0, 0, Screen.width, Screen.height), UiStyles.Screen);
@@ -91,8 +93,9 @@ namespace LearnAWS.UI
             GUILayout.BeginArea(new Rect((Screen.width - w) / 2f, 24f, w, Screen.height - 24f - 48f));
             GUILayout.Label("AWS Solutions Architect", UiStyles.Title);
             GUILayout.Label("Learn cloud architecture by building it, block by block. Pick a topic to begin.", UiStyles.Small);
-            GUILayout.Space(12);
+            GUILayout.Space(8);
 
+            _scroll = GUILayout.BeginScrollView(_scroll);
             foreach (var topic in app.Course.topics)
             {
                 var mastery = app.Progress.GetMastery(topic.id);
@@ -110,6 +113,7 @@ namespace LearnAWS.UI
                 GUILayout.EndVertical();
                 GUILayout.Space(10);
             }
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
 
             var banner = new Rect(0, Screen.height - 40f, Screen.width, 40f);
