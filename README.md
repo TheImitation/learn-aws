@@ -1,54 +1,66 @@
-# Learn AWS — interactive certification trainer (Unity)
+# Learn AWS — interactive certification trainer
 
-A cross-platform (desktop + mobile) Unity app that teaches AWS certifications by letting learners
-**assemble cloud architectures out of modular building blocks**. First cert: Solutions Architect (SAA-C03).
+A browser-based, 3D interactive trainer for AWS certifications, starting with **Solutions Architect
+(SAA-C03)**. Each topic is taught twice, side by side, and you can switch between the two at any time:
 
-## The idea
-- AWS services are **blocks** with typed ports; Region = baseplate, Availability Zone = tile,
-  VPC = walled plot, subnet = fenced area; request/data flow = animated **pulses** along connectors.
-- Connectors only complete when the architecture is valid, so wrong designs are physically obvious.
-- Every topic runs one loop: **explore → learn → assemble & animate (replayable) → assess → track mastery.**
+- **Story view** — an immersive restaurant. AWS is the storefront; the lesson plays out behind the
+  scenes (the kitchen, the larder, the bouncer on the door, the ticket rail). Work *flows* through
+  the scene: couriers carry orders, queues buffer a rush, a kitchen floods and service reroutes.
+- **Architecture view** — the real AWS topology as a wireframe: Region → Availability Zones → VPC →
+  subnets, with the actual services placed inside.
 
-## Making integrations tangible
-Hooking two services together requires three things to line up — **Address** (ARN / endpoint),
-**Permission** (security group + IAM), **Route** (subnets / CIDR / route table). Each block carries a
-nameplate (ARN), plot sign (CIDR), doorman + guest list (security group), badge (IAM) and numbered
-doors (ports). A **Tangible ⇄ Real** inspector flips any element to its real AWS artifact, bridging
-intuition into exam-ready syntax.
+Every topic runs one loop: **explore (free camera) → learn (plain-language narration, with a
+highlighted KEY POINT) → watch it happen (replayable, scrubbable, journey-driven animation) →
+assess (multiple-choice + tap-to-fix in the 3D scene) → track mastery** (saved locally).
 
-## Monetization (production only)
-Ads run **only in Production builds** — never in the Editor or dev/staging (enforced by
-`AppEnvironmentResolver` + `AdServiceFactory` + `AdGatekeeper`). Ads live in the "seams" (course map,
-topic transitions, results) and as opt-in rewarded videos — **never during active learning**.
-Freemium with a "remove ads / Pro" IAP.
+A **Tangible ⇄ Real** inspector flips any element from its grounded analogy to the real AWS artifact
+(ARN, CIDR range, security-group rule, IAM), and an **Analogy** toggle surfaces the other view's
+explanation from whichever view you're in.
 
-## Status — v1 vertical slice implemented (runnable)
-The full **"Build a Highly Available Web App"** topic runs end-to-end:
-course map → 3D build journey (9 stages, replay + scrub, animated request flow and AZ-failover) →
-**Tangible ⇄ Real** inspector → assessment (multiple-choice + tap-to-fix) → results → progress/mastery saved.
+## Topics
 
-Built **code-first** to run on a stock Unity 6 URP project with **no extra packages and no scene setup**.
-See [SETUP.md](SETUP.md): create a URP project, ensure legacy input is on, press Play.
+1. **Build a Highly Available Web App** — single server → Region/AZs → VPC/subnets → EC2 → ALB →
+   Auto Scaling → Multi-AZ RDS → CloudFront/Route 53, ending in a "survive losing a whole AZ" payoff.
+2. **Store & Serve Content** — S3, CloudFront, Glacier.
+3. **Secure Access with IAM** — root, least privilege, roles, MFA.
+4. **Network Boundaries** — private subnets, security groups, a bastion host.
+5. **Decouple with a Queue** — SQS, scaling consumers, dead-letter queues.
 
-## Visuals
-The architecture view shows official **AWS service icons** on each block — run `bash scripts/fetch-assets.sh`
-to fetch them locally (they're gitignored, not redistributed). The story view is a restaurant **kitchen
-service line** and can use **low-poly kitchen models** dropped into `Resources/Models/`. Both fall back to
-generated primitives if absent. See [ASSETS.md](ASSETS.md).
+## Run it
 
-## Layout
+It's a static site with **no build step** (vendored Three.js + ES modules). Serve `web/` with any
+static file server, for example:
+
+```bash
+python3 -m http.server 8080 --directory web
+# open http://localhost:8080
 ```
-Assets/_Project/Scripts/
-  App/           AppRoot — bootstrap + screen flow (course map / topic / assessment / results)
-  Core/          AppEnvironment, AppConfig
-  Content/       AWS value types, content specs, and the Solutions Architect course (HA web app)
-  Input/         IInputProvider + legacy provider (desktop + touch)
-  World/         camera rig, materials, block/container/connection views, world builder
-  Journey/       JourneyController — step / replay / scrub, drives world + camera
-  Progress/      ProgressService — mastery + scores over IProgressStore
-  Persistence/   IProgressStore, LocalJsonProgressStore, progress models
-  Monetization/  IAdService, NoOp/Production services, AdServiceFactory, AdGatekeeper, AdPlacement
-  UI/            IMGUI screens — course map, topic HUD, inspector, assessment, results
+
+(`.claude/launch.json` defines the same server under the name `web` for the in-editor preview.)
+
+## Structure
+
 ```
-Each placeholder layer (IMGUI, legacy input, code content, primitive art, no-op ads) sits behind a
-seam so it can be upgraded for production without touching the rest. See SETUP.md → "Production swaps".
+web/
+  index.html        # importmap + UI overlay
+  styles.css        # dark UI
+  src/
+    content.js      # all course data (topics, blocks, connections, stages, quizzes) — author here
+    props.js        # procedural 3D props, travelling tokens and couriers
+    world.js        # scene building, per-stage visibility, the beat-script animation system
+    journey.js      # stage stepping + camera framing
+    main.js         # three.js setup, screens, inspector, assessment, progress
+  vendor/           # three.js r0.160 (module + OrbitControls + CSS2DRenderer)
+```
+
+### Adding a topic or animating a stage
+Add a topic object to `content.js` (blocks carry both an `arch` position and a `story` prop). A stage
+animates from its `anim` shorthand (`overload` / `failover` / `spike` / `pulse` / `chain`), or you can
+author bespoke choreography with `script: [ ...beats ]` — beat types `carry`, `flow`, `flood`,
+`pulse`, `pop`, `shake`, `bob`. See the failover stage of topic 1 for a worked example.
+
+## Legacy Unity prototype
+
+This started as a Unity app; that project now lives in [`legacy-unity/`](legacy-unity/). It's
+superseded by the web app (which is far faster to iterate on and distributes as a URL) but kept for
+reference — all of its conceptual work carries over as data.
