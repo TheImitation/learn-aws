@@ -67,14 +67,14 @@ namespace LearnAWS.World
 
         private static Color Shade(Color c, float f) => new Color(c.r * f, c.g * f, c.b * f, c.a);
 
-        private static void Prim(Transform p, PrimitiveType type, Vector3 pos, Vector3 scale, Color color, Vector3 euler = default)
+        private static void Prim(Transform p, PrimitiveType type, Vector3 pos, Vector3 scale, Color color, Vector3 euler = default, bool emissive = false)
         {
             var go = GameObject.CreatePrimitive(type);
             go.transform.SetParent(p, false);
             go.transform.localPosition = pos;
             go.transform.localEulerAngles = euler;
             go.transform.localScale = scale;
-            go.GetComponent<Renderer>().material = MaterialFactory.CreateLit(color);
+            go.GetComponent<Renderer>().material = emissive ? MaterialFactory.CreateEmissive(color) : MaterialFactory.CreateLit(color);
         }
 
         // A chef in whites with a toque, at a cooktop (the tint shows on the station).
@@ -95,7 +95,10 @@ namespace LearnAWS.World
             Prim(p, PrimitiveType.Cube, new Vector3(0f, -0.22f, 0.28f), new Vector3(0.95f, 0.4f, 0.05f), tint);   // coloured front
             Prim(p, PrimitiveType.Cube, new Vector3(-0.36f, 0.06f, 0f), new Vector3(0.04f, 0.5f, 0.04f), Steel);  // lamp post
             Prim(p, PrimitiveType.Cube, new Vector3(0.36f, 0.06f, 0f), new Vector3(0.04f, 0.5f, 0.04f), Steel);
-            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.3f, 0f), new Vector3(0.82f, 0.07f, 0.22f), Warm);        // heat lamp
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.3f, 0f), new Vector3(0.82f, 0.07f, 0.22f), Warm, emissive: true); // heat lamp (glows)
+            Prim(p, PrimitiveType.Cylinder, new Vector3(-0.18f, 0.0f, -0.06f), new Vector3(0.16f, 0.015f, 0.16f), Color.white);        // plate
+            Prim(p, PrimitiveType.Sphere, new Vector3(-0.18f, 0.04f, -0.06f), new Vector3(0.11f, 0.07f, 0.11f), new Color(0.82f, 0.46f, 0.30f)); // food
+            Prim(p, PrimitiveType.Cylinder, new Vector3(0.14f, 0.0f, -0.06f), new Vector3(0.16f, 0.015f, 0.16f), Color.white);         // plate
             // ticket rail + tickets
             Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.06f, 0.31f), new Vector3(0.7f, 0.02f, 0.02f), Steel);
             Prim(p, PrimitiveType.Cube, new Vector3(-0.22f, 0.14f, 0.31f), new Vector3(0.09f, 0.13f, 0.01f), Color.white);
@@ -120,6 +123,9 @@ namespace LearnAWS.World
             Prim(p, PrimitiveType.Sphere, new Vector3(0f, 0.08f, 0f), new Vector3(0.13f, 0.13f, 0.13f), new Color(0.95f, 0.8f, 0.35f));
             Prim(p, PrimitiveType.Sphere, new Vector3(0.16f, 0.08f, 0f), new Vector3(0.13f, 0.13f, 0.13f), new Color(0.85f, 0.42f, 0.42f));
             Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.28f, 0f), new Vector3(0.82f, 0.06f, 0.55f), Shade(tint, 0.7f)); // canopy
+            Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.52f, -0.24f), new Vector3(0.72f, 0.34f, 0.04f), new Color(0.16f, 0.17f, 0.19f)); // menu board
+            Prim(p, PrimitiveType.Cube, new Vector3(-0.1f, 0.56f, -0.22f), new Vector3(0.34f, 0.03f, 0.01f), new Color(0.9f, 0.85f, 0.6f)); // menu line
+            Prim(p, PrimitiveType.Cube, new Vector3(-0.08f, 0.48f, -0.22f), new Vector3(0.28f, 0.03f, 0.01f), new Color(0.9f, 0.85f, 0.6f)); // menu line
         }
 
         // A podium with a slanted lectern and a sign — the host stand (DNS).
@@ -143,6 +149,7 @@ namespace LearnAWS.World
             Prim(p, PrimitiveType.Cube, new Vector3(0.28f, -0.1f, 0f), new Vector3(0.1f, 0.7f, 0.12f), tint);
             Prim(p, PrimitiveType.Cube, new Vector3(0f, 0.3f, 0f), new Vector3(0.74f, 0.12f, 0.14f), Shade(tint, 0.7f));         // lintel
             Prim(p, PrimitiveType.Cube, new Vector3(0f, -0.12f, 0.02f), new Vector3(0.42f, 0.5f, 0.04f), Shade(tint, 0.9f), new Vector3(0f, 18f, 0f)); // door ajar
+            Prim(p, PrimitiveType.Cylinder, new Vector3(0.02f, 0.06f, 0.06f), new Vector3(0.13f, 0.02f, 0.13f), new Color(0.72f, 0.85f, 0.95f), new Vector3(90f, 18f, 0f)); // porthole window
         }
 
         private static void Station(Transform p, Color tint)

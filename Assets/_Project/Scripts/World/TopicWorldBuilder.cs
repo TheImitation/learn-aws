@@ -107,7 +107,12 @@ namespace LearnAWS.World
             _scenery = new GameObject("StoryScenery");
             _scenery.transform.SetParent(_root, false);
 
-            if (_topic != null && _topic.sceneryStyle == StorySceneryStyle.KitchenLines)
+            var style = _topic != null ? _topic.sceneryStyle : StorySceneryStyle.OpenFloor;
+            if (style == StorySceneryStyle.Restaurant)
+            {
+                BuildRestaurantInterior();
+            }
+            else if (style == StorySceneryStyle.KitchenLines)
             {
                 AddPad(new Vector3(-1.5f, -0.04f, 0f), new Vector3(16f, 0.08f, 8.5f), new Color(0.15f, 0.15f, 0.17f));  // floor
                 AddPad(new Vector3(2.6f, 0.0f, -2.2f), new Vector3(7.6f, 0.06f, 1.8f), new Color(0.22f, 0.27f, 0.33f)); // line A
@@ -145,6 +150,56 @@ namespace LearnAWS.World
         {
             var tm = Billboard.MakeLabel(_scenery.transform, text, pos);
             tm.gameObject.AddComponent<LabelBillboard>();
+        }
+
+        private void AddBox(Vector3 center, Vector3 size, Color color, Vector3 euler = default)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "box";
+            var col = go.GetComponent<Collider>();
+            if (col != null) Destroy(col); // walls shouldn't block raycast selection of props
+            go.transform.SetParent(_scenery.transform, false);
+            go.transform.position = center;
+            go.transform.eulerAngles = euler;
+            go.transform.localScale = size;
+            go.GetComponent<Renderer>().material = MaterialFactory.CreateLit(color);
+        }
+
+        // An immersive restaurant shell: a storefront with a door (what the customer sees) and, behind an
+        // interior wall, the back of house. Walls are kept low so the 3/4 camera always sees inside (dollhouse).
+        private void BuildRestaurantInterior()
+        {
+            Color floor = new Color(0.26f, 0.22f, 0.19f);
+            Color wall = new Color(0.46f, 0.45f, 0.42f);
+            Color facade = new Color(0.40f, 0.38f, 0.46f);
+            Color awning = new Color(0.72f, 0.28f, 0.24f);
+            Color table = new Color(0.45f, 0.34f, 0.26f);
+
+            AddPad(new Vector3(-0.75f, -0.04f, 0f), new Vector3(17.5f, 0.08f, 9.2f), floor);
+
+            // perimeter (waist-high)
+            AddBox(new Vector3(6.6f, 0.55f, 0f), new Vector3(0.25f, 1.1f, 9f), wall);          // back
+            AddBox(new Vector3(-0.75f, 0.55f, 4.3f), new Vector3(16.5f, 1.1f, 0.25f), wall);   // side
+            AddBox(new Vector3(-0.75f, 0.55f, -4.3f), new Vector3(16.5f, 1.1f, 0.25f), wall);  // side
+
+            // storefront facade at the front, taller, with a central doorway
+            AddBox(new Vector3(-7.6f, 1.0f, -2.6f), new Vector3(0.3f, 2.0f, 3.4f), facade);
+            AddBox(new Vector3(-7.6f, 1.0f, 2.6f), new Vector3(0.3f, 2.0f, 3.4f), facade);
+            AddBox(new Vector3(-7.5f, 2.05f, 0f), new Vector3(0.5f, 0.12f, 1.9f), awning, new Vector3(0f, 0f, 22f));
+            AddSceneryLabel("AWS", new Vector3(-7.6f, 2.6f, 0f));
+
+            // interior wall: front of house | back of house, with a doorway where the service door sits
+            AddBox(new Vector3(-4.0f, 0.7f, -2.45f), new Vector3(0.22f, 1.4f, 3.3f), wall);
+            AddBox(new Vector3(-4.0f, 0.7f, 2.45f), new Vector3(0.22f, 1.4f, 3.3f), wall);
+
+            // a couple of dining tables out front
+            AddBox(new Vector3(-6.2f, 0.45f, -1.6f), new Vector3(0.9f, 0.1f, 0.9f), table);
+            AddBox(new Vector3(-6.2f, 0.2f, -1.6f), new Vector3(0.12f, 0.5f, 0.12f), table);
+            AddBox(new Vector3(-6.2f, 0.45f, 1.6f), new Vector3(0.9f, 0.1f, 0.9f), table);
+            AddBox(new Vector3(-6.2f, 0.2f, 1.6f), new Vector3(0.12f, 0.5f, 0.12f), table);
+
+            AddSceneryLabel("Front of house", new Vector3(-6.0f, 1.5f, 3.7f));
+            AddSceneryLabel("Back of house", new Vector3(2.5f, 1.5f, 3.9f));
         }
 
         // ---------- per-stage ----------

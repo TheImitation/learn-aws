@@ -1,0 +1,112 @@
+import * as THREE from 'three';
+
+// Category → colour (mirrors the Unity MaterialFactory palette).
+export const PALETTE = {
+  networking: 0x3585c6, compute: 0xf09c2e, database: 0x7d66d1,
+  edge: 0x33b38c, generic: 0x9ea3a0, storage: 0xd9842e, security: 0xd15656,
+};
+
+const CHEF = 0xefefe8, SKIN = 0xeac79e, STEEL = 0x9fa3aa, WARM = 0xfa8c33;
+
+function mat(color, emissive = false) {
+  return new THREE.MeshStandardMaterial({
+    color, roughness: 0.85, metalness: 0.0,
+    emissive: emissive ? color : 0x000000, emissiveIntensity: emissive ? 0.9 : 0.0,
+  });
+}
+export function box(w, h, d, color, emissive = false) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, emissive)); }
+function cyl(r, h, color) { return new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat(color)); }
+function sph(r, color) { return new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), mat(color)); }
+function add(g, mesh, x, y, z, rx = 0, ry = 0, rz = 0) { mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz); g.add(mesh); return mesh; }
+function darker(hex, f = 0.6) { const c = new THREE.Color(hex); c.multiplyScalar(f); return c.getHex(); }
+
+// Each prop is built ~1 unit, base on the floor (y=0), "front" facing +z.
+function person(color) {
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.34, 6, 14), mat(color)), 0, 0.33, 0);
+  add(g, sph(0.15, SKIN), 0, 0.72, 0);
+  return g;
+}
+function cook(color) {
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.32, 6, 14), mat(CHEF)), -0.12, 0.31, -0.05);
+  add(g, sph(0.14, SKIN), -0.12, 0.66, -0.05);
+  add(g, cyl(0.15, 0.12, CHEF), -0.12, 0.78, -0.05);   // toque band
+  add(g, sph(0.17, CHEF), -0.12, 0.9, -0.05);           // toque puff
+  add(g, box(0.46, 0.34, 0.4, color), 0.2, 0.17, 0.12); // station (carries the category colour)
+  add(g, cyl(0.12, 0.04, 0x2a2a30), 0.2, 0.36, 0.12);   // burner
+  return g;
+}
+function pass(color) {
+  const g = new THREE.Group();
+  add(g, box(0.95, 0.5, 0.55, STEEL), 0, 0.25, 0);
+  add(g, box(0.95, 0.5, 0.06, color), 0, 0.25, 0.28);   // coloured front
+  add(g, box(0.04, 0.55, 0.04, STEEL), -0.36, 0.55, 0);
+  add(g, box(0.04, 0.55, 0.04, STEEL), 0.36, 0.55, 0);
+  add(g, box(0.82, 0.08, 0.22, WARM, true), 0, 0.82, 0); // heat lamp (glows)
+  add(g, box(0.7, 0.03, 0.03, STEEL), 0, 0.62, 0.31);    // ticket rail
+  for (let i = 0; i < 3; i++) add(g, box(0.09, 0.13, 0.01, 0xffffff), -0.22 + i * 0.2, 0.7, 0.31);
+  add(g, cyl(0.08, 0.02, 0xffffff), -0.18, 0.52, -0.06); // plate
+  add(g, sph(0.06, 0xd27a4d), -0.18, 0.55, -0.06);       // food
+  return g;
+}
+function grabAndGo(color) {
+  const g = new THREE.Group();
+  add(g, box(0.7, 0.28, 0.5, color), 0, 0.14, 0);
+  add(g, box(0.66, 0.24, 0.46, 0xccd6e0), 0, 0.4, 0);    // glass case
+  add(g, sph(0.1, 0xe6804d), -0.16, 0.54, 0);
+  add(g, sph(0.1, 0xf2cc59), 0, 0.54, 0);
+  add(g, sph(0.1, 0xd96b6b), 0.16, 0.54, 0);
+  add(g, box(0.82, 0.06, 0.55, darker(color, 0.7)), 0, 0.58, 0); // canopy
+  add(g, box(0.72, 0.34, 0.04, 0x2a2c30), 0, 0.82, -0.24);        // menu board
+  return g;
+}
+function hostStand(color) {
+  const g = new THREE.Group();
+  add(g, box(0.2, 0.5, 0.2, darker(color, 0.7)), 0, 0.25, 0);
+  add(g, box(0.42, 0.06, 0.3, color), 0, 0.55, 0.05, -0.38, 0, 0); // slanted lectern
+  add(g, box(0.34, 0.2, 0.04, color), 0, 0.66, 0);                  // sign
+  return g;
+}
+function serviceDoor(color) {
+  const g = new THREE.Group();
+  add(g, box(0.1, 0.8, 0.12, color), -0.28, 0.4, 0);
+  add(g, box(0.1, 0.8, 0.12, color), 0.28, 0.4, 0);
+  add(g, box(0.74, 0.14, 0.16, darker(color, 0.7)), 0, 0.84, 0);   // lintel
+  add(g, box(0.42, 0.66, 0.04, darker(color, 0.9)), 0, 0.35, 0.03, 0, 0.32, 0); // door ajar
+  add(g, cyl(0.07, 0.02, 0xb8d4e6), 0.02, 0.5, 0.06, Math.PI / 2, 0, 0);        // porthole
+  return g;
+}
+function pantry(color) {
+  const g = new THREE.Group();
+  add(g, box(0.6, 0.85, 0.5, color), 0, 0.43, 0);
+  add(g, box(0.66, 0.08, 0.56, darker(color, 0.7)), 0, 0.89, 0);   // top
+  add(g, box(0.04, 0.5, 0.03, darker(color, 0.55)), 0.2, 0.45, 0.26); // handle
+  return g;
+}
+function station(color) {
+  const g = new THREE.Group();
+  add(g, box(0.6, 0.5, 0.5, color), 0, 0.25, 0);
+  add(g, box(0.66, 0.06, 0.56, darker(color, 0.7)), 0, 0.53, 0);
+  return g;
+}
+
+// Architecture-view primitives.
+export function archBlock(color) { return box(1.1, 1.1, 1.1, color); }
+export function containerWire(w, h, d, color) {
+  const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d));
+  return new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color }));
+}
+
+export function makeProp(kind, color) {
+  switch (kind) {
+    case 'customer': return person(color);
+    case 'cook': return cook(color);
+    case 'pass': return pass(color);
+    case 'grabandgo': return grabAndGo(color);
+    case 'host': return hostStand(color);
+    case 'servicedoor': return serviceDoor(color);
+    case 'pantry': return pantry(color);
+    default: return station(color);
+  }
+}

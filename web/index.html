@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Learn AWS</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="ui">
+    <!-- COURSE MAP -->
+    <section id="screen-map" class="screen backdrop">
+      <div class="col">
+        <h1>AWS Solutions Architect</h1>
+        <p class="sub">Learn cloud architecture by building it — front of house and behind the scenes. Pick a topic.</p>
+        <div id="topic-list"></div>
+      </div>
+    </section>
+
+    <!-- TOPIC (3D + HUD) -->
+    <section id="screen-topic" class="screen">
+      <div id="topbar"><span id="t-title"></span><span id="t-stage"></span></div>
+
+      <div id="inspector" class="panelbox hidden">
+        <div class="row"><b id="insp-name"></b>
+          <span class="seg"><button id="insp-tangible" class="on">Tangible</button><button id="insp-real">Real</button></span>
+          <button id="insp-close" class="x">×</button>
+        </div>
+        <div id="insp-body"></div>
+      </div>
+
+      <div id="panel" class="panelbox">
+        <div id="p-narr"></div>
+        <div id="p-analogy" class="analogy hidden"></div>
+        <div id="p-key" class="keypoint"></div>
+        <input id="p-scrub" type="range" min="0" max="0" value="0" />
+        <div class="controls">
+          <button id="b-prev">‹ Prev</button>
+          <button id="b-replay">↻ Replay</button>
+          <button id="b-next">Next ›</button>
+          <span class="spacer"></span>
+          <button id="b-view">View: Story</button>
+          <button id="b-analogy">Analogy</button>
+          <button id="b-assess" class="primary hidden">Start assessment ✓</button>
+          <button id="b-map">Map</button>
+        </div>
+        <div class="hint">Drag to orbit · scroll to zoom · click a block to inspect it</div>
+      </div>
+    </section>
+
+    <!-- ASSESSMENT (side panel; 3D stays tappable on the left) -->
+    <section id="screen-assess" class="screen side">
+      <div class="card">
+        <h2>Assessment</h2>
+        <div id="a-progress" class="sub"></div>
+        <div id="a-prompt"></div>
+        <div id="a-options"></div>
+        <div id="a-explain" class="explain hidden"></div>
+        <div class="controls">
+          <button id="a-submit" class="primary">Submit answer</button>
+          <button id="a-next" class="hidden">Next ›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="screen-results" class="screen backdrop center">
+      <div class="card">
+        <h1 id="r-score"></h1>
+        <p id="r-msg"></p>
+        <p id="r-mastery" class="sub"></p>
+        <div class="controls">
+          <button id="r-back" class="primary">Back to course map</button>
+          <button id="r-retry">Retry</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

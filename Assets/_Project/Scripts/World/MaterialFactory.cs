@@ -53,6 +53,19 @@ namespace LearnAWS.World
             return m;
         }
 
+        /// <summary>A lit material that also glows (heat lamps, signage, screens).</summary>
+        public static Material CreateEmissive(Color color, float intensity = 1.4f)
+        {
+            var m = CreateLit(color);
+            if (m.HasProperty("_EmissionColor"))
+            {
+                m.SetColor("_EmissionColor", color * intensity);
+                m.EnableKeyword("_EMISSION");
+                m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            }
+            return m;
+        }
+
         private static void ApplyColor(Material m, Color color)
         {
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color);

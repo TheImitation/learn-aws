@@ -90,7 +90,11 @@ namespace LearnAWS.World
                 string prop = !string.IsNullOrEmpty(spec.storyProp) ? spec.storyProp : StoryBuildingFactory.DefaultStoryProp(spec.kind);
                 _model = StoryBuildingFactory.Create(prop, _baseColor, _body);
             }
-            if (_model != null) _model.SetActive(false);
+            if (_model != null)
+            {
+                _model.transform.localRotation = Quaternion.Euler(0f, spec.storyYaw, 0f);
+                _model.SetActive(false);
+            }
 
             // Optional AWS service icon shown in architecture view.
             var icon = AssetCatalog.LoadIcon(AssetCatalog.IconKeyFor(spec));

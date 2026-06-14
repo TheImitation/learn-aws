@@ -26,6 +26,7 @@ namespace LearnAWS.Content
         public string iconKey;            // AWS service icon shown in architecture view
         public string modelKey;           // low-poly model used as the prop in story view
         public string storyProp;          // which generated story prop to use (e.g. "cook", "larder"); else derived from kind
+        public float storyYaw;            // story-view rotation (degrees about Y) so the prop faces the flow
 
         // "Peel the label" detail:
         public ArnInfo arn;
@@ -105,7 +106,7 @@ namespace LearnAWS.Content
         public List<QuestionSpec> questions = new List<QuestionSpec>();
     }
 
-    public enum StorySceneryStyle { OpenFloor, KitchenLines }
+    public enum StorySceneryStyle { OpenFloor, KitchenLines, Restaurant }
 
     public class TopicSpec
     {
