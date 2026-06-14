@@ -6,7 +6,9 @@ const FLOW = { request: 0x66ccff, data: 0x6cda7f, replication: 0xa680e6, network
 const CONTAINER = { networking: 0x4a9fe0, compute: 0xf2b25a, database: 0x9a86e6, edge: 0x4fc7a3, generic: 0xb0b4b0 };
 
 const v3 = (xz, y = 0) => new THREE.Vector3(xz[0], y, xz[1]);
-const line = (pts, color) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color }));
+const line = (pts, color, opacity = 1) => new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+// Blocks whose story prop is a place you fetch stock from (the porter brings the item back).
+const FETCH_FROM = new Set(['pantry', 'larder', 'coldroom']);
 
 function buildRestaurant(group) {
   const FLOOR = 0x423a33, WALL = 0x767468, FACADE = 0x66647a, AWNING = 0xb84740, TABLE = 0x73553f;
@@ -76,9 +78,13 @@ export class World {
       const a = this.blocks[c.from], d = this.blocks[c.to];
       if (!a || !d) continue;
       const color = FLOW[c.flow] ?? 0x88aabb;
-      const archLine = line([new THREE.Vector3(...a.spec.arch.pos), new THREE.Vector3(...d.spec.arch.pos)], color);
+      const phase = Math.random() * 6.28;
+      // Faint, ethereal paths — the people and messages moving along them carry the story.
+      const archLine = line([new THREE.Vector3(...a.spec.arch.pos), new THREE.Vector3(...d.spec.arch.pos)], color, 0.7);
+      archLine.userData = { baseOpacity: 0.7, phase };
       this.archGroup.add(archLine);
-      const storyLine = line([v3(a.spec.story.pos, 0.6), v3(d.spec.story.pos, 0.6)], color);
+      const storyLine = line([v3(a.spec.story.pos, 0.55), v3(d.spec.story.pos, 0.55)], color, 0.16);
+      storyLine.userData = { baseOpacity: 0.16, phase };
       this.storyGroup.add(storyLine);
       this.conns[c.id] = { spec: c, archLine, storyLine };
     }
@@ -182,31 +188,50 @@ export class World {
     if (!connId) return;
     this.animators.push({ timer: 0, fn: (t, dt, a) => { a.timer += dt; if (a.timer >= interval) { a.timer = 0; this._pulse(connId, 0, 0.5); } } });
   }
-  // A courier physically walks the token from one block to the next and back (story view only;
-  // in the architecture diagram it degrades to a travelling token). `stuck` = can't reach the far
-  // end — it backs off and jitters, for "overloaded / blocked" beats.
+  // Someone physically moves along a connection so the relationship reads as people/messages flowing
+  // through the kitchen, not a hard pipe (story view only; degrades to a travelling token in the
+  // architecture diagram). opts.mover: 'person' = a guest who walks themselves in (one-way arrivals);
+  // 'porter' = a runner who fulfils the request for someone else, carrying a tray. opts.fetch = the
+  // item is brought back (the porter goes empty, returns loaded). opts.stuck = can't reach the far
+  // end (backs off + jitters) for overloaded/blocked beats.
   _carry(connId, opts = {}) {
     const c = this.conns[connId]; const ep = this._endpoints(connId); if (!ep || !c) return;
     if (this.mode !== 'story') { this._flow([connId], opts.interval || 2.4); return; }
     const A = ep[0].clone(); A.y = 0; const B = ep[1].clone(); B.y = 0;
-    const runner = makeRunner(FLOW[c.spec.flow] ?? 0xffffff);
-    runner.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    const token = makeToken(c.spec.flow); token.position.copy(runner.userData.tray); runner.add(token);
-    runner.visible = false; this.scene.add(runner); this._stageObjs.push(runner);
-    const cycle = opts.cycle || 4.4, reach = opts.stuck ? 0.74 : 1.0;
+    const isPerson = opts.mover === 'person';
+    let mover, token = null;
+    if (isPerson) {
+      mover = makeProp('customer', 0x9a8c7a); applyModel(mover, 'customer'); // a guest (uses the human model when it loads)
+    } else {
+      mover = makeRunner(FLOW[c.spec.flow] ?? 0xffffff);
+      token = makeToken(c.spec.flow); token.position.copy(mover.userData.tray); mover.add(token);
+    }
+    mover.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    mover.visible = false; this.scene.add(mover); this._stageObjs.push(mover);
+    const cycle = opts.cycle || (isPerson ? 5.2 : 4.4), reach = opts.stuck ? 0.74 : 1.0;
+    const oneWay = opts.oneWay ?? isPerson, fetch = !!opts.fetch;
     const fwd = Math.atan2(B.x - A.x, B.z - A.z), back = Math.atan2(A.x - B.x, A.z - B.z);
     this.animators.push({ timer: -(opts.delay || 0), fn: (t, dt, a) => {
-      a.timer += dt; if (a.timer < 0) { runner.visible = false; return; }
-      runner.visible = true; const p = (a.timer % cycle) / cycle;
-      let k, carrying, yaw;
-      if (p < 0.5) { k = reach * (p / 0.5); carrying = true; yaw = fwd; }
-      else { k = reach * (1 - (p - 0.5) / 0.5); carrying = false; yaw = back; }
-      runner.position.lerpVectors(A, B, k);
-      runner.position.y = Math.abs(Math.sin(p * Math.PI * 9)) * 0.05;                          // step bounce
-      runner.rotation.y = yaw;
-      if (opts.stuck && carrying && k > reach - 0.03) runner.position.x += (Math.random() - 0.5) * 0.06; // blocked at the door
-      token.visible = carrying;
+      a.timer += dt; if (a.timer < 0) { mover.visible = false; return; }
+      const p = (a.timer % cycle) / cycle;
+      let k, forward, yaw;
+      if (p < 0.5) { k = reach * (p / 0.5); forward = true; yaw = fwd; }
+      else { k = reach * (1 - (p - 0.5) / 0.5); forward = false; yaw = back; }
+      mover.visible = !(oneWay && !forward);                       // one-way movers vanish on the way back
+      mover.position.lerpVectors(A, B, k);
+      mover.position.y = Math.abs(Math.sin(p * Math.PI * 9)) * 0.05; // step bounce
+      mover.rotation.y = yaw;
+      if (opts.stuck && forward && k > reach - 0.03) mover.position.x += (Math.random() - 0.5) * 0.06; // blocked
+      if (token) token.visible = fetch ? !forward : forward;        // deliver carries out; fetch brings back
     } });
+  }
+  // Which kind of mover fulfils a connection, and how it carries the item.
+  _moverFor(spec) {
+    if (!spec) return {};
+    const fromProp = this.blocks[spec.from]?.spec.story?.prop;
+    const toProp = this.blocks[spec.to]?.spec.story?.prop;
+    if (spec.flow === 'request' && fromProp === 'customer') return { mover: 'person', oneWay: true }; // a guest walks in
+    return { mover: 'porter', fetch: FETCH_FROM.has(toProp) };                                        // a runner fulfils it
   }
 
   // Run a list of beats. A stage can author `script: [...]` for bespoke choreography, or rely on
@@ -224,26 +249,41 @@ export class World {
       }
     }
   }
-  // The lead request is physically carried by a courier; supporting flows stream as tokens.
+  // Compile the `anim` shorthand into beats: people and porters move along the visible connections so
+  // each relationship is told by movement; only the overflow streams as faint tokens.
   _beatsFromAnim(st) {
     const vis = this.topic.connections.filter((c) => st.conns.includes(c.id));
-    const flowConns = vis.filter((c) => c.flow !== 'replication').map((c) => c.id);
-    const a = st.anim;
-    if (a === 'overload') return [{ type: 'carry', conn: st.animConn, stuck: true }, { type: 'shake', id: st.focus }];
-    if (a === 'failover') {
-      const reroute = flowConns.filter((id) => !id.includes('ec2A'));
-      return [{ type: 'shake', id: 'rdsPrimary' }, { type: 'pop', id: 'rdsStandby' }, { type: 'flow', conns: reroute.length ? reroute : flowConns, interval: 1.9, hop: 0.45 }];
+    const a = st.anim, CAP = 5;
+    if (a === 'overload') {
+      const m = this._moverFor(this.conns[st.animConn]?.spec);
+      return [{ type: 'carry', conn: st.animConn, stuck: true, ...m, oneWay: false }, { type: 'shake', id: st.focus }];
     }
-    const lead = (a === 'pulse' && st.animConn) ? st.animConn
-      : (a === 'chain' && st.chain && st.chain.length) ? st.chain[0]
-      : (vis.find((c) => c.flow === 'request') || {}).id;
+    if (a === 'failover') {
+      const reroute = vis.filter((c) => !c.id.includes('ec2A')).map((c) => c.id);
+      const ids = reroute.length ? reroute : vis.map((c) => c.id);
+      const beats = [{ type: 'shake', id: 'rdsPrimary' }, { type: 'pop', id: 'rdsStandby' }];
+      ids.slice(0, CAP).forEach((id, i) => beats.push({ type: 'carry', conn: id, delay: i * 0.5, ...this._moverFor(this.conns[id].spec) }));
+      return beats;
+    }
+    // Order the connections: a chain plays down the line; otherwise guests-first, then focus-linked.
+    let order;
+    if (a === 'chain' && st.chain && st.chain.length) {
+      const inChain = st.chain.filter((id) => vis.some((c) => c.id === id));
+      order = [...inChain, ...vis.map((c) => c.id).filter((id) => !inChain.includes(id))];
+    } else {
+      order = vis.map((c) => c.id).sort((x, y) => this._connScore(y, st.focus) - this._connScore(x, st.focus));
+    }
     const beats = [];
-    if (lead) beats.push({ type: 'carry', conn: lead });
+    const carried = order.slice(0, CAP);
+    carried.forEach((id, i) => beats.push({ type: 'carry', conn: id, delay: i * 0.6, ...this._moverFor(this.conns[id].spec) }));
     if (a === 'spike') beats.push({ type: 'pop', id: st.focus });
-    const rest = flowConns.filter((id) => id !== lead);
+    const rest = order.slice(CAP).filter((id) => this.conns[id].spec.flow !== 'replication');
     if (rest.length) beats.push({ type: 'flow', conns: rest });
-    if (!beats.length) beats.push({ type: 'flow', conns: flowConns });
-    return beats;
+    return beats.length ? beats : [{ type: 'flow', conns: vis.map((c) => c.id) }];
+  }
+  _connScore(id, focus) {
+    const s = this.conns[id].spec;
+    return (this.blocks[s.from]?.spec.story?.prop === 'customer' ? 2 : 0) + (s.from === focus || s.to === focus ? 1 : 0);
   }
   // Ambient + event animation for a stage; loops while the stage is active so the scene feels alive.
   _setupAnimation(st) {
@@ -259,6 +299,11 @@ export class World {
 
   update(dt) {
     this.t += dt;
+    // Ethereal shimmer on the visible connection lines.
+    for (const id in this.conns) {
+      const ln = this.mode === 'story' ? this.conns[id].storyLine : this.conns[id].archLine;
+      if (ln && ln.visible) ln.material.opacity = ln.userData.baseOpacity * (0.6 + 0.4 * (0.5 + 0.5 * Math.sin(this.t * 1.3 + ln.userData.phase)));
+    }
     for (const a of this.animators) a.fn(this.t, dt, a);
     for (const tw of this.tweens) { tw.t += dt; tw.update(tw); if (tw.t >= tw.dur && !tw._done) { tw._done = true; tw.done && tw.done(); } }
     this.tweens = this.tweens.filter((tw) => !tw._done);
