@@ -187,6 +187,22 @@ export class World {
   _pop(id) { const o = this._obj(id); if (!o) return; this.tweens.push({ t: 0, dur: 0.5, update(tw) { o.scale.setScalar(0.2 + 0.8 * Math.min(tw.t / 0.5, 1)); }, done: () => o.scale.setScalar(1) }); }
   _bob(id) { const o = this._obj(id); if (!o) return; const by = o.position.y, ph = Math.random() * 6.28; this.animators.push({ fn: (t) => { o.position.y = by + Math.sin(t * 2.4 + ph) * 0.05; } }); }
   _shakeLoop(id) { const o = this._obj(id); if (!o) return; const bx = o.position.x; this.animators.push({ fn: () => { o.position.x = bx + (Math.random() - 0.5) * 0.07; } }); }
+  // Soft wisps of steam rising from a cooking station — ambient kitchen life.
+  _steam(pos) {
+    const puffs = [];
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xeef2f5, transparent: true, opacity: 0, depthWrite: false }));
+      m.position.set(pos.x, pos.y, pos.z); this.scene.add(m); this._stageObjs.push(m); puffs.push({ m, ph: i / 4 });
+    }
+    this.animators.push({ fn: (t) => {
+      for (const p of puffs) {
+        const k = (t * 0.45 + p.ph) % 1;
+        p.m.position.y = pos.y + k * 0.75;
+        p.m.scale.setScalar(0.5 + k * 1.8);
+        p.m.material.opacity = 0.2 * Math.sin(k * Math.PI);
+      }
+    } });
+  }
 
   // Continuously send waves of tokens along a path (work flowing through the system).
   _flow(connIds, interval = 2.6, hop = 0.5) {
@@ -303,6 +319,7 @@ export class World {
         const e = this.blocks[id]; if (!e.story || !e.story.visible) continue;
         const p = e.spec.story.prop;
         if (p === 'cook' || p === 'customer' || p === 'host' || p === 'bouncer') this._bob(id);
+        if (p === 'cook' || p === 'pass') this._steam(v3(e.spec.story.pos, p === 'pass' ? 0.9 : 0.55));
       }
     }
     this._choreograph(st.script || this._beatsFromAnim(st));
