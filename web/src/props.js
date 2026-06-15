@@ -355,6 +355,13 @@ export function makeProp(kind, color) {
     case 'gate': return gate(color);
     case 'tunnel': return tunnel(color);
     case 'freight': return freight(color);
+    // Library / Archive world service props.
+    case 'stacks': return stacks(color);
+    case 'archive': return archive(color);
+    case 'cardcatalog': return cardcatalog(color);
+    case 'readingtable': return readingtable(color);
+    case 'librarian': return librarian(color);
+    case 'branchdesk': return branchdesk(color);
     default: return station(color);
   }
 }
@@ -454,6 +461,52 @@ function freight(color) {                                               // a fre
   add(g, box(1.0, 0.7, 0.6, body), 0.25, 0.45, 0);                      // container
   add(g, box(1.02, 0.06, 0.62, color), 0.25, 0.8, 0);                   // accent stripe
   for (const x of [-0.6, -0.2, 0.5]) { add(g, cyl(0.14, 0.1, 0x202227), x, 0.12, 0.3, Math.PI / 2); add(g, cyl(0.14, 0.1, 0x202227), x, 0.12, -0.3, Math.PI / 2); } // wheels
+  return g;
+}
+
+// ===== Library / Archive world service props ==================================================
+function stacks(color) {                                                // open library shelves of books = S3 / data lake
+  const g = new THREE.Group(); const fr = darker(color, 0.6); const spine = [0x9a5a4a, 0x4a6a8a, 0x6a8a5a, 0xb0843a, 0x7d66d1];
+  add(g, box(0.05, 1.1, 0.5, fr), -0.5, 0.55, 0); add(g, box(0.05, 1.1, 0.5, fr), 0.5, 0.55, 0); add(g, box(1.0, 0.06, 0.5, fr), 0, 1.08, 0);
+  for (const y of [0.28, 0.58, 0.88]) { add(g, box(1.0, 0.04, 0.5, darker(fr, 1.2)), 0, y, 0); for (let i = 0; i < 8; i++) add(g, box(0.1, 0.2 + (i % 3) * 0.02, 0.36, spine[i % 5]), -0.42 + i * 0.11, y + 0.13, 0); }
+  return g;
+}
+function archive(color) {                                               // a closed deep-storage cabinet = Glacier / cold tier
+  const g = new THREE.Group();
+  add(g, box(0.8, 1.0, 0.55, darker(color, 0.7)), 0, 0.5, 0);
+  add(g, box(0.6, 0.8, 0.04, darker(color, 0.9)), 0, 0.5, 0.28);        // door
+  for (const y of [0.35, 0.6, 0.85]) add(g, box(0.5, 0.02, 0.04, 0x8fa6c0), 0, y, 0.31); // drawer slits
+  add(g, box(0.84, 0.06, 0.6, color), 0, 1.02, 0);
+  add(g, box(0.1, 0.1, 0.02, 0xb8d2e6, true), 0.18, 0.5, 0.31);         // frost indicator
+  return g;
+}
+function cardcatalog(color) {                                           // a card-catalog cabinet of indexed drawers = RDS
+  const g = new THREE.Group(); const wood = darker(color, 0.7);
+  add(g, box(0.8, 0.9, 0.5, wood), 0, 0.45, 0);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { add(g, box(0.22, 0.22, 0.04, darker(color, 0.85)), -0.26 + c * 0.26, 0.2 + r * 0.27, 0.26); add(g, box(0.05, 0.03, 0.03, 0xd9c766), -0.26 + c * 0.26, 0.2 + r * 0.27, 0.29); } // drawers + brass pulls
+  add(g, box(0.84, 0.06, 0.54, color), 0, 0.9, 0);
+  return g;
+}
+function readingtable(color) {                                          // a reading-room analysis table = Redshift
+  const g = new THREE.Group(); const wood = darker(color, 0.7);
+  add(g, box(1.2, 0.06, 0.7, wood), 0, 0.55, 0);
+  for (const [x, z] of [[-0.5, -0.28], [0.5, -0.28], [-0.5, 0.28], [0.5, 0.28]]) add(g, box(0.06, 0.55, 0.06, darker(wood, 0.8)), x, 0.27, z);
+  add(g, box(0.5, 0.06, 0.34, 0x12151c), -0.2, 0.6, 0);                 // an open ledger
+  add(g, box(0.04, 0.22, 0.04, BRASS), 0.42, 0.66, -0.12); add(g, box(0.2, 0.08, 0.2, 0x2e6a3a, true), 0.42, 0.78, -0.12); // banker's lamp
+  return g;
+}
+function librarian(color) {                                             // a librarian who searches the stacks = Athena
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.3, 6, 12), mat(0x5a4a6a)), 0, 0.3, -0.18); add(g, sph(0.14, SKIN), 0, 0.62, -0.18);
+  add(g, box(0.7, 0.4, 0.4, darker(color, 0.8)), 0, 0.2, 0.05); add(g, box(0.74, 0.05, 0.44, color), 0, 0.4, 0.05);
+  add(g, box(0.16, 0.12, 0.02, 0xffffff), 0, 0.47, 0.12);              // a query slip / catalogue card
+  return g;
+}
+function branchdesk(color) {                                            // a lending / branch desk near readers = CloudFront edge
+  const g = new THREE.Group(); const book = [0x9a5a4a, 0x4a6a8a, 0x6a8a5a];
+  add(g, box(0.9, 0.5, 0.5, darker(color, 0.75)), 0, 0.25, 0); add(g, box(0.94, 0.06, 0.54, color), 0, 0.5, 0);
+  for (let i = 0; i < 3; i++) add(g, box(0.12, 0.16, 0.3, book[i]), -0.2 + i * 0.2, 0.61, 0); // books ready to lend
+  add(g, box(0.5, 0.3, 0.04, darker(color, 0.6)), 0, 0.72, -0.22);     // sign
   return g;
 }
 

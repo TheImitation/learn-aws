@@ -135,13 +135,30 @@ const kitchen = {
 
 const storage = {
   id: 'store-serve-content', title: 'Store & Serve Content', examDomain: 'Design High-Performing Architectures',
-  summary: 'Keep every file safe in the larder, serve it fast from the counter, and stash cold stock cheaply.',
+  summary: 'Keep every file safe in the stacks, lend it fast from a branch desk, and store cold volumes cheaply.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-8, 0] },
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'reading', label: 'Reading room', rect: { x0: -9.5, z0: -5.4, x1: -1, z1: 5.4 }, floorTint: 0x40362a, accent: 0x33b38c, dressing: [
+        { kind: 'diningtable', pos: [-6.5, -3.6] }, { kind: 'chair', pos: [-6.5, -2.9], yaw: 180, opts: { occupied: true } },
+        { kind: 'pendant', pos: [-6.5, -3.6], y: 1.4 }, { kind: 'plant', pos: [-9, 4.4] }, { kind: 'shelving', pos: [-9, -4.4], yaw: 90 },
+      ] },
+      { id: 'stacks', label: 'The stacks', rect: { x0: -1, z0: -5.4, x1: 3.5, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [0.6, -4.4] }, { kind: 'signage', pos: [-0.6, -5.0], opts: { accent: 0xd9842e } },
+      ] },
+      { id: 'archive', label: 'Deep archive', rect: { x0: 3.5, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x33373f, accent: 0x5a8fd1, dressing: [
+        { kind: 'shelving', pos: [7.6, -4.4] }, { kind: 'signage', pos: [4, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('user', 'Global user', 'generic', { pos: [-8, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-8, 0], yaw: 90 }, 'A person requesting a file.', 'Client HTTPS request for an object.'),
-    C('cf', 'CloudFront', 'edge', { pos: [-3, 0.7, 0] }, { name: 'Grab-and-go', prop: 'grabandgo', pos: [-3, 0], yaw: -90 }, 'Caches objects near each user.', 'CloudFront distribution; origin = the S3 bucket.'),
-    C('s3', 'S3 bucket', 'storage', { pos: [1.5, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [1.5, 0], yaw: -90 }, 'Virtually unlimited, durable object storage.', 'S3; ~11 nines of durability, copies across AZs.', 'arn:aws:s3:::my-app-assets/img/logo.png'),
-    C('glacier', 'S3 Glacier', 'storage', { pos: [5, 0.7, 0] }, { name: 'Cold room', prop: 'coldroom', pos: [5, 0], yaw: -90 }, 'Cheap archival storage for cold data.', 'S3 Glacier; very low cost, retrieval in minutes–hours.'),
+    C('user', 'Global user', 'generic', { pos: [-8, 0.7, 0] }, { name: 'Reader', prop: 'customer', pos: [-8, 0], yaw: 90, face: 'cf' }, 'A person requesting a file.', 'Client HTTPS request for an object.'),
+    C('cf', 'CloudFront', 'edge', { pos: [-3, 0.7, 0] }, { name: 'Branch desk', prop: 'branchdesk', pos: [-3, 0], face: 'user' }, 'Caches objects near each user.', 'CloudFront distribution; origin = the S3 bucket.'),
+    C('s3', 'S3 bucket', 'storage', { pos: [1.5, 0.7, 0] }, { name: 'The stacks', prop: 'stacks', pos: [1.5, 0], yaw: -90 }, 'Virtually unlimited, durable object storage.', 'S3; ~11 nines of durability, copies across AZs.', 'arn:aws:s3:::my-app-assets/img/logo.png'),
+    C('glacier', 'S3 Glacier', 'storage', { pos: [5, 0.7, 0] }, { name: 'Deep archive', prop: 'archive', pos: [5, 0], yaw: -90 }, 'Cheap archival storage for cold data.', 'S3 Glacier; very low cost, retrieval in minutes–hours.'),
   ],
   connections: [
     { id: 'c_user_s3', from: 'user', to: 's3', flow: 'request' },
@@ -150,10 +167,10 @@ const storage = {
     { id: 'c_s3_glacier', from: 's3', to: 'glacier', flow: 'data' },
   ],
   stages: [
-    { title: 'Into the larder (S3)', focus: 's3', anim: 'pulse', animConn: 'c_user_s3', narration: 'Store files in S3 — durable object storage that keeps copies across AZs, with no servers to manage.', storyNarration: 'Move all your stock into a vast larder with endless shelves, with copies on several shelves so nothing is lost.', concept: 'S3 = durable, managed object storage.', blocks: ['user', 's3'], conns: ['c_user_s3'] },
-    { title: 'Serve it fast (CloudFront)', focus: 'cf', anim: 'chain', chain: ['c_user_cf', 'c_cf_s3'], narration: 'Put CloudFront in front of S3 to cache objects near users — faster, and far less origin load.', storyNarration: 'Set up grab-and-go counters near the diners, stocked with the popular dishes.', concept: 'A CDN caches near users — lower latency and origin load.', blocks: ['user', 'cf', 's3'], conns: ['c_user_cf', 'c_cf_s3'] },
-    { title: 'Cold storage (Glacier)', focus: 'glacier', anim: 'pulse', animConn: 'c_s3_glacier', narration: 'A lifecycle rule moves rarely-accessed data to Glacier — far cheaper, retrieved in minutes to hours.', storyNarration: 'Rarely-touched stock goes to the deep cold room — dirt cheap to keep, just slower to fetch.', concept: 'Lifecycle to a colder class cuts cost for cold data.', blocks: ['user', 'cf', 's3', 'glacier'], conns: ['c_user_cf', 'c_cf_s3', 'c_s3_glacier'] },
-    { title: 'Fast, durable, cheap', focus: 's3', anim: 'chain', chain: ['c_user_cf', 'c_cf_s3'], narration: 'A file goes viral: CloudFront absorbs the surge, S3 serves any misses durably, cold data sits cheaply in Glacier.', storyNarration: 'A dish goes viral: the counters handle the crowd, the larder never runs dry, the cold room keeps bills down.', concept: 'S3 + CloudFront scale content globally — durable and cheap.', blocks: ['user', 'cf', 's3', 'glacier'], conns: ['c_user_cf', 'c_cf_s3', 'c_s3_glacier'] },
+    { title: 'Into the stacks (S3)', focus: 's3', anim: 'pulse', animConn: 'c_user_s3', narration: 'Store files in S3 — durable object storage that keeps copies across AZs, with no servers to manage.', storyNarration: 'Shelve everything in vast stacks, with copies on several shelves so nothing is ever lost.', concept: 'S3 = durable, managed object storage.', blocks: ['user', 's3'], conns: ['c_user_s3'] },
+    { title: 'Serve it fast (CloudFront)', focus: 'cf', anim: 'chain', chain: ['c_user_cf', 'c_cf_s3'], narration: 'Put CloudFront in front of S3 to cache objects near users — faster, and far less origin load.', storyNarration: 'Open a branch desk near the readers, stocked with copies of the most-borrowed titles.', concept: 'A CDN caches near users — lower latency and origin load.', blocks: ['user', 'cf', 's3'], conns: ['c_user_cf', 'c_cf_s3'] },
+    { title: 'Cold storage (Glacier)', focus: 'glacier', anim: 'pulse', animConn: 'c_s3_glacier', narration: 'A lifecycle rule moves rarely-accessed data to Glacier — far cheaper, retrieved in minutes to hours.', storyNarration: 'Rarely-read volumes go to the deep archive — cheap to keep, just slower to fetch.', concept: 'Lifecycle to a colder class cuts cost for cold data.', blocks: ['user', 'cf', 's3', 'glacier'], conns: ['c_user_cf', 'c_cf_s3', 'c_s3_glacier'] },
+    { title: 'Fast, durable, cheap', focus: 's3', anim: 'chain', chain: ['c_user_cf', 'c_cf_s3'], narration: 'A file goes viral: CloudFront absorbs the surge, S3 serves any misses durably, cold data sits cheaply in Glacier.', storyNarration: 'A title goes viral: the branch handles the crowd, the stacks never run dry, the deep archive keeps costs down.', concept: 'S3 + CloudFront scale content globally — durable and cheap.', blocks: ['user', 'cf', 's3', 'glacier'], conns: ['c_user_cf', 'c_cf_s3', 'c_s3_glacier'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'What does Amazon S3 give you?', options: ['Durable, virtually unlimited object storage with no servers', 'A relational database', 'A virtual server you patch', 'A load balancer'], correct: [0], explain: 'S3 is managed object storage with redundant copies across AZs.' },
