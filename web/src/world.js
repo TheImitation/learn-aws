@@ -75,7 +75,7 @@ export class World {
         story.rotation.y = THREE.MathUtils.degToRad(b.story.yaw || 0);
         story.userData.blockId = b.id;
         this.storyGroup.add(story);
-        applyModel(story, b.story.prop);
+        applyModel(story, b.story.prop, { clip: 'Idle' });
       }
 
       const el = document.createElement('div'); el.className = 'label';
@@ -256,7 +256,7 @@ export class World {
     const isPerson = opts.mover === 'person';
     let mover, token = null;
     if (isPerson) {
-      mover = makeProp('customer', 0x9a8c7a); applyModel(mover, 'customer'); // a guest (uses the human model when it loads)
+      mover = makeProp('customer', 0x9a8c7a); applyModel(mover, 'customer', { clip: 'Walk' }); // a guest (human model, walking)
     } else {
       mover = makeRunner(FLOW[c.spec.flow] ?? 0xffffff);
       token = makeToken(c.spec.flow); token.position.copy(mover.userData.tray); mover.add(token);
@@ -267,7 +267,8 @@ export class World {
     const oneWay = opts.oneWay ?? isPerson, fetch = !!opts.fetch;
     const fwd = Math.atan2(B.x - A.x, B.z - A.z), back = Math.atan2(A.x - B.x, A.z - B.z);
     this.animators.push({ timer: -(opts.delay || 0), fn: (t, dt, a) => {
-      a.timer += dt; if (a.timer < 0) { mover.visible = false; return; }
+      a.timer += dt; if (mover.userData.mixer) mover.userData.mixer.update(dt);
+      if (a.timer < 0) { mover.visible = false; return; }
       const p = (a.timer % cycle) / cycle;
       let k, forward, yaw;
       if (p < 0.5) { k = reach * (p / 0.5); forward = true; yaw = fwd; }
@@ -361,6 +362,7 @@ export class World {
       const ln = this.mode === 'story' ? this.conns[id].storyLine : this.conns[id].archLine;
       if (ln && ln.visible) ln.material.opacity = ln.userData.baseOpacity * (0.6 + 0.4 * (0.5 + 0.5 * Math.sin(this.t * 1.3 + ln.userData.phase)));
     }
+    if (this.mode === 'story') for (const id in this.blocks) { const s = this.blocks[id].story; if (s && s.userData.mixer) s.userData.mixer.update(dt); } // idle animation on standing people
     for (const a of this.animators) a.fn(this.t, dt, a);
     for (const tw of this.tweens) { tw.t += dt; tw.update(tw); if (tw.t >= tw.dur && !tw._done) { tw._done = true; tw.done && tw.done(); } }
     this.tweens = this.tweens.filter((tw) => !tw._done);

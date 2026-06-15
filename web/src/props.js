@@ -257,25 +257,35 @@ export function makeRunner(color) {
 // async and swap in when ready, so nothing blocks. Use only where the prop's colour is NOT semantic
 // (people are cat 'generic'), so the service-category colour-coding on the other props survives.
 export const MODELS = {
-  customer: { url: './assets/models/human.glb', scale: 0.8, yaw: 0, y: 0.13 },
+  customer: { url: './assets/models/human.glb', scale: 0.18, yaw: 0, y: 0 },
 };
 
 const _gltf = new GLTFLoader();
-const _modelCache = new Map(); // url -> Promise<Object3D>
+const _modelCache = new Map(); // url -> Promise<gltf>
 function _loadModel(url) {
-  if (!_modelCache.has(url)) _modelCache.set(url, new Promise((res, rej) => _gltf.load(url, (g) => res(g.scene), undefined, rej)));
+  if (!_modelCache.has(url)) _modelCache.set(url, new Promise((res, rej) => _gltf.load(url, res, undefined, rej)));
   return _modelCache.get(url);
 }
 // Swap a prop group's procedural children for a registered model, keeping the group's own
-// position/rotation/userData. Silent fallback to the procedural prop on any failure.
-export function applyModel(group, kind) {
+// position/rotation/userData. The model is rigged: we play a clip (opts.clip, e.g. 'Idle' or
+// 'Walk') via an AnimationMixer stored at group.userData.mixer so the figure isn't a frozen statue;
+// the world advances that mixer each frame. Silent fallback to the procedural prop on any failure.
+export function applyModel(group, kind, opts = {}) {
   const m = MODELS[kind]; if (!m) return;
-  _loadModel(m.url).then((scene) => {
-    const model = cloneSkinned(scene); // skinned/rigged model — SkeletonUtils gives each instance its own skeleton
+  _loadModel(m.url).then((gltf) => {
+    const model = cloneSkinned(gltf.scene); // SkeletonUtils → each instance gets its own skeleton (independent animation)
     model.scale.setScalar(m.scale || 1);
     model.rotation.y = m.yaw || 0;
     model.position.y = m.y || 0;
     model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    if (gltf.animations && gltf.animations.length) {
+      const want = opts.clip || 'Idle';
+      const clip = gltf.animations.find((a) => a.name.includes(want)) || gltf.animations.find((a) => a.name.includes('Idle')) || gltf.animations[0];
+      const mixer = new THREE.AnimationMixer(model);
+      mixer.clipAction(clip).play();
+      mixer.timeScale = opts.timeScale || 1;
+      group.userData.mixer = mixer;
+    }
     for (let i = group.children.length - 1; i >= 0; i--) group.remove(group.children[i]);
     group.add(model);
   }).catch(() => { /* keep procedural prop */ });
