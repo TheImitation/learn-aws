@@ -688,8 +688,95 @@ const analytics = {
   ],
 };
 
+const secrets = {
+  id: 'manage-secrets', title: 'Manage Secrets', examDomain: 'Design Secure Architectures',
+  summary: 'No passwords on a sticky note by the till: keep them in a locked box that rotates the locks itself.',
+  scenery: 'open',
+  blocks: [
+    C('app', 'App / service', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Needs a database password to work.', 'Your application needing credentials.'),
+    C('secrets', 'Secrets Manager', 'security', { pos: [0, 0.7, -1.6] }, { name: 'The lockbox', prop: 'safe', pos: [0, -1.6], yaw: -90 }, 'Stores credentials and hands them out at runtime.', 'AWS Secrets Manager; central, rotated, IAM-gated secrets.'),
+    C('db', 'Database', 'database', { pos: [3.2, 0.7, 1.2] }, { name: 'The pantry', prop: 'pantry', pos: [3.2, 1.2], yaw: -90 }, 'The resource the password unlocks.', 'The database the credential authenticates to.'),
+  ],
+  connections: [
+    { id: 'c_app_secrets', from: 'app', to: 'secrets', flow: 'request' },
+    { id: 'c_app_db', from: 'app', to: 'db', flow: 'data' },
+    { id: 'c_secrets_db', from: 'secrets', to: 'db', flow: 'network' },
+  ],
+  stages: [
+    { title: 'Don’t bake in passwords', focus: 'app', anim: 'overload', animConn: 'c_app_db', narration: 'A password hard-coded in source or config leaks easily and can’t be rotated without a redeploy.', storyNarration: 'Scrawling the safe code on a sticky note by the till: anyone walking past reads it, and changing it is a pain.', concept: 'Never hard-code or commit secrets.', blocks: ['app', 'db'], conns: ['c_app_db'] },
+    { title: 'Keep them in Secrets Manager', focus: 'secrets', anim: 'pulse', animConn: 'c_app_secrets', narration: 'Store credentials centrally; the app fetches them at runtime instead of holding them.', storyNarration: 'Keep the codes in a locked box; staff ask the box for today’s code when they need it.', concept: 'Central secret store, fetched at runtime.', blocks: ['app', 'secrets', 'db'], conns: ['c_app_secrets'] },
+    { title: 'Rotate automatically', focus: 'secrets', anim: 'pulse', animConn: 'c_secrets_db', narration: 'Secrets Manager rotates the credential on a schedule and updates the database — no downtime, no manual edits.', storyNarration: 'The box quietly re-keys the locks every week and tells the doors the new code. Nobody has to remember.', concept: 'Automatic credential rotation.', blocks: ['app', 'secrets', 'db'], conns: ['c_app_secrets', 'c_secrets_db'] },
+    { title: 'Gate access with IAM', focus: 'secrets', anim: 'pulse', animConn: 'c_app_secrets', narration: 'Only permitted IAM identities can read a secret, and every retrieval is logged.', storyNarration: 'Only staff on the list may ask the box for a code, and it writes down every time one is handed out.', concept: 'Secret access is IAM-gated and audited.', blocks: ['app', 'secrets', 'db'], conns: ['c_app_secrets', 'c_secrets_db'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Where should a database password live?', options: ['In Secrets Manager, fetched at runtime', 'Hard-coded in the app', 'In a public S3 bucket', 'In the AMI name'], correct: [0], explain: 'Secrets Manager keeps credentials out of code and rotates them.' },
+    { kind: 'single', prompt: 'A key benefit of Secrets Manager over a config file?', options: ['Automatic rotation of credentials', 'Faster queries', 'Cheaper storage', 'A global CDN'], correct: [0], explain: 'It rotates secrets on a schedule and updates the target.' },
+    { kind: 'single', prompt: 'Who can read a given secret?', options: ['Only identities the IAM/secret policy allows', 'Anyone in the VPC', 'Only the root user', 'Anyone with the ARN'], correct: [0], explain: 'Access is governed by IAM and the resource policy, and audited.' },
+    { kind: 'tapfix', prompt: 'Credentials are hard-coded and leaking. Tap where they should live instead.', tapTarget: 'secrets', explain: 'Secrets Manager stores and rotates them, gated by IAM.' },
+  ],
+};
+
+const bill = {
+  id: 'watch-the-bill', title: 'Watch the Bill', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'See where the money goes, get an alarm before you overspend, and let a consultant flag the waste.',
+  scenery: 'open',
+  blocks: [
+    C('workload', 'Your spend', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Everything running and costing money.', 'Your running resources accruing cost.'),
+    C('explorer', 'Cost Explorer', 'edge', { pos: [-0.5, 0.7, -1.6] }, { name: 'The books', prop: 'dashboard', pos: [-0.5, -1.6], yaw: -90 }, 'Charts spend by service, tag and time.', 'AWS Cost Explorer; spend visualization.'),
+    C('budget', 'AWS Budgets', 'security', { pos: [3.2, 0.7, -0.4] }, { name: 'The budget alarm', prop: 'tannoy', pos: [3.2, -0.4], yaw: -90 }, 'Goes off when spend crosses a line.', 'AWS Budgets; threshold/forecast alerts.'),
+    C('advisor', 'Trusted Advisor', 'generic', { pos: [1, 0.7, 1.7] }, { name: 'The consultant', prop: 'securitydesk', pos: [1, 1.7], yaw: -90 }, 'Points out waste and savings.', 'Trusted Advisor; cost (and other) checks.'),
+  ],
+  connections: [
+    { id: 'c_workload_explorer', from: 'workload', to: 'explorer', flow: 'data' },
+    { id: 'c_explorer_budget', from: 'explorer', to: 'budget', flow: 'request' },
+    { id: 'c_workload_advisor', from: 'workload', to: 'advisor', flow: 'data' },
+  ],
+  stages: [
+    { title: 'See where the money goes', focus: 'explorer', anim: 'pulse', animConn: 'c_workload_explorer', narration: 'Cost Explorer charts your spend by service, tag and time — so you can find what’s actually costing you.', storyNarration: 'Open the books: a clear chart of what every station spent this month, not a shoebox of receipts.', concept: 'Cost Explorer gives spend visibility.', blocks: ['workload', 'explorer'], conns: ['c_workload_explorer'] },
+    { title: 'Alarm before it hurts (Budgets)', focus: 'budget', anim: 'pulse', animConn: 'c_explorer_budget', narration: 'AWS Budgets alerts you when actual or forecast spend crosses a threshold you set.', storyNarration: 'Set a spending line; when the month’s costs head over it, the alarm sounds before payday, not after.', concept: 'Budgets alert on spend thresholds.', blocks: ['workload', 'explorer', 'budget'], conns: ['c_workload_explorer', 'c_explorer_budget'] },
+    { title: 'Flag the waste (Trusted Advisor)', focus: 'advisor', anim: 'pulse', animConn: 'c_workload_advisor', narration: 'Trusted Advisor checks for idle and under-used resources and recommends right-sizing and savings.', storyNarration: 'A consultant walks the kitchen and points out the fridge left on overnight and the oven nobody uses.', concept: 'Trusted Advisor finds savings.', blocks: ['workload', 'explorer', 'advisor'], conns: ['c_workload_advisor'] },
+    { title: 'Tag for attribution', focus: 'workload', narration: 'Cost allocation tags attribute spend to teams, projects or environments — so you know who owns what.', storyNarration: 'Label every order by which party it’s for, so you can split the bill fairly at the end of the night.', concept: 'Tags attribute cost to owners.', blocks: ['workload', 'explorer', 'budget', 'advisor'], conns: ['c_workload_explorer', 'c_explorer_budget', 'c_workload_advisor'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Visualize and break down your AWS spend over time. Use…', options: ['Cost Explorer', 'CloudWatch Logs', 'Route 53', 'EFS'], correct: [0], explain: 'Cost Explorer charts spend by service, tag and time.' },
+    { kind: 'single', prompt: 'Be alerted before you blow your monthly spend. Use…', options: ['AWS Budgets', 'A bigger instance', 'A NAT gateway', 'Glacier'], correct: [0], explain: 'Budgets sends alerts on actual/forecast thresholds.' },
+    { kind: 'single', prompt: 'Get automated recommendations to cut waste. Use…', options: ['Trusted Advisor', 'An SQS queue', 'A security group', 'CloudFront'], correct: [0], explain: 'Trusted Advisor flags idle/under-used resources and savings.' },
+    { kind: 'single', prompt: 'Attribute spend to a specific team or project?', options: ['Cost allocation tags', 'A second region', 'A read replica', 'A bastion host'], correct: [0], explain: 'Tags let you slice and attribute costs by owner.' },
+  ],
+};
+
+const aurora = {
+  id: 'aurora-database', title: 'A Self-Healing Database', examDomain: 'Design High-Performing Architectures',
+  summary: 'A cloud-native pantry that keeps six copies across three rooms, grows itself, and adds read counters on demand.',
+  scenery: 'open',
+  blocks: [
+    C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes data.', 'Your application tier.'),
+    C('primary', 'Aurora (writer)', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main pantry', prop: 'pantry', pos: [-0.5, 0], yaw: -90 }, 'Handles writes; storage self-heals across AZs.', 'Aurora writer; MySQL/PostgreSQL-compatible, managed.'),
+    C('r1', 'Read replica', 'database', { pos: [3.2, 0.7, -1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.2, -1.7], yaw: -90 }, 'Serves reads; can be promoted on failover.', 'An Aurora read replica.'),
+    C('r2', 'Read replica', 'database', { pos: [3.6, 0.7, 1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.6, 1.7], yaw: -90 }, 'Another reader for scale.', 'Another Aurora replica (up to 15).'),
+  ],
+  connections: [
+    { id: 'c_app_primary', from: 'app', to: 'primary', flow: 'data' },
+    { id: 'c_primary_r1', from: 'primary', to: 'r1', flow: 'replication' },
+    { id: 'c_primary_r2', from: 'primary', to: 'r2', flow: 'replication' },
+    { id: 'c_app_r1', from: 'app', to: 'r1', flow: 'data' },
+  ],
+  stages: [
+    { title: 'A managed cloud database', focus: 'primary', anim: 'pulse', animConn: 'c_app_primary', narration: 'Aurora is a managed, MySQL/PostgreSQL-compatible database — you get the engine without running servers.', storyNarration: 'A pantry run for you: same familiar shelves as before, but someone else stocks, cleans and fixes it.', concept: 'Aurora = managed, compatible relational DB.', blocks: ['app', 'primary'], conns: ['c_app_primary'] },
+    { title: 'Storage that heals itself', focus: 'primary', narration: 'Aurora keeps six copies of your data across three AZs and auto-grows storage — it survives disk and AZ failures transparently.', storyNarration: 'Every item is duplicated across three rooms, six copies in all; lose a room and nothing’s missing, and the shelves grow on their own.', concept: 'Durable, self-healing, auto-scaling storage.', blocks: ['app', 'primary'], conns: ['c_app_primary'] },
+    { title: 'Scale reads with replicas', focus: 'r1', anim: 'chain', chain: ['c_primary_r1', 'c_app_r1'], narration: 'Add up to 15 low-latency read replicas to spread read load; one is promoted automatically if the writer fails.', storyNarration: 'Open extra reading counters off the same stock for the queue of lookups — and if the main pantry falls over, a counter takes over.', concept: 'Read replicas scale reads and provide failover.', blocks: ['app', 'primary', 'r1', 'r2'], conns: ['c_app_primary', 'c_primary_r1', 'c_primary_r2', 'c_app_r1'] },
+    { title: 'Go serverless if spiky', focus: 'primary', anim: 'spike', narration: 'Aurora Serverless auto-scales database capacity up and down with demand — good for variable or unpredictable load.', storyNarration: 'On an unpredictable night, the pantry quietly grows and shrinks its staff to match the rush, then stands down.', concept: 'Aurora Serverless scales capacity to load.', blocks: ['app', 'primary', 'r1', 'r2'], conns: ['c_app_primary', 'c_primary_r1', 'c_primary_r2', 'c_app_r1'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Amazon Aurora is compatible with…', options: ['MySQL and PostgreSQL', 'Only DynamoDB', 'Redis', 'S3'], correct: [0], explain: 'Aurora offers MySQL- and PostgreSQL-compatible editions.' },
+    { kind: 'single', prompt: 'How does Aurora protect your data?', options: ['6 copies across 3 AZs, self-healing storage', 'A single disk', 'Backups only, no redundancy', 'It does not'], correct: [0], explain: 'Aurora’s storage layer replicates 6 ways across 3 AZs.' },
+    { kind: 'single', prompt: 'Read traffic is overwhelming the database. Add…', options: ['Aurora read replicas', 'A NAT gateway', 'A bigger EBS volume', 'An SNS topic'], correct: [0], explain: 'Replicas spread read load (and provide failover targets).' },
+    { kind: 'single', prompt: 'Unpredictable, spiky database load. Consider…', options: ['Aurora Serverless (auto-scaling capacity)', 'A fixed tiny instance', 'Glacier', 'A static website'], correct: [0], explain: 'Aurora Serverless scales capacity with demand.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora],
 };

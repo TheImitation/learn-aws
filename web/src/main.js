@@ -78,57 +78,112 @@ function showScreen(name) {
 }
 
 // ---------- course map ----------
-// Per-topic card presentation (kitchen glyph + category accent).
+// Per-topic card presentation: kitchen glyph, category accent, difficulty level (1=Foundational,
+// 2=Core, 3=Advanced — also used to order topics within a domain).
 const CARD = {
-  'ha-web-app': { icon: '🍳', accent: '#f2b25a' },
-  'store-serve-content': { icon: '🥫', accent: '#d9842e' },
-  'secure-access-iam': { icon: '🔑', accent: '#d15656' },
-  'network-boundaries-vpc': { icon: '🚪', accent: '#3585c6' },
-  'decouple-with-queue-sqs': { icon: '🧾', accent: '#33b38c' },
-  'go-serverless-lambda': { icon: '⚡', accent: '#f0a92e' },
-  'pick-the-pantry': { icon: '🗄️', accent: '#7d66d1' },
-  'cache-hot-items': { icon: '🍽️', accent: '#3aa9b5' },
-  'optimise-cost': { icon: '💰', accent: '#67ad5b' },
-  'monitor-cloudwatch': { icon: '📊', accent: '#b06ed1' },
-  'block-vs-file-storage': { icon: '🧊', accent: '#d9842e' },
-  'fan-out-sns': { icon: '📣', accent: '#d98a8a' },
-  'dns-routing-route53': { icon: '🧭', accent: '#5a8fd1' },
-  'disaster-recovery': { icon: '🛟', accent: '#cf6b6b' },
-  'containers-ecs': { icon: '📦', accent: '#4f9ed1' },
-  'encrypt-with-kms': { icon: '🔐', accent: '#d15656' },
-  'protect-the-edge': { icon: '🛡️', accent: '#cf6b4a' },
-  'api-front-door': { icon: '🪟', accent: '#4f86c6' },
-  'orchestrate-step-functions': { icon: '🔀', accent: '#9a86e6' },
-  'auto-scaling': { icon: '📈', accent: '#e89a3a' },
-  'analyse-the-data': { icon: '🔎', accent: '#4aa6a0' },
+  'ha-web-app': { icon: '🍳', accent: '#f2b25a', level: 1 },
+  'store-serve-content': { icon: '🥫', accent: '#d9842e', level: 1 },
+  'secure-access-iam': { icon: '🔑', accent: '#d15656', level: 1 },
+  'network-boundaries-vpc': { icon: '🚪', accent: '#3585c6', level: 1 },
+  'decouple-with-queue-sqs': { icon: '🧾', accent: '#33b38c', level: 2 },
+  'go-serverless-lambda': { icon: '⚡', accent: '#f0a92e', level: 2 },
+  'pick-the-pantry': { icon: '🗄️', accent: '#7d66d1', level: 2 },
+  'cache-hot-items': { icon: '🍽️', accent: '#3aa9b5', level: 2 },
+  'optimise-cost': { icon: '💰', accent: '#67ad5b', level: 1 },
+  'monitor-cloudwatch': { icon: '📊', accent: '#b06ed1', level: 2 },
+  'block-vs-file-storage': { icon: '🧊', accent: '#d9842e', level: 2 },
+  'fan-out-sns': { icon: '📣', accent: '#d98a8a', level: 2 },
+  'dns-routing-route53': { icon: '🧭', accent: '#5a8fd1', level: 2 },
+  'disaster-recovery': { icon: '🛟', accent: '#cf6b6b', level: 3 },
+  'containers-ecs': { icon: '📦', accent: '#4f9ed1', level: 2 },
+  'encrypt-with-kms': { icon: '🔐', accent: '#d15656', level: 2 },
+  'protect-the-edge': { icon: '🛡️', accent: '#cf6b4a', level: 3 },
+  'api-front-door': { icon: '🪟', accent: '#4f86c6', level: 2 },
+  'orchestrate-step-functions': { icon: '🔀', accent: '#9a86e6', level: 3 },
+  'auto-scaling': { icon: '📈', accent: '#e89a3a', level: 2 },
+  'analyse-the-data': { icon: '🔎', accent: '#4aa6a0', level: 3 },
+  'manage-secrets': { icon: '🗝️', accent: '#d15656', level: 2 },
+  'watch-the-bill': { icon: '💵', accent: '#67ad5b', level: 1 },
+  'aurora-database': { icon: '🛢️', accent: '#7d66d1', level: 3 },
 };
+const LEVEL_NAME = { 1: 'Foundational', 2: 'Core', 3: 'Advanced' };
+// The four SAA-C03 exam domains, in order, with a short label, blurb and accent.
+const DOMAINS = [
+  { key: 'Design Secure Architectures', label: 'Secure architectures', blurb: 'Identity, network boundaries, encryption and edge defense.', accent: '#d15656' },
+  { key: 'Design Resilient Architectures', label: 'Resilient architectures', blurb: 'Decouple, span AZs and regions, recover, and observe.', accent: '#5a8fd1' },
+  { key: 'Design High-Performing Architectures', label: 'High-performing architectures', blurb: 'The right data store, caching, delivery and scale.', accent: '#33b38c' },
+  { key: 'Design Cost-Optimized Architectures', label: 'Cost-optimized architectures', blurb: 'Pay for what you use; right-size and commit.', accent: '#67ad5b' },
+];
+const meta = (id) => CARD[id] || { icon: '•', accent: '#9ea3a0', level: 2 };
+
+// Learning order: by domain (DOMAINS order), then difficulty level, then course order.
+function orderedTopics() {
+  const di = (t) => { const i = DOMAINS.findIndex((d) => d.key === t.examDomain); return i < 0 ? 99 : i; };
+  return COURSE.topics.map((t, i) => ({ t, i }))
+    .sort((a, b) => di(a.t) - di(b.t) || meta(a.t.id).level - meta(b.t.id).level || a.i - b.i)
+    .map((x) => x.t);
+}
+const nextTopic = () => orderedTopics().find((t) => masteryOf(t.id) !== 'Mastered') || null;
+
+function makeTopicCard(t) {
+  const m = masteryOf(t.id), b = bestOf(t.id), th = meta(t.id);
+  const badge = m === 'Mastered' ? `<span class="badge mastered">✓ Mastered${b ? ' · ' + b + '%' : ''}</span>`
+    : m === 'Assessed' ? `<span class="badge assessed">Assessed${b ? ' · ' + b + '%' : ''}</span>`
+      : `<span class="badge new">Not started</span>`;
+  const card = document.createElement('div'); card.className = 'topic-card';
+  card.style.setProperty('--card-accent', th.accent);
+  card.tabIndex = 0; card.setAttribute('role', 'button');
+  card.innerHTML = `
+    <div class="card-glyph">${th.icon}</div>
+    <div class="card-body">
+      <div class="card-row"><h2>${t.title}</h2>${badge}</div>
+      <div class="meta"><span class="chip lvl${th.level}">${LEVEL_NAME[th.level]}</span></div>
+      <p>${t.summary}</p>
+    </div>
+    <div class="card-cta">›</div>`;
+  card.onclick = () => openTopic(t);
+  card.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTopic(t); } };
+  return card;
+}
 
 function openCourseMap() {
-  const list = $('topic-list'); list.innerHTML = '';
-  let mastered = 0;
-  for (const t of COURSE.topics) {
-    const m = masteryOf(t.id), b = bestOf(t.id);
-    if (m === 'Mastered') mastered++;
-    const th = CARD[t.id] || { icon: '•', accent: '#9ea3a0' };
-    const badge = m === 'Mastered' ? `<span class="badge mastered">✓ Mastered${b ? ' · ' + b + '%' : ''}</span>`
-      : m === 'Assessed' ? `<span class="badge assessed">Assessed${b ? ' · ' + b + '%' : ''}</span>`
-        : `<span class="badge new">Not started</span>`;
-    const card = document.createElement('div'); card.className = 'topic-card';
-    card.style.setProperty('--card-accent', th.accent);
-    card.tabIndex = 0; card.setAttribute('role', 'button');
-    card.innerHTML = `
-      <div class="card-glyph">${th.icon}</div>
-      <div class="card-body">
-        <div class="card-row"><h2>${t.title}</h2>${badge}</div>
-        <div class="meta"><span class="chip">${t.examDomain}</span></div>
-        <p>${t.summary}</p>
-      </div>
-      <div class="card-cta">›</div>`;
-    card.onclick = () => openTopic(t);
-    card.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTopic(t); } };
-    list.appendChild(card);
+  const total = COURSE.topics.length;
+  const mastered = COURSE.topics.filter((t) => masteryOf(t.id) === 'Mastered').length;
+  const started = COURSE.topics.filter((t) => masteryOf(t.id) !== 'Not started').length;
+
+  // Overview: overall progress + a Continue/Start CTA for the next unmastered topic.
+  const ov = $('map-overview');
+  ov.innerHTML = `<div class="ov-stat"><b>${mastered}</b> / ${total} mastered</div>
+    <div class="ov-bar"><i style="width:${Math.round((mastered / total) * 100)}%"></i></div>`;
+  const nxt = nextTopic();
+  if (nxt) {
+    const btn = document.createElement('button'); btn.className = 'primary';
+    btn.textContent = (started === 0 ? 'Start: ' : 'Continue: ') + nxt.title;
+    btn.onclick = () => openTopic(nxt);
+    ov.appendChild(btn);
+  } else {
+    const done = document.createElement('div'); done.className = 'ov-stat'; done.textContent = '🎉 All topics mastered';
+    ov.appendChild(done);
   }
-  $('map-progress').textContent = `${mastered} / ${COURSE.topics.length} mastered`;
+
+  // One section per exam domain, with its own progress, holding a grid of topic cards.
+  const list = $('topic-list'); list.innerHTML = '';
+  const ordered = orderedTopics();
+  for (const d of DOMAINS) {
+    const topics = ordered.filter((t) => t.examDomain === d.key);
+    if (!topics.length) continue;
+    const dm = topics.filter((t) => masteryOf(t.id) === 'Mastered').length;
+    const sec = document.createElement('section'); sec.className = 'domain-section';
+    sec.style.setProperty('--domain-accent', d.accent);
+    sec.innerHTML = `
+      <div class="domain-head"><span class="dot"></span><h2>${d.label}</h2><span class="dom-prog">${dm} / ${topics.length}</span></div>
+      <p class="domain-blurb">${d.blurb}</p>
+      <div class="domain-bar"><i style="width:${Math.round((dm / topics.length) * 100)}%"></i></div>`;
+    const grid = document.createElement('div'); grid.className = 'domain-grid';
+    for (const t of topics) grid.appendChild(makeTopicCard(t));
+    sec.appendChild(grid);
+    list.appendChild(sec);
+  }
   showScreen('map');
 }
 
