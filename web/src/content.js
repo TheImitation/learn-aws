@@ -1126,8 +1126,185 @@ const audit = {
   ],
 };
 
+const sgnacl = {
+  id: 'sg-vs-nacl', title: 'Security Groups vs NACLs', examDomain: 'Design Secure Architectures',
+  summary: 'A bouncer at each door who remembers you, and a gate guard at the perimeter with a strict allow/deny list.',
+  scenery: 'open',
+  blocks: [
+    C('traffic', 'Traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'Packets arriving (and leaving).', 'Inbound/outbound traffic.'),
+    C('nacl', 'Network ACL', 'security', { pos: [-3, 0.7, 0] }, { name: 'Perimeter guard', prop: 'guardpost', pos: [-3, 0], yaw: 90 }, 'Filters at the subnet edge; allow AND deny; stateless.', 'A NACL; subnet-level, stateless, ordered allow/deny rules.'),
+    C('sg', 'Security group', 'security', { pos: [1, 0.7, 0] }, { name: 'Door bouncer', prop: 'bouncer', pos: [1, 0], yaw: 90 }, 'Allows specific traffic to the instance; remembers the conversation.', 'A security group; instance-level, stateful, allow-only.'),
+    C('server', 'Instance', 'compute', { pos: [4.5, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [4.5, 0], yaw: -90 }, 'The protected instance.', 'An EC2 instance.'),
+  ],
+  connections: [
+    { id: 'c_t_nacl', from: 'traffic', to: 'nacl', flow: 'network' },
+    { id: 'c_nacl_sg', from: 'nacl', to: 'sg', flow: 'network' },
+    { id: 'c_sg_server', from: 'sg', to: 'server', flow: 'network' },
+  ],
+  stages: [
+    { title: 'Two layers of firewall', focus: 'server', anim: 'chain', chain: ['c_t_nacl', 'c_nacl_sg', 'c_sg_server'], narration: 'Traffic passes a subnet-level Network ACL, then an instance-level security group — two checkpoints.', storyNarration: 'A guest clears the perimeter guard at the gate, then the bouncer at the room door.', concept: 'NACL (subnet) + security group (instance) = layered.', blocks: ['traffic', 'nacl', 'sg', 'server'], conns: ['c_t_nacl', 'c_nacl_sg', 'c_sg_server'] },
+    { title: 'Security group: stateful, instance-level', focus: 'sg', anim: 'pulse', animConn: 'c_sg_server', narration: 'A security group attaches to the instance, has allow rules only, and is stateful — reply traffic is allowed automatically.', storyNarration: 'The bouncer lets in who’s on the list and remembers them, so they can leave freely without being re-checked.', concept: 'SG = stateful, instance-level, allow-only.', blocks: ['traffic', 'nacl', 'sg', 'server'], conns: ['c_sg_server'] },
+    { title: 'NACL: stateless, subnet-level', focus: 'nacl', anim: 'pulse', animConn: 'c_t_nacl', narration: 'A NACL guards the whole subnet, supports allow AND deny rules, and is stateless — you must allow return traffic explicitly.', storyNarration: 'The perimeter guard checks every entry and every exit against a strict list, and never remembers a face.', concept: 'NACL = stateless, subnet-level, allow + deny.', blocks: ['traffic', 'nacl', 'sg', 'server'], conns: ['c_t_nacl'] },
+    { title: 'When to use which', focus: 'sg', narration: 'Use security groups for normal instance access; reach for NACLs for subnet-wide rules or to explicitly DENY (e.g. block a bad IP).', storyNarration: 'The bouncer handles the everyday list; the perimeter guard is who you tell to ban a specific troublemaker outright.', concept: 'SG by default; NACL for subnet-wide or explicit denies.', blocks: ['traffic', 'nacl', 'sg', 'server'], conns: ['c_t_nacl', 'c_nacl_sg', 'c_sg_server'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'A security group is…', options: ['Stateful, at the instance level, allow-only', 'Stateless, at the subnet level', 'A DNS service', 'A storage class'], correct: [0], explain: 'SGs are stateful, instance-level, and only have allow rules.' },
+    { kind: 'single', prompt: 'A Network ACL is…', options: ['Stateless, at the subnet level, with allow AND deny', 'Stateful, at the instance level', 'A CDN', 'A queue'], correct: [0], explain: 'NACLs are stateless, subnet-level, ordered allow/deny.' },
+    { kind: 'single', prompt: 'You must explicitly allow return traffic on…', options: ['A NACL (stateless)', 'A security group (stateful)', 'Both equally', 'Neither'], correct: [0], explain: 'NACLs are stateless; SGs auto-allow replies.' },
+    { kind: 'single', prompt: 'Block one specific malicious IP across a subnet. Use…', options: ['A NACL deny rule', 'A security group', 'Route 53', 'An IAM policy'], correct: [0], explain: 'Only NACLs support deny rules; SGs can’t deny.' },
+  ],
+};
+
+const multiaz = {
+  id: 'multiaz-vs-replicas', title: 'Multi-AZ vs Read Replicas', examDomain: 'Design Resilient Architectures',
+  summary: 'A standby pantry that takes over if the main one fails — versus extra reading counters that share the load.',
+  scenery: 'open',
+  blocks: [
+    C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes the database.', 'Your application tier.'),
+    C('primary', 'Primary DB', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main pantry', prop: 'pantry', pos: [-0.5, 0], yaw: -90 }, 'Handles all writes.', 'The RDS primary (writer).'),
+    C('standby', 'Multi-AZ standby', 'database', { pos: [3, 0.7, -1.7] }, { name: 'Standby pantry', prop: 'pantry', pos: [3, -1.7], yaw: -90 }, 'Synchronous copy in another AZ; fails over automatically. Not readable.', 'RDS Multi-AZ standby; synchronous, automatic failover.'),
+    C('replica', 'Read replica', 'database', { pos: [3.5, 0.7, 1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.5, 1.7], yaw: -90 }, 'Asynchronous copy you read from to offload the primary.', 'An RDS read replica; asynchronous, read scaling.'),
+  ],
+  connections: [
+    { id: 'c_app_primary', from: 'app', to: 'primary', flow: 'data' },
+    { id: 'c_primary_standby', from: 'primary', to: 'standby', flow: 'replication' },
+    { id: 'c_primary_replica', from: 'primary', to: 'replica', flow: 'replication' },
+    { id: 'c_app_replica', from: 'app', to: 'replica', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Survive an AZ failure (Multi-AZ)', focus: 'standby', anim: 'pulse', animConn: 'c_primary_standby', narration: 'Multi-AZ keeps a synchronous standby in another AZ and fails over automatically. It’s for availability — you can’t read from it.', storyNarration: 'A standby pantry in the next room mirrors the main one exactly; if the main floods, it takes over instantly. Nobody serves from it meanwhile.', concept: 'Multi-AZ = synchronous standby + auto-failover (HA).', blocks: ['app', 'primary', 'standby'], conns: ['c_app_primary', 'c_primary_standby'] },
+    { title: 'Scale reads (read replicas)', focus: 'replica', anim: 'chain', chain: ['c_primary_replica', 'c_app_replica'], narration: 'Read replicas are asynchronous copies you CAN read from — they offload read traffic from the primary.', storyNarration: 'Open extra reading counters off the same stock; the queue of lookups spreads across them, easing the main pantry.', concept: 'Read replicas = async copies that scale reads.', blocks: ['app', 'primary', 'replica'], conns: ['c_app_primary', 'c_primary_replica', 'c_app_replica'] },
+    { title: 'Don’t confuse them', focus: 'primary', narration: 'A Multi-AZ standby is NOT readable and exists for failover; read replicas scale reads but don’t auto-fail-over (one can be promoted).', storyNarration: 'The standby just waits to step in; the reading counters serve customers but won’t automatically run the kitchen if the main pantry dies.', concept: 'HA (Multi-AZ) ≠ read scaling (replicas).', blocks: ['app', 'primary', 'standby', 'replica'], conns: ['c_app_primary', 'c_primary_standby', 'c_primary_replica', 'c_app_replica'] },
+    { title: 'Use both together', focus: 'app', narration: 'Combine them: Multi-AZ for resilience, read replicas for read scale — they solve different problems.', storyNarration: 'Keep the standby ready for disaster AND run extra counters for the rush; you need both.', concept: 'Multi-AZ + replicas cover HA and read scale.', blocks: ['app', 'primary', 'standby', 'replica'], conns: ['c_app_primary', 'c_primary_standby', 'c_primary_replica', 'c_app_replica'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'RDS Multi-AZ primarily gives you…', options: ['Automatic failover to a synchronous standby (HA)', 'More read throughput', 'A global CDN', 'Cheaper storage'], correct: [0], explain: 'Multi-AZ is about availability, not read scaling.' },
+    { kind: 'single', prompt: 'Read-heavy app overwhelming the database. Add…', options: ['Read replicas', 'A Multi-AZ standby to read from', 'A NAT gateway', 'A bigger EBS volume'], correct: [0], explain: 'Replicas scale reads; the Multi-AZ standby isn’t readable.' },
+    { kind: 'single', prompt: 'Can you read from a Multi-AZ standby?', options: ['No — it’s for failover only', 'Yes, freely', 'Only on weekends', 'Only writes'], correct: [0], explain: 'The standby serves failover, not read traffic.' },
+    { kind: 'single', prompt: 'Do read replicas automatically fail over for writes?', options: ['No (one can be manually promoted)', 'Yes, instantly', 'Yes, but only in one AZ', 'They never replicate'], correct: [0], explain: 'Replicas are async read copies; promotion is manual.' },
+  ],
+};
+
+const messaging = {
+  id: 'pick-messaging', title: 'Which Messaging Service?', examDomain: 'Design Resilient Architectures',
+  summary: 'Queue, broadcast, rule-router or stream — match the integration pattern to the right service.',
+  scenery: 'open',
+  blocks: [
+    C('need', 'Your need', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'What you’re trying to integrate.', 'Your integration requirement.'),
+    C('sqs', 'SQS', 'generic', { pos: [-1, 0.7, -2] }, { name: 'Ticket rail', prop: 'ticketrail', pos: [-1, -2], yaw: 0 }, 'Buffer work for one consumer group to pull.', 'SQS; pull queue, decouples producer/consumer.'),
+    C('sns', 'SNS', 'generic', { pos: [2.6, 0.7, -1.7] }, { name: 'Tannoy', prop: 'tannoy', pos: [2.6, -1.7], yaw: 0 }, 'Push one message to many subscribers.', 'SNS; pub/sub fan-out (push).'),
+    C('eb', 'EventBridge', 'generic', { pos: [0.8, 0.7, 0.8] }, { name: 'Router', prop: 'hub', pos: [0.8, 0.8], yaw: 0 }, 'Route events to targets by content rules.', 'EventBridge; rule-based event bus.'),
+    C('kin', 'Kinesis', 'edge', { pos: [3.8, 0.7, 1.9] }, { name: 'Conveyor', prop: 'ticketrail', pos: [3.8, 1.9], yaw: 0 }, 'Ordered, real-time stream many can replay.', 'Kinesis; ordered, replayable data stream.'),
+  ],
+  connections: [
+    { id: 'c_need_sqs', from: 'need', to: 'sqs', flow: 'request' },
+    { id: 'c_need_sns', from: 'need', to: 'sns', flow: 'request' },
+    { id: 'c_need_eb', from: 'need', to: 'eb', flow: 'request' },
+    { id: 'c_need_kin', from: 'need', to: 'kin', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Decouple one-to-one (SQS)', focus: 'sqs', anim: 'pulse', animConn: 'c_need_sqs', narration: 'Need to hand work to ONE consumer group that processes at its own pace, with buffering and retries? Use SQS.', storyNarration: 'Clip the order on a rail; whichever cook is free pulls the next one.', concept: 'SQS = queue, pull, decouple + buffer.', blocks: ['need', 'sqs'], conns: ['c_need_sqs'] },
+    { title: 'Broadcast one-to-many (SNS)', focus: 'sns', anim: 'pulse', animConn: 'c_need_sns', narration: 'Need to notify MANY independent subscribers of the same event at once? Use SNS pub/sub.', storyNarration: 'Call it once over the tannoy; everyone listening hears it together.', concept: 'SNS = push pub/sub fan-out.', blocks: ['need', 'sqs', 'sns'], conns: ['c_need_sns'] },
+    { title: 'Route by content (EventBridge)', focus: 'eb', anim: 'pulse', animConn: 'c_need_eb', narration: 'Need to route different events to different targets by rules, from many AWS sources? Use EventBridge.', storyNarration: 'A router reads each ticket and sends it only to the station whose rule it matches.', concept: 'EventBridge = rule/content-based routing.', blocks: ['need', 'sqs', 'sns', 'eb'], conns: ['c_need_eb'] },
+    { title: 'Stream & replay (Kinesis)', focus: 'kin', anim: 'pulse', animConn: 'c_need_kin', narration: 'Need a high-volume, ordered, replayable real-time feed read by multiple consumers? Use Kinesis.', storyNarration: 'Run records past on a conveyor that keeps the ordered log so any station can re-watch it.', concept: 'Kinesis = ordered, replayable real-time stream.', blocks: ['need', 'sqs', 'sns', 'eb', 'kin'], conns: ['c_need_kin'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Buffer tasks for one worker pool to pull and retry?', options: ['SQS', 'SNS', 'Kinesis', 'EventBridge'], correct: [0], explain: 'SQS is a pull queue for decoupling one consumer group.' },
+    { kind: 'single', prompt: 'Notify many independent subscribers of one event at once?', options: ['SNS', 'SQS', 'A read replica', 'EBS'], correct: [0], explain: 'SNS pushes each message to all subscribers (fan-out).' },
+    { kind: 'single', prompt: 'Route events to different targets based on their content?', options: ['EventBridge', 'SQS', 'Kinesis', 'Route 53'], correct: [0], explain: 'EventBridge does rule/content-based routing.' },
+    { kind: 'single', prompt: 'High-volume, ordered, replayable real-time feed for many readers?', options: ['Kinesis', 'SQS', 'SNS', 'A NAT gateway'], correct: [0], explain: 'Kinesis is an ordered, replayable stream with multiple consumers.' },
+  ],
+};
+
+const scaleupout = {
+  id: 'scale-up-vs-out', title: 'Scale Up vs Scale Out', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'A bigger oven, or more cooks? Vertical hits a ceiling; horizontal spreads load and survives failures.',
+  scenery: 'open',
+  blocks: [
+    C('load', 'Load', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'Demand on the system.', 'Your workload.'),
+    C('big', 'Scale up', 'compute', { pos: [-1, 0.7, -1.6] }, { name: 'Bigger oven', prop: 'cook', pos: [-1, -1.6], yaw: -90 }, 'One larger instance — more CPU/RAM.', 'Vertical scaling: a bigger instance type.'),
+    C('out1', 'Scale out', 'compute', { pos: [2.5, 0.7, -1.6] }, { name: 'More cooks', prop: 'cook', pos: [2.5, -1.6], yaw: -90 }, 'More instances behind a load balancer.', 'Horizontal scaling: add instances.'),
+    C('out2', 'Scale out', 'compute', { pos: [3, 0.7, 1.6] }, { name: 'More cooks', prop: 'cook', pos: [3, 1.6], yaw: -90 }, 'Another instance.', 'Another instance in the group.'),
+  ],
+  connections: [
+    { id: 'c_load_big', from: 'load', to: 'big', flow: 'request' },
+    { id: 'c_load_o1', from: 'load', to: 'out1', flow: 'request' },
+    { id: 'c_load_o2', from: 'load', to: 'out2', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Scale up: a bigger box', focus: 'big', anim: 'spike', narration: 'Vertical scaling means a larger instance — more CPU and memory. Simple, but it hits a ceiling and is a single point of failure.', storyNarration: 'Buy one giant oven. Powerful — but there’s a biggest oven made, and if it breaks, service stops.', concept: 'Scale up = bigger instance; capped + single point of failure.', blocks: ['load', 'big'], conns: ['c_load_big'] },
+    { title: 'Scale out: more boxes', focus: 'out1', anim: 'flow', narration: 'Horizontal scaling means more instances behind a load balancer — no single ceiling.', storyNarration: 'Hire more ordinary cooks and spread the tickets across them; need more? Add more.', concept: 'Scale out = more instances, no single ceiling.', blocks: ['load', 'out1', 'out2'], conns: ['c_load_o1', 'c_load_o2'] },
+    { title: 'Out is resilient and elastic', focus: 'out2', anim: 'flow', narration: 'Many small instances + Auto Scaling means losing one is harmless, and you grow and shrink with demand.', storyNarration: 'If one cook walks, the rest carry on; call extras for the rush and send them home after.', concept: 'Scale out = resilient + elastic.', blocks: ['load', 'out1', 'out2'], conns: ['c_load_o1', 'c_load_o2'] },
+    { title: 'Pick by workload', focus: 'load', narration: 'Prefer scale-out for stateless web/HA. Scale-up suits simple, stateful, or licensing-bound workloads that are hard to distribute.', storyNarration: 'Most kitchens want more cooks; a single specialist appliance is the exception, not the rule.', concept: 'Prefer scale-out for web/HA; scale-up for special cases.', blocks: ['load', 'big', 'out1', 'out2'], conns: ['c_load_big', 'c_load_o1', 'c_load_o2'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Vertical scaling (scale up) means…', options: ['A bigger/more powerful instance', 'More instances', 'A second region', 'A read replica'], correct: [0], explain: 'Scaling up increases one instance’s size.' },
+    { kind: 'single', prompt: 'Horizontal scaling (scale out) means…', options: ['More instances behind a load balancer', 'A bigger instance', 'A bigger disk', 'More IAM users'], correct: [0], explain: 'Scaling out adds instances to share load.' },
+    { kind: 'single', prompt: 'Which is generally more resilient and elastic?', options: ['Scale out (horizontal)', 'Scale up (vertical)', 'Neither', 'Both identical'], correct: [0], explain: 'Many instances + Auto Scaling tolerate failure and flex with demand.' },
+    { kind: 'single', prompt: 'A drawback of only scaling up?', options: ['A hard ceiling and a single point of failure', 'It’s always cheaper', 'It needs no instance', 'It can’t use EBS'], correct: [0], explain: 'One big box caps out and is a SPOF.' },
+  ],
+};
+
+const egress = {
+  id: 'private-egress-nat', title: 'Private Servers, Public Updates', examDomain: 'Design Secure Architectures',
+  summary: 'No street door to the back rooms — but a staffed exit lets staff fetch supplies without letting anyone in.',
+  scenery: 'open',
+  blocks: [
+    C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90 }, 'In a private subnet — no inbound from the internet.', 'An EC2 instance in a private subnet.'),
+    C('nat', 'NAT gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'Staffed exit', prop: 'guardpost', pos: [-0.5, 0], yaw: -90 }, 'Lets private servers reach OUT; nobody can start a connection IN.', 'A NAT gateway in a public subnet.'),
+    C('igw', 'Internet gateway', 'networking', { pos: [2.8, 0.7, 1.4] }, { name: 'Front door', prop: 'servicedoor', pos: [2.8, 1.4], yaw: -90 }, 'The VPC’s door to the internet (for public subnets).', 'The internet gateway.'),
+    C('net', 'Internet', 'generic', { pos: [5, 0.7, -0.6] }, { name: 'The supplier', prop: 'customer', pos: [5, -0.6], yaw: -90 }, 'Updates, packages, external APIs.', 'The public internet.'),
+  ],
+  connections: [
+    { id: 'c_server_nat', from: 'server', to: 'nat', flow: 'network' },
+    { id: 'c_nat_igw', from: 'nat', to: 'igw', flow: 'network' },
+    { id: 'c_igw_net', from: 'igw', to: 'net', flow: 'network' },
+  ],
+  stages: [
+    { title: 'No inbound to private servers', focus: 'server', narration: 'A server in a private subnet can’t be reached from the internet — good for security. But it still needs OS updates and packages.', storyNarration: 'The back-of-house has no street door, so nobody wanders in — but the cooks still need to fetch supplies.', concept: 'Private subnet = no inbound route from the internet.', blocks: ['server'], conns: [] },
+    { title: 'Let it reach out (NAT)', focus: 'nat', anim: 'chain', chain: ['c_server_nat', 'c_nat_igw'], narration: 'A NAT gateway lets private instances start outbound connections; replies come back, but nobody outside can initiate a connection in.', storyNarration: 'A staffed exit lets cooks pop out for supplies and return — but it never lets a stranger walk in off the street.', concept: 'NAT = outbound-only internet for private subnets.', blocks: ['server', 'nat', 'igw', 'net'], conns: ['c_server_nat', 'c_nat_igw', 'c_igw_net'] },
+    { title: 'The gateway is for public subnets', focus: 'igw', narration: 'The internet gateway gives public subnets two-way internet. Private subnets route outbound THROUGH the NAT (which sits in a public subnet) to the IGW.', storyNarration: 'The front door is for the dining room; the back rooms reach the street only via the staffed exit that leads to it.', concept: 'IGW = public; NAT (in public subnet) gives private egress.', blocks: ['server', 'nat', 'igw', 'net'], conns: ['c_server_nat', 'c_nat_igw', 'c_igw_net'] },
+    { title: 'Mind the cost (and IPv6)', focus: 'nat', narration: 'NAT gateways bill per hour plus per GB processed. For IPv6, use an egress-only internet gateway instead.', storyNarration: 'The staffed exit costs wages by the hour and by the load it handles — worth knowing when the bill arrives.', concept: 'NAT has hourly + data cost; egress-only IGW for IPv6.', blocks: ['server', 'nat', 'igw', 'net'], conns: ['c_server_nat', 'c_nat_igw', 'c_igw_net'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Private-subnet instances need OS updates from the internet. Use…', options: ['A NAT gateway', 'A public IP on each', 'An internet gateway directly', 'A security group'], correct: [0], explain: 'NAT lets private instances make outbound connections only.' },
+    { kind: 'single', prompt: 'Can the internet start a connection to a server behind a NAT gateway?', options: ['No — outbound only', 'Yes', 'Only on port 443', 'Only with a key'], correct: [0], explain: 'NAT permits outbound-initiated traffic and its replies, not new inbound.' },
+    { kind: 'single', prompt: 'A NAT gateway must live in…', options: ['A public subnet (with a route to the IGW)', 'A private subnet', 'Another region', 'On-premises'], correct: [0], explain: 'The NAT sits in a public subnet so it can reach the IGW.' },
+    { kind: 'single', prompt: 'For IPv6 outbound from private subnets, use…', options: ['An egress-only internet gateway', 'A NAT gateway', 'A second VPC', 'A read replica'], correct: [0], explain: 'Egress-only IGW is the IPv6 equivalent of NAT.' },
+  ],
+};
+
+const s3protect = {
+  id: 's3-protection', title: 'S3 Durability & Protection', examDomain: 'Design High-Performing Architectures',
+  summary: 'Built to never lose data: redundant copies, every version kept, a tamper lock, and copies in another region.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'Writer', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'Writes and overwrites objects.', 'A client writing objects.'),
+    C('bucket', 'S3 bucket', 'storage', { pos: [-1, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [-1, 0], yaw: -90 }, 'Stores objects redundantly across AZs.', 'An S3 bucket (~11 nines durability).'),
+    C('versions', 'Versioning', 'storage', { pos: [3, 0.7, -1.6] }, { name: 'Old copies', prop: 'coldroom', pos: [3, -1.6], yaw: -90 }, 'Keeps every past version of an object.', 'S3 Versioning; recover overwrites/deletes.'),
+    C('lock', 'Object Lock', 'security', { pos: [3.5, 0.7, 1.6] }, { name: 'The lock', prop: 'safe', pos: [3.5, 1.6], yaw: -90 }, 'Prevents objects being changed or deleted.', 'S3 Object Lock (WORM) / MFA-delete.'),
+  ],
+  connections: [
+    { id: 'c_user_bucket', from: 'user', to: 'bucket', flow: 'data' },
+    { id: 'c_bucket_versions', from: 'bucket', to: 'versions', flow: 'data' },
+    { id: 'c_bucket_lock', from: 'bucket', to: 'lock', flow: 'network' },
+  ],
+  stages: [
+    { title: 'Built not to lose data', focus: 'bucket', anim: 'pulse', animConn: 'c_user_bucket', narration: 'S3 stores each object redundantly across multiple AZs, giving roughly eleven nines of durability.', storyNarration: 'Every item in the larder is copied to several shelves across rooms — losing one shelf loses nothing.', concept: 'S3 ≈ 11 nines durability (redundant across AZs).', blocks: ['user', 'bucket'], conns: ['c_user_bucket'] },
+    { title: 'Undo with versioning', focus: 'versions', anim: 'pulse', animConn: 'c_bucket_versions', narration: 'With versioning on, every overwrite and delete keeps the old version — so mistakes are recoverable.', storyNarration: 'Each time stock is replaced, the previous one is kept in the back; nothing is truly thrown away.', concept: 'Versioning recovers overwrites and deletes.', blocks: ['user', 'bucket', 'versions'], conns: ['c_user_bucket', 'c_bucket_versions'] },
+    { title: 'Lock against tampering', focus: 'lock', anim: 'pulse', animConn: 'c_bucket_lock', narration: 'Object Lock (write-once-read-many) and MFA-delete stop objects being altered or deleted — for compliance.', storyNarration: 'Seal the important stock so it can’t be swapped or binned, even by staff — only opened with the manager’s key.', concept: 'Object Lock / MFA-delete = immutability.', blocks: ['user', 'bucket', 'lock'], conns: ['c_user_bucket', 'c_bucket_lock'] },
+    { title: 'Copy to another region', focus: 'bucket', narration: 'Cross-Region Replication copies objects to a bucket in another region — for disaster recovery or low-latency local reads.', storyNarration: 'Mirror the whole larder to a second city, so a regional disaster can’t wipe you out.', concept: 'Cross-Region Replication for DR / locality.', blocks: ['user', 'bucket', 'versions', 'lock'], conns: ['c_user_bucket', 'c_bucket_versions', 'c_bucket_lock'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'S3’s durability comes from…', options: ['Redundant copies across multiple AZs (~11 nines)', 'A single disk', 'One AZ only', 'Your backups alone'], correct: [0], explain: 'S3 replicates objects across AZs for very high durability.' },
+    { kind: 'single', prompt: 'Recover an object after an accidental overwrite or delete. Enable…', options: ['Versioning', 'A NAT gateway', 'A read replica', 'A security group'], correct: [0], explain: 'Versioning retains prior versions for recovery.' },
+    { kind: 'single', prompt: 'Make objects immutable for compliance (WORM)?', options: ['S3 Object Lock', 'A bigger instance', 'CloudFront', 'EFS'], correct: [0], explain: 'Object Lock enforces write-once-read-many retention.' },
+    { kind: 'single', prompt: 'Keep a copy of objects in another region automatically?', options: ['Cross-Region Replication', 'A second EBS volume', 'A NACL', 'Route 53'], correct: [0], explain: 'CRR replicates objects to a bucket in another region.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute, hybrid, threats, accelerator, cognito, iac, audit],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute, hybrid, threats, accelerator, cognito, iac, audit, sgnacl, multiaz, messaging, scaleupout, egress, s3protect],
 };
