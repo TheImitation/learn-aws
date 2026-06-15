@@ -31,6 +31,22 @@
     <section id="screen-topic" class="screen">
       <div id="topbar"><span id="t-title"></span><span id="t-stage"></span></div>
 
+      <!-- Lesson intro (shown when a topic opens) -->
+      <div id="intro" class="intro-overlay hidden">
+        <div class="intro-card">
+          <div class="intro-top"><span class="intro-glyph" id="intro-glyph"></span>
+            <div><div id="intro-domain" class="intro-domain"></div><h1 id="intro-title"></h1></div>
+          </div>
+          <p id="intro-sum" class="sub"></p>
+          <div class="intro-learn-h">What you'll learn</div>
+          <ul id="intro-list" class="intro-list"></ul>
+          <div class="controls">
+            <button id="intro-begin" class="primary">Begin lesson →</button>
+            <button id="intro-back">Back to map</button>
+          </div>
+        </div>
+      </div>
+
       <div id="inspector" class="panelbox hidden">
         <div class="row"><b id="insp-name"></b>
           <span class="seg"><button id="insp-tangible" class="on">Tangible</button><button id="insp-real">Real</button></span>
@@ -79,6 +95,7 @@
         <h1 id="r-score"></h1>
         <p id="r-msg"></p>
         <p id="r-mastery" class="sub"></p>
+        <div id="r-recap" class="recap"></div>
         <div class="controls">
           <button id="r-back" class="primary">Back to course map</button>
           <button id="r-retry">Retry</button>

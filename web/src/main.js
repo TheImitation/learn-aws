@@ -197,11 +197,24 @@ function openTopic(t) {
   world.setMode('story');
   journey = new Journey(world, controls, onStage);
   const van = vantage('story', t.scenery);
-  camera.position.set(van[0] + 1.5, van[1] + 4, van[2] + 5.5); // start wider/higher...
+  camera.position.set(van[0] + 1.5, van[1] + 4, van[2] + 5.5); // hold wide behind the intro...
   journey.begin();
-  flyCamera(van, 1.6);                                          // ...then settle into the space
   $('p-scrub').max = String(journey.count - 1);
   showScreen('topic');
+  showIntro(t);                                                 // ...the fly-in plays when they Begin
+}
+
+// Lesson intro: objectives derived from the stage concepts.
+function showIntro(t) {
+  const th = meta(t.id), dom = DOMAINS.find((d) => d.key === t.examDomain);
+  $('intro').style.setProperty('--intro-accent', th.accent);
+  $('intro-glyph').textContent = th.icon;
+  $('intro-domain').textContent = (dom ? dom.label : t.examDomain) + ' · ' + LEVEL_NAME[th.level];
+  $('intro-title').textContent = t.title;
+  $('intro-sum').textContent = t.summary;
+  const learn = [...new Set(t.stages.map((s) => s.concept).filter(Boolean))];
+  $('intro-list').innerHTML = learn.map((c) => `<li>${c}</li>`).join('');
+  $('intro').classList.remove('hidden');
 }
 
 function onStage(stage, i, count) {
@@ -310,6 +323,8 @@ function showResults() {
   $('r-score').textContent = `${pct}%  (${correctCount}/${quiz.length})`;
   $('r-msg').textContent = passed ? 'Passed — you can run this kitchen through a bad night.' : 'Keep going — you need 80% to master this topic.';
   $('r-mastery').textContent = 'Mastery: ' + masteryOf(topic.id);
+  const learn = [...new Set(topic.stages.map((s) => s.concept).filter(Boolean))];
+  $('r-recap').innerHTML = '<h3>Key takeaways</h3><ul>' + learn.map((c) => `<li>${c}</li>`).join('') + '</ul>';
   showScreen('results');
 }
 
@@ -342,6 +357,8 @@ $('b-view').onclick = () => setView(mode === 'story' ? 'arch' : 'story');
 $('b-analogy').onclick = () => { showAnalogy = !showAnalogy; updateAnalogy(journey.stage); };
 $('b-assess').onclick = startAssessment;
 $('b-map').onclick = openCourseMap;
+$('intro-begin').onclick = () => { $('intro').classList.add('hidden'); flyCamera(vantage('story', topic.scenery), 1.6); };
+$('intro-back').onclick = openCourseMap;
 $('p-scrub').oninput = (e) => journey.goto(parseInt(e.target.value, 10));
 $('insp-tangible').onclick = () => { inspectorReal = false; $('insp-tangible').classList.add('on'); $('insp-real').classList.remove('on'); renderInspector(); };
 $('insp-real').onclick = () => { inspectorReal = true; $('insp-real').classList.add('on'); $('insp-tangible').classList.remove('on'); renderInspector(); };
