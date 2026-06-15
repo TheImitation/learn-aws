@@ -228,10 +228,11 @@ export class World {
   // Ambient set-dressing: collected once at build, animated by one batched updater (perf: a handful
   // of meshes, independent of the per-stage animators).
   _collectAmbient(group) {
-    const a = { flickers: [], diners: [] };
+    const a = { flickers: [], diners: [], cars: [] };
     group.traverse((o) => {
       if (o.userData && o.userData.flicker) { o.userData.ph = o.userData.ph ?? Math.random() * 6.28; a.flickers.push(o); }
       if (o.userData && o.userData.diner) { o.userData.ph = o.userData.ph ?? Math.random() * 6.28; a.diners.push(o); }
+      if (o.userData && o.userData.car) a.cars.push(o);
     });
     this._ambient = a;
   }
@@ -239,6 +240,7 @@ export class World {
     const t = this.t;
     for (const f of this._ambient.flickers) { if (f.material) f.material.emissiveIntensity = (f.userData.base || 1) * (0.78 + 0.22 * Math.sin(t * 7 + f.userData.ph) + 0.08 * Math.sin(t * 13 + f.userData.ph)); }
     for (const d of this._ambient.diners) d.rotation.z = Math.sin(t * 1.4 + d.userData.ph) * 0.045;
+    for (const c of this._ambient.cars) { const u = c.userData.car, p = ((t * u.speed) + u.off) % u.span; c.position.x = u.dir > 0 ? u.x0 + p : u.x0 + u.span - p; c.rotation.y = u.dir > 0 ? 0 : Math.PI; } // looping traffic
   }
 
   // A mover's route through the scene. Story mode threads optional connection waypoints so people and

@@ -26,6 +26,7 @@ app.appendChild(labelRenderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0e1016);
+scene.fog = new THREE.Fog(0x0e1016, 34, 95); // night haze so the distant exterior skyline fades; interiors stay crisp
 // Image-based lighting so PBR materials (incl. loaded glTF models) light realistically.
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;

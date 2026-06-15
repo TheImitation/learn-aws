@@ -510,6 +510,18 @@ function branchdesk(color) {                                            // a len
   return g;
 }
 
+// A small car (faces +x; headlights front). Tagged by makeExterior for the ambient traffic loop.
+function car(color) {
+  const g = new THREE.Group();
+  add(g, box(0.78, 0.2, 0.4, color), 0, 0.2, 0);                       // body
+  add(g, box(0.42, 0.18, 0.36, darker(color, 0.78)), -0.04, 0.37, 0);  // cabin
+  add(g, cyl(0.09, 0.42, 0x141519), 0.24, 0.09, 0, Math.PI / 2);       // front wheels
+  add(g, cyl(0.09, 0.42, 0x141519), -0.24, 0.09, 0, Math.PI / 2);      // rear wheels
+  add(g, box(0.04, 0.08, 0.34, 0xfff2cc, true), 0.4, 0.2, 0);          // headlights
+  add(g, box(0.04, 0.07, 0.34, 0xff5a5a, true), -0.4, 0.2, 0);         // taillights
+  return g;
+}
+
 // The world beyond the building: ground, roads, street trees and a backdrop of other (night-lit)
 // buildings, so each scene sits in a neighbourhood instead of a void. Tall buildings go to the back
 // and sides; the front (camera side, +z) stays low so the interior is never hidden. Tuned per world.
@@ -548,6 +560,14 @@ export function makeExterior(world, b) {
   for (let i = 0; i < 6; i++) tree(L + 1 + i * (b.w / 6), FR + 1.3, 1);             // front-edge trees (low)
   for (let i = 0; i < 3; i++) { tree(L - 1.9, BK + 3 + i * 3, 0.9); tree(R + 1.9, BK + 3 + i * 3, 0.9); } // side trees
   for (let i = -2; i <= 2; i++) { const lp = new THREE.Group(); add(lp, box(0.08, 1.5, 0.08, 0x33363f), 0, 0.75, 0); add(lp, box(0.5, 0.07, 0.07, 0x33363f), 0.21, 1.48, 0); add(lp, box(0.16, 0.1, 0.16, cfg.lamp, true), 0.42, 1.45, 0); lp.position.set(b.x + i * 4.2, 0, roadZ - 1.4); g.add(lp); } // street lamps
+  // a moon (kept out of the fog so it stays bright)
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12), new THREE.MeshStandardMaterial({ color: 0xdfe6f0, emissive: 0xaab4c8, emissiveIntensity: 0.95, fog: false }));
+  moon.position.set(b.x + b.w * 0.3, 11, BK - b.d - 6); g.add(moon);
+  // a couple of cars looping the front road + one parked at the kerb (tagged for the ambient updater)
+  const span = b.w * 1.7, x0 = b.x - span / 2;
+  const mkcar = (col, dir, zoff, off) => { const c = car(col); c.userData.car = { dir, speed: 1.3 + Math.random() * 0.7, span, x0, off }; c.position.set(x0, 0, roadZ + zoff); g.add(c); };
+  mkcar(0x8f4a44, 1, -0.55, 0); mkcar(0x44608f, -1, 0.55, span * 0.5);
+  const pk = car(0x6a6a72); pk.position.set(L + 2.2, 0, FR + 1.7); g.add(pk);
   return g;
 }
 
