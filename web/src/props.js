@@ -347,6 +347,7 @@ export function makeProp(kind, color) {
     case 'sorter': return sorter(color);
     case 'mailbin': return mailbin(color);
     case 'clerk': return clerk(color);
+    case 'conveyor': return conveyor(color);
     default: return station(color);
   }
 }
@@ -388,6 +389,16 @@ function clerk(color) {
   add(g, box(0.6, 0.4, 0.4, darker(color, 0.8)), 0, 0.2, 0.05);
   add(g, box(0.64, 0.05, 0.44, color), 0, 0.4, 0.05);
   add(g, box(0.2, 0.1, 0.14, KRAFT), 0, 0.47, 0.1);          // a parcel being handled
+  return g;
+}
+
+// Kinesis stream = an ordered conveyor of records several clerks can read at once.
+function conveyor(color) {
+  const g = new THREE.Group(); const belt = darker(color, 0.5);
+  add(g, box(1.5, 0.12, 0.5, belt), 0, 0.5, 0);                                   // belt surface
+  add(g, box(1.5, 0.3, 0.06, darker(color, 0.7)), 0, 0.35, 0.27); add(g, box(1.5, 0.3, 0.06, darker(color, 0.7)), 0, 0.35, -0.27); // side rails
+  for (const x of [-0.55, 0, 0.55]) add(g, cyl(0.08, 0.52, 0x6a6f78), x, 0.4, 0, Math.PI / 2); // rollers across the belt
+  for (let i = 0; i < 3; i++) add(g, box(0.2, 0.14, 0.2, KRAFT), -0.4 + i * 0.4, 0.63, 0);      // records riding the belt
   return g;
 }
 

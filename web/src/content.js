@@ -886,13 +886,29 @@ const stateless = {
 
 const events = {
   id: 'route-events-eventbridge', title: 'Route Events', examDomain: 'Design Resilient Architectures',
-  summary: 'A smart noticeboard that reads each event and sends it, by rule, to exactly the right handler.',
+  summary: 'A sorting office that reads each parcel and routes it, by rule, to exactly the right department.',
   scenery: 'open',
+  world: 'sortingoffice',
+  anchors: { door: [-3.7, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'intake', label: 'Intake', rect: { x0: -9.5, z0: -5.4, x1: -3.7, z1: 5.4 }, floorTint: 0x34363d, accent: 0x5a8fd1, dressing: [
+        { kind: 'dock', pos: [-7.5, -4.2] }, { kind: 'parcels', pos: [-8.3, 3.2] }, { kind: 'shelving', pos: [-9, 0.5], yaw: 90 },
+      ] },
+      { id: 'sort', label: 'Sorting hall', rect: { x0: -3.7, z0: -5.4, x1: 1.2, z1: 5.4 }, floorTint: 0x3d3f47, accent: 0x9a86e6, dressing: [
+        { kind: 'signage', pos: [-1, -5.0], opts: { accent: 0x9a86e6 } }, { kind: 'shelving', pos: [-1, 5.0] },
+      ] },
+      { id: 'dispatch', label: 'Dispatch', rect: { x0: 1.2, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x36403a, accent: 0x67ad5b, dressing: [
+        { kind: 'parcels', pos: [6, 3.4] }, { kind: 'shelving', pos: [8, 0.5], yaw: -90 }, { kind: 'dock', pos: [6.5, -4.2] },
+      ] },
+    ],
+  },
   blocks: [
-    C('source', 'Event source', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Emits events (“order placed”, “refund”).', 'A producer / AWS service event.'),
-    C('bus', 'EventBridge', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The router', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Matches each event to a rule and routes it.', 'Amazon EventBridge; content-based event bus.', '{ "source": ["orders"],\n  "detail-type": ["OrderPlaced"] }\nmatches → Lambda · SQS · Step Functions'),
-    C('h1', 'Orders handler', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Orders cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Handles order events.', 'A target (Lambda/queue) for one rule.'),
-    C('h2', 'Audit handler', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Audit cook', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Handles audit/other events.', 'A target for a different rule.'),
+    C('source', 'Event source', 'compute', { pos: [-6, 0.7, 0] }, { name: 'Dispatch desk', prop: 'intake', pos: [-6, 0], face: 'bus' }, 'Emits events (“order placed”, “refund”).', 'A producer / AWS service event.'),
+    C('bus', 'EventBridge', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Sorting machine', prop: 'sorter', pos: [-1, 0], yaw: 0 }, 'Matches each event to a rule and routes it.', 'Amazon EventBridge; content-based event bus.', '{ "source": ["orders"],\n  "detail-type": ["OrderPlaced"] }\nmatches → Lambda · SQS · Step Functions'),
+    C('h1', 'Orders handler', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Orders department', prop: 'clerk', pos: [3, -1.6], face: 'bus' }, 'Handles order events.', 'A target (Lambda/queue) for one rule.'),
+    C('h2', 'Audit handler', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Audit department', prop: 'clerk', pos: [3.5, 1.6], face: 'bus' }, 'Handles audit/other events.', 'A target for a different rule.'),
   ],
   connections: [
     { id: 'c_src_bus', from: 'source', to: 'bus', flow: 'request' },
@@ -900,10 +916,10 @@ const events = {
     { id: 'c_bus_h2', from: 'bus', to: 'h2', flow: 'data' },
   ],
   stages: [
-    { title: 'Many events, many handlers', focus: 'bus', anim: 'pulse', animConn: 'c_src_bus', narration: 'Different event types should go to different places — orders to one service, audit to another.', storyNarration: 'Tickets of all kinds arrive; each should reach exactly the right station, not everyone.', concept: 'Events need routing by type/content.', blocks: ['source', 'bus'], conns: ['c_src_bus'] },
-    { title: 'Rules route each event', focus: 'bus', anim: 'pulse', animConn: 'c_bus_h1', narration: 'EventBridge matches each event against rules and delivers it to the matching targets.', storyNarration: 'The router reads each ticket and clips it to the right rail by its rules — orders here, audits there.', concept: 'EventBridge = rule/content-based routing.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
-    { title: 'Producers don’t know consumers', focus: 'h2', anim: 'pulse', animConn: 'c_bus_h2', narration: 'Add a new rule and target without touching the producer — fully decoupled, event-driven.', storyNarration: 'Open a new station and add a routing rule; the line that raised the ticket never has to know.', concept: 'Event-driven decoupling via the bus.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
-    { title: 'EventBridge vs SNS', focus: 'bus', narration: 'SNS fans one message to all subscribers; EventBridge routes by content from many AWS sources to chosen targets.', storyNarration: 'A tannoy shouts to everyone; the router reads each ticket and sends it only where it belongs.', concept: 'EventBridge routes by content; SNS broadcasts.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
+    { title: 'Many events, many handlers', focus: 'bus', anim: 'pulse', animConn: 'c_src_bus', narration: 'Different event types should go to different places — orders to one service, audit to another.', storyNarration: 'Parcels of all kinds arrive; each must reach exactly the right department, not everyone.', concept: 'Events need routing by type/content.', blocks: ['source', 'bus'], conns: ['c_src_bus'] },
+    { title: 'Rules route each event', focus: 'bus', anim: 'pulse', animConn: 'c_bus_h1', narration: 'EventBridge matches each event against rules and delivers it to the matching targets.', storyNarration: 'The sorting machine reads each label and routes it down the right chute by its rules — orders here, audits there.', concept: 'EventBridge = rule/content-based routing.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
+    { title: 'Producers don’t know consumers', focus: 'h2', anim: 'pulse', animConn: 'c_bus_h2', narration: 'Add a new rule and target without touching the producer — fully decoupled, event-driven.', storyNarration: 'Open a new department and add a sorting rule; whoever posted the parcel never has to know.', concept: 'Event-driven decoupling via the bus.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
+    { title: 'EventBridge vs SNS', focus: 'bus', narration: 'SNS fans one message to all subscribers; EventBridge routes by content from many AWS sources to chosen targets.', storyNarration: 'A broadcast reaches everyone alike; the sorting machine instead reads each parcel and sends it only where it belongs.', concept: 'EventBridge routes by content; SNS broadcasts.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Route events to different targets based on their content?', options: ['Amazon EventBridge', 'A single SQS queue', 'An EBS volume', 'Route 53'], correct: [0], explain: 'EventBridge matches events to rules and routes accordingly.' },
@@ -915,13 +931,29 @@ const events = {
 
 const kinesis = {
   id: 'stream-data-kinesis', title: 'Stream Real-Time Data', examDomain: 'Design High-Performing Architectures',
-  summary: 'A conveyor of records flowing past in real time, that several apps can read at once.',
+  summary: 'A conveyor of records flowing past in real time, that several clerks can read at once.',
   scenery: 'open',
+  world: 'sortingoffice',
+  anchors: { entrance: [-7.5, 0] },
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'intake', label: 'Feed-in', rect: { x0: -9.5, z0: -5.4, x1: -3.5, z1: 5.4 }, floorTint: 0x34363d, accent: 0x5a8fd1, dressing: [
+        { kind: 'dock', pos: [-7.5, -4.2] }, { kind: 'parcels', pos: [-8.4, 3.4] }, { kind: 'shelving', pos: [-9, 0.5], yaw: 90 },
+      ] },
+      { id: 'belt', label: 'The line', rect: { x0: -3.5, z0: -5.4, x1: 1.5, z1: 5.4 }, floorTint: 0x3d3f47, accent: 0x33b38c, dressing: [
+        { kind: 'signage', pos: [-1.5, -5.0], opts: { accent: 0x33b38c } },
+      ] },
+      { id: 'readers', label: 'Readers', rect: { x0: 1.5, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x36403a, accent: 0x67ad5b, dressing: [
+        { kind: 'parcels', pos: [6, 3.4] }, { kind: 'shelving', pos: [8, 0.5], yaw: -90 },
+      ] },
+    ],
+  },
   blocks: [
-    C('producers', 'Producers', 'generic', { pos: [-7, 0.7, 0] }, { name: 'The sources', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'Devices/apps emitting a high-volume feed.', 'Producers writing records (clicks, logs, telemetry).'),
-    C('stream', 'Kinesis stream', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The conveyor', prop: 'ticketrail', pos: [-1.5, 0], yaw: 0 }, 'An ordered, real-time stream of records.', 'A Kinesis Data Stream; ordered, replayable.', 'PutRecord(partitionKey, data)\nShard = 1MB/s in · 2MB/s out\nRetention 24h–365d → replayable'),
-    C('rt', 'Real-time app', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Live cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Processes records as they arrive.', 'A real-time consumer.'),
-    C('an', 'Analytics', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Analytics cook', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Reads the same stream for analysis.', 'A second, independent consumer.'),
+    C('producers', 'Producers', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Feed-in dock', prop: 'intake', pos: [-7, 0], face: 'stream' }, 'Devices/apps emitting a high-volume feed.', 'Producers writing records (clicks, logs, telemetry).'),
+    C('stream', 'Kinesis stream', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The conveyor', prop: 'conveyor', pos: [-1.5, 0], yaw: 0 }, 'An ordered, real-time stream of records.', 'A Kinesis Data Stream; ordered, replayable.', 'PutRecord(partitionKey, data)\nShard = 1MB/s in · 2MB/s out\nRetention 24h–365d → replayable'),
+    C('rt', 'Real-time app', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Live desk', prop: 'clerk', pos: [3, -1.6], face: 'stream' }, 'Processes records as they arrive.', 'A real-time consumer.'),
+    C('an', 'Analytics', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Analytics desk', prop: 'clerk', pos: [3.5, 1.6], face: 'stream' }, 'Reads the same stream for analysis.', 'A second, independent consumer.'),
   ],
   connections: [
     { id: 'c_prod_stream', from: 'producers', to: 'stream', flow: 'data' },
@@ -929,10 +961,10 @@ const kinesis = {
     { id: 'c_stream_an', from: 'stream', to: 'an', flow: 'data' },
   ],
   stages: [
-    { title: 'A firehose of records', focus: 'stream', anim: 'overload', animConn: 'c_prod_stream', narration: 'Clicks, logs and telemetry arrive continuously and fast — far too much to handle one request at a time.', storyNarration: 'Orders pour in nonstop on a conveyor belt — there’s no pausing to deal with them one by one.', concept: 'Some workloads are continuous high-volume streams.', blocks: ['producers', 'stream'], conns: ['c_prod_stream'] },
-    { title: 'Put it on a stream (Kinesis)', focus: 'stream', anim: 'pulse', animConn: 'c_prod_stream', narration: 'Kinesis ingests the ordered stream of records in real time and holds them for a retention window.', storyNarration: 'Run everything onto one ordered conveyor that keeps moving and remembers the last while of tickets.', concept: 'Kinesis = ordered, real-time, replayable stream.', blocks: ['producers', 'stream'], conns: ['c_prod_stream'] },
-    { title: 'Many consumers, one stream', focus: 'rt', anim: 'pulse', animConn: 'c_stream_rt', narration: 'Multiple applications read the same stream independently — a real-time app and an analytics job at once.', storyNarration: 'Different stations watch the same belt at the same time, each taking what it needs.', concept: 'Multiple independent consumers per stream.', blocks: ['producers', 'stream', 'rt', 'an'], conns: ['c_prod_stream', 'c_stream_rt', 'c_stream_an'] },
-    { title: 'Stream vs queue', focus: 'stream', narration: 'A queue removes a message once it’s processed; a stream keeps an ordered log many consumers can replay.', storyNarration: 'A ticket rail clears each ticket as it’s cooked; the conveyor keeps the ordered record so anyone can re-watch it.', concept: 'Stream = replayable ordered log (vs a queue).', blocks: ['producers', 'stream', 'rt', 'an'], conns: ['c_prod_stream', 'c_stream_rt', 'c_stream_an'] },
+    { title: 'A firehose of records', focus: 'stream', anim: 'overload', animConn: 'c_prod_stream', narration: 'Clicks, logs and telemetry arrive continuously and fast — far too much to handle one request at a time.', storyNarration: 'Records pour in nonstop onto the conveyor — there’s no pausing to deal with them one by one.', concept: 'Some workloads are continuous high-volume streams.', blocks: ['producers', 'stream'], conns: ['c_prod_stream'] },
+    { title: 'Put it on a stream (Kinesis)', focus: 'stream', anim: 'pulse', animConn: 'c_prod_stream', narration: 'Kinesis ingests the ordered stream of records in real time and holds them for a retention window.', storyNarration: 'Run everything onto one ordered conveyor that keeps moving and remembers the last while of records.', concept: 'Kinesis = ordered, real-time, replayable stream.', blocks: ['producers', 'stream'], conns: ['c_prod_stream'] },
+    { title: 'Many consumers, one stream', focus: 'rt', anim: 'pulse', animConn: 'c_stream_rt', narration: 'Multiple applications read the same stream independently — a real-time app and an analytics job at once.', storyNarration: 'Different clerks watch the same belt at the same time, each taking what they need.', concept: 'Multiple independent consumers per stream.', blocks: ['producers', 'stream', 'rt', 'an'], conns: ['c_prod_stream', 'c_stream_rt', 'c_stream_an'] },
+    { title: 'Stream vs queue', focus: 'stream', narration: 'A queue removes a message once it’s processed; a stream keeps an ordered log many consumers can replay.', storyNarration: 'A mail bin clears each letter as it’s handled; the conveyor keeps the ordered record so anyone can re-watch it.', concept: 'Stream = replayable ordered log (vs a queue).', blocks: ['producers', 'stream', 'rt', 'an'], conns: ['c_prod_stream', 'c_stream_rt', 'c_stream_an'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Ingest a high-volume, real-time feed (clicks/logs/telemetry)?', options: ['Amazon Kinesis', 'A single RDS instance', 'S3 Glacier', 'A NAT gateway'], correct: [0], explain: 'Kinesis ingests ordered, real-time streams at scale.' },
@@ -1236,12 +1268,25 @@ const messaging = {
   id: 'pick-messaging', title: 'Which Messaging Service?', examDomain: 'Design Resilient Architectures',
   summary: 'Queue, broadcast, rule-router or stream — match the integration pattern to the right service.',
   scenery: 'open',
+  world: 'sortingoffice',
+  anchors: { entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 17, d: 11, x: -0.5 },
+    zones: [
+      { id: 'intake', label: 'Your need', rect: { x0: -8.5, z0: -5.4, x1: -3.5, z1: 5.4 }, floorTint: 0x34363d, accent: 0x5a8fd1, dressing: [
+        { kind: 'dock', pos: [-6.5, -4.2] }, { kind: 'parcels', pos: [-7.4, 3.4] }, { kind: 'shelving', pos: [-8, 0.5], yaw: 90 },
+      ] },
+      { id: 'hall', label: 'The options', rect: { x0: -3.5, z0: -5.4, x1: 7.5, z1: 5.4 }, floorTint: 0x3a3c43, accent: 0x9a86e6, dressing: [
+        { kind: 'signage', pos: [-3.2, -5.0], opts: { accent: 0x9a86e6 } }, { kind: 'parcels', pos: [6, 4.0] },
+      ] },
+    ],
+  },
   blocks: [
-    C('need', 'Your need', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'What you’re trying to integrate.', 'Your integration requirement.'),
-    C('sqs', 'SQS', 'generic', { pos: [-1, 0.7, -2] }, { name: 'Ticket rail', prop: 'ticketrail', pos: [-1, -2], yaw: 0 }, 'Buffer work for one consumer group to pull.', 'SQS; pull queue, decouples producer/consumer.'),
-    C('sns', 'SNS', 'generic', { pos: [2.6, 0.7, -1.7] }, { name: 'Tannoy', prop: 'tannoy', pos: [2.6, -1.7], yaw: 0 }, 'Push one message to many subscribers.', 'SNS; pub/sub fan-out (push).'),
-    C('eb', 'EventBridge', 'generic', { pos: [0.8, 0.7, 0.8] }, { name: 'Router', prop: 'hub', pos: [0.8, 0.8], yaw: 0 }, 'Route events to targets by content rules.', 'EventBridge; rule-based event bus.'),
-    C('kin', 'Kinesis', 'edge', { pos: [3.8, 0.7, 1.9] }, { name: 'Conveyor', prop: 'ticketrail', pos: [3.8, 1.9], yaw: 0 }, 'Ordered, real-time stream many can replay.', 'Kinesis; ordered, replayable data stream.'),
+    C('need', 'Your need', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'Sender', prop: 'intake', pos: [-6.5, 0], yaw: 90 }, 'What you’re trying to integrate.', 'Your integration requirement.'),
+    C('sqs', 'SQS', 'generic', { pos: [-1, 0.7, -2] }, { name: 'Pull bin', prop: 'mailbin', pos: [-1, -2], yaw: -90 }, 'Buffer work for one consumer group to pull.', 'SQS; pull queue, decouples producer/consumer.'),
+    C('sns', 'SNS', 'generic', { pos: [2.6, 0.7, -1.7] }, { name: 'Broadcast hub', prop: 'hub', pos: [2.6, -1.7], yaw: 0 }, 'Push one message to many subscribers.', 'SNS; pub/sub fan-out (push).'),
+    C('eb', 'EventBridge', 'generic', { pos: [0.8, 0.7, 0.8] }, { name: 'Sorting machine', prop: 'sorter', pos: [0.8, 0.8], yaw: 0 }, 'Route events to targets by content rules.', 'EventBridge; rule-based event bus.'),
+    C('kin', 'Kinesis', 'edge', { pos: [3.8, 0.7, 1.9] }, { name: 'Conveyor', prop: 'conveyor', pos: [3.8, 1.9], yaw: 0 }, 'Ordered, real-time stream many can replay.', 'Kinesis; ordered, replayable data stream.'),
   ],
   connections: [
     { id: 'c_need_sqs', from: 'need', to: 'sqs', flow: 'request' },
@@ -1250,10 +1295,10 @@ const messaging = {
     { id: 'c_need_kin', from: 'need', to: 'kin', flow: 'request' },
   ],
   stages: [
-    { title: 'Decouple one-to-one (SQS)', focus: 'sqs', anim: 'pulse', animConn: 'c_need_sqs', narration: 'Need to hand work to ONE consumer group that processes at its own pace, with buffering and retries? Use SQS.', storyNarration: 'Clip the order on a rail; whichever cook is free pulls the next one.', concept: 'SQS = queue, pull, decouple + buffer.', blocks: ['need', 'sqs'], conns: ['c_need_sqs'] },
-    { title: 'Broadcast one-to-many (SNS)', focus: 'sns', anim: 'pulse', animConn: 'c_need_sns', narration: 'Need to notify MANY independent subscribers of the same event at once? Use SNS pub/sub.', storyNarration: 'Call it once over the tannoy; everyone listening hears it together.', concept: 'SNS = push pub/sub fan-out.', blocks: ['need', 'sqs', 'sns'], conns: ['c_need_sns'] },
-    { title: 'Route by content (EventBridge)', focus: 'eb', anim: 'pulse', animConn: 'c_need_eb', narration: 'Need to route different events to different targets by rules, from many AWS sources? Use EventBridge.', storyNarration: 'A router reads each ticket and sends it only to the station whose rule it matches.', concept: 'EventBridge = rule/content-based routing.', blocks: ['need', 'sqs', 'sns', 'eb'], conns: ['c_need_eb'] },
-    { title: 'Stream & replay (Kinesis)', focus: 'kin', anim: 'pulse', animConn: 'c_need_kin', narration: 'Need a high-volume, ordered, replayable real-time feed read by multiple consumers? Use Kinesis.', storyNarration: 'Run records past on a conveyor that keeps the ordered log so any station can re-watch it.', concept: 'Kinesis = ordered, replayable real-time stream.', blocks: ['need', 'sqs', 'sns', 'eb', 'kin'], conns: ['c_need_kin'] },
+    { title: 'Decouple one-to-one (SQS)', focus: 'sqs', anim: 'pulse', animConn: 'c_need_sqs', narration: 'Need to hand work to ONE consumer group that processes at its own pace, with buffering and retries? Use SQS.', storyNarration: 'Drop it in a bin; whichever clerk is free pulls the next one.', concept: 'SQS = queue, pull, decouple + buffer.', blocks: ['need', 'sqs'], conns: ['c_need_sqs'] },
+    { title: 'Broadcast one-to-many (SNS)', focus: 'sns', anim: 'pulse', animConn: 'c_need_sns', narration: 'Need to notify MANY independent subscribers of the same event at once? Use SNS pub/sub.', storyNarration: 'Post it once to the hub and a copy goes out to every department at once.', concept: 'SNS = push pub/sub fan-out.', blocks: ['need', 'sqs', 'sns'], conns: ['c_need_sns'] },
+    { title: 'Route by content (EventBridge)', focus: 'eb', anim: 'pulse', animConn: 'c_need_eb', narration: 'Need to route different events to different targets by rules, from many AWS sources? Use EventBridge.', storyNarration: 'The sorting machine reads each parcel and sends it only to the slot whose rule it matches.', concept: 'EventBridge = rule/content-based routing.', blocks: ['need', 'sqs', 'sns', 'eb'], conns: ['c_need_eb'] },
+    { title: 'Stream & replay (Kinesis)', focus: 'kin', anim: 'pulse', animConn: 'c_need_kin', narration: 'Need a high-volume, ordered, replayable real-time feed read by multiple consumers? Use Kinesis.', storyNarration: 'Run records past on a conveyor that keeps the ordered log so any clerk can re-watch it.', concept: 'Kinesis = ordered, replayable real-time stream.', blocks: ['need', 'sqs', 'sns', 'eb', 'kin'], conns: ['c_need_kin'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Buffer tasks for one worker pool to pull and retry?', options: ['SQS', 'SNS', 'Kinesis', 'EventBridge'], correct: [0], explain: 'SQS is a pull queue for decoupling one consumer group.' },
