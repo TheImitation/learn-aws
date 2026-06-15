@@ -6,6 +6,7 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 export const PALETTE = {
   networking: 0x3585c6, compute: 0xf09c2e, database: 0x7d66d1,
   edge: 0x33b38c, generic: 0x9ea3a0, storage: 0xd9842e, security: 0xd15656,
+  nosql: 0x4aa0d6,
 };
 
 const CHEF = 0xefefe8, SKIN = 0xeac79e, STEEL = 0x9fa3aa, WARM = 0xfa8c33;
@@ -182,20 +183,23 @@ function cubbies(color) {
   add(g, box(0.9, 0.06, 0.36, color), 0, 0.97, 0);                                  // top trim (accent)
   return g;
 }
-// A status board with gauges (CloudWatch dashboard).
+// A monitor on a stand showing gauges (CloudWatch dashboard).
 function dashboard(color) {
-  const g = new THREE.Group(); const bar = [0x6cda7f, 0xf5c451, 0xe06b6b, 0x66ccff];
-  add(g, box(0.08, 0.7, 0.08, darker(color, 0.55)), 0, 0.35, 0);          // post
-  add(g, box(0.95, 0.62, 0.06, darker(color, 0.85)), 0, 0.92, 0);         // board
-  for (let i = 0; i < 4; i++) { const h = 0.12 + 0.09 * (i % 3); add(g, box(0.13, h, 0.02, bar[i]), -0.32 + i * 0.21, 0.78 + h / 2, 0.04); }
+  const g = new THREE.Group(); const bar = [0x6cda7f, 0xf5c451, 0xe06b6b, 0x66ccff], frame = darker(color, 0.55);
+  add(g, box(0.5, 0.1, 0.42, darker(color, 0.45)), 0, 0.05, 0);           // base
+  add(g, box(0.14, 0.5, 0.14, frame), 0, 0.3, 0);                         // stand
+  add(g, box(1.02, 0.68, 0.13, frame), 0, 0.8, 0);                        // monitor body
+  add(g, box(0.9, 0.56, 0.04, 0x12151c), 0, 0.8, 0.08);                   // screen
+  for (let i = 0; i < 4; i++) { const h = 0.12 + 0.08 * (i % 3); add(g, box(0.14, h, 0.02, bar[i]), -0.3 + i * 0.2, 0.64 + h / 2, 0.11); }
   return g;
 }
-// A PA horn on a post (SNS — broadcast to everyone).
+// A PA speaker on a post (SNS broadcast / alarm).
 function tannoy(color) {
-  const g = new THREE.Group();
-  add(g, box(0.07, 0.95, 0.07, darker(color, 0.55)), 0, 0.47, 0);         // post
-  add(g, new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.34, 18, 1, true), mat(color)), 0, 1.0, 0.12, -Math.PI / 2); // horn points +z
-  add(g, sph(0.07, darker(color, 0.5)), 0, 1.0, -0.08);
+  const g = new THREE.Group(); const dk = darker(color, 0.55);
+  add(g, box(0.42, 0.1, 0.42, darker(color, 0.45)), 0, 0.05, 0);          // base
+  add(g, box(0.11, 0.8, 0.11, dk), 0, 0.45, 0);                           // post
+  add(g, box(0.36, 0.34, 0.3, color), 0, 0.96, 0);                        // speaker box
+  add(g, new THREE.Mesh(new THREE.ConeGeometry(0.19, 0.3, 18, 1, true), mat(darker(color, 0.85))), 0, 0.96, 0.3, -Math.PI / 2); // horn (+z)
   return g;
 }
 // A heavy vault with a dial (KMS — the master keys).

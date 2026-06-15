@@ -232,8 +232,8 @@ const lambda = {
     C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person making a request.', 'A client request / event.'),
     C('server', 'Always-on server', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Always-on cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90 }, 'A server that runs (and bills) 24/7, even when idle.', 'An EC2 instance you pay for per hour, always on.'),
     C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-demand cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Appears only when there is work; you manage no servers.', 'AWS Lambda; runs your code per event, auto-scaled.'),
-    C('lambda2', 'Lambda (scaled)', 'compute', { pos: [4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4, 1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
-    C('lambda3', 'Lambda (scaled)', 'compute', { pos: [4.3, 0.7, -1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4.3, -1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
+    C('lambda2', 'Lambda #2', 'compute', { pos: [4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4, 1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
+    C('lambda3', 'Lambda #3', 'compute', { pos: [4.3, 0.7, -1.6] }, { name: 'Another cook', prop: 'cook', pos: [4.3, -1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
   ],
   connections: [
     { id: 'c_user_server', from: 'user', to: 'server', flow: 'request' },
@@ -262,7 +262,7 @@ const datastore = {
   blocks: [
     C('app', 'Your app', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The line cook', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The app that needs to read and write data.', 'Your application tier.'),
     C('rds', 'Amazon RDS', 'database', { pos: [1.5, 0.7, -1.7] }, { name: 'Relational pantry', prop: 'pantry', pos: [1.5, -1.7], yaw: -90 }, 'Labelled shelves + a ledger: relationships, joins, transactions.', 'Amazon RDS; relational (SQL), ACID, scales up + read replicas.'),
-    C('dynamo', 'DynamoDB', 'database', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered cubbies', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless cubbies.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.'),
+    C('dynamo', 'DynamoDB', 'nosql', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered cubbies', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless cubbies.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.'),
   ],
   connections: [
     { id: 'c_app_rds', from: 'app', to: 'rds', flow: 'data' },
@@ -402,9 +402,9 @@ const fanout = {
   blocks: [
     C('producer', 'Producer', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Something that happens (an event).', 'A publisher; e.g. “order placed”.'),
     C('sns', 'SNS topic', 'generic', { pos: [-1.5, 0.7, 0] }, { name: 'The tannoy', prop: 'tannoy', pos: [-1.5, 0], yaw: 0 }, 'Announces the event to everyone subscribed.', 'An SNS topic; push-based pub/sub.'),
-    C('billing', 'Billing queue', 'generic', { pos: [2.5, 0.7, -1.7] }, { name: 'Billing rail', prop: 'ticketrail', pos: [2.5, -1.7], yaw: 0 }, 'One subscriber that bills the order.', 'An SQS queue subscribed to the topic.'),
-    C('analytics', 'Analytics queue', 'generic', { pos: [2.5, 0.7, 0] }, { name: 'Analytics rail', prop: 'ticketrail', pos: [2.5, 0], yaw: 0 }, 'Another subscriber that records stats.', 'Another SQS queue subscriber.'),
-    C('notify', 'Lambda', 'compute', { pos: [3.2, 0.7, 1.7] }, { name: 'Notify cook', prop: 'cook', pos: [3.2, 1.7], yaw: -90 }, 'A subscriber that sends a notification.', 'A Lambda subscribed to the topic.'),
+    C('billing', 'Billing queue', 'generic', { pos: [2.2, 0.7, -2.1] }, { name: 'Billing rail', prop: 'ticketrail', pos: [2.2, -2.1], yaw: 0 }, 'One subscriber that bills the order.', 'An SQS queue subscribed to the topic.'),
+    C('analytics', 'Analytics queue', 'generic', { pos: [4, 0.7, -0.3] }, { name: 'Analytics rail', prop: 'ticketrail', pos: [4, -0.3], yaw: 0 }, 'Another subscriber that records stats.', 'Another SQS queue subscriber.'),
+    C('notify', 'Lambda', 'compute', { pos: [2.6, 0.7, 2.1] }, { name: 'Notify cook', prop: 'cook', pos: [2.6, 2.1], yaw: -90 }, 'A subscriber that sends a notification.', 'A Lambda subscribed to the topic.'),
   ],
   connections: [
     { id: 'c_prod_sns', from: 'producer', to: 'sns', flow: 'request' },
@@ -489,8 +489,8 @@ const containers = {
   scenery: 'open',
   blocks: [
     C('image', 'Container image', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The meal kit', prop: 'crate', pos: [-6.5, 0], yaw: 0 }, 'App + everything it needs, packed to run identically anywhere.', 'A container image (e.g. in Amazon ECR).'),
-    C('task1', 'Task', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Running kit', prop: 'crate', pos: [-1.5, -1.7], yaw: 0 }, 'One running copy of the image.', 'An ECS task / container.'),
-    C('task2', 'Task', 'compute', { pos: [-1.5, 0.7, 1.7] }, { name: 'Running kit', prop: 'crate', pos: [-1.5, 1.7], yaw: 0 }, 'Another identical running copy.', 'Another ECS task.'),
+    C('task1', 'Task #1', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Running kit', prop: 'crate', pos: [-1.5, -1.7], yaw: 0 }, 'One running copy of the image.', 'An ECS task / container.'),
+    C('task2', 'Task #2', 'compute', { pos: [-1.5, 0.7, 1.7] }, { name: 'Another kit', prop: 'crate', pos: [-1.5, 1.7], yaw: 0 }, 'Another identical running copy.', 'Another ECS task.'),
     C('task3', 'Task (scaled)', 'compute', { pos: [2.5, 0.7, 0] }, { name: 'Extra kit', prop: 'crate', pos: [2.5, 0], yaw: 0 }, 'One more copy added under load.', 'A task added by service scaling.'),
   ],
   connections: [
@@ -635,8 +635,8 @@ const scaling = {
     C('rail', 'Demand', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The tickets', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The load, rising and falling through the day.', 'Demand measured by CPU, requests or queue depth.'),
     C('asg', 'Auto Scaling group', 'compute', { pos: [-1.5, 0.7, -1.6] }, { name: 'Shift manager', prop: 'host', pos: [-1.5, -1.6], yaw: -90 }, 'Adds or removes cooks to match the load.', 'An Auto Scaling group with a scaling policy.'),
     C('c1', 'Instance', 'compute', { pos: [2, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [2, -1.6], yaw: -90 }, 'A baseline worker.', 'An EC2 instance in the group.'),
-    C('c2', 'Instance (added)', 'compute', { pos: [3.8, 0.7, 0] }, { name: 'Extra cook', prop: 'cook', pos: [3.8, 0], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
-    C('c3', 'Instance (added)', 'compute', { pos: [4.2, 0.7, 1.7] }, { name: 'Extra cook', prop: 'cook', pos: [4.2, 1.7], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
+    C('c2', 'Instance #2', 'compute', { pos: [3.8, 0.7, -0.2] }, { name: 'Extra cook', prop: 'cook', pos: [3.8, -0.2], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
+    C('c3', 'Instance #3', 'compute', { pos: [4.6, 0.7, 1.8] }, { name: 'Another cook', prop: 'cook', pos: [4.6, 1.8], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
   ],
   connections: [
     { id: 'c_rail_asg', from: 'rail', to: 'asg', flow: 'data' },

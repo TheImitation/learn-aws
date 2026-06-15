@@ -30,16 +30,16 @@ function buildRestaurant(group) {
 }
 // A warm "back of house" room (the other topics happen behind the same front door as the kitchen).
 function buildOpenFloor(group) {
-  const FLOOR = 0x423a33, WALL = 0x726c61, TRIM = 0x534f47;
+  const FLOOR = 0x423a33, WALL = 0x726c61, TRIM = 0x534f47, D = 7.8, B = D / 2;
   const put = (m, x, y, z) => { m.position.set(x, y, z); group.add(m); };
-  put(box(18, 0.16, 11, FLOOR), -1.5, -0.08, 0);          // warm floor
-  put(box(18, 1.4, 0.25, WALL), -1.5, 0.7, -5.45);        // back wall
-  put(box(0.25, 1.4, 11, WALL), -10.4, 0.7, 0);           // left wall
-  put(box(0.25, 1.4, 11, WALL), 7.4, 0.7, 0);             // right wall
-  put(box(18, 0.18, 0.07, TRIM), -1.5, 0.16, -5.31);      // back baseboard
-  put(box(18, 0.3, 0.22, TRIM), -1.5, 0.15, 5.45);        // low front lip
-  put(box(2.6, 0.12, 0.5, TRIM), -7.0, 1.15, -5.2);       // a back-of-house shelf
-  put(box(2.6, 0.12, 0.5, TRIM), 2.0, 1.15, -5.2);
+  put(box(17.5, 0.16, D, FLOOR), -1.5, -0.08, 0);         // warm floor (snug to the props)
+  put(box(17.5, 1.4, 0.25, WALL), -1.5, 0.7, -B - 0.05);  // back wall
+  put(box(0.25, 1.4, D, WALL), -10.15, 0.7, 0);           // left wall
+  put(box(0.25, 1.4, D, WALL), 7.15, 0.7, 0);             // right wall
+  put(box(17.5, 0.18, 0.07, TRIM), -1.5, 0.16, -B + 0.1); // back baseboard
+  put(box(17.5, 0.3, 0.22, TRIM), -1.5, 0.15, B + 0.05);  // low front lip
+  put(box(2.6, 0.12, 0.5, TRIM), -7.0, 1.15, -B + 0.2);   // back-of-house shelves
+  put(box(2.6, 0.12, 0.5, TRIM), 2.0, 1.15, -B + 0.2);
 }
 
 
@@ -94,8 +94,8 @@ export class World {
       const archLine = line([new THREE.Vector3(...a.spec.arch.pos), new THREE.Vector3(...d.spec.arch.pos)], color, 0.7);
       archLine.userData = { baseOpacity: 0.7, phase };
       this.archGroup.add(archLine);
-      const storyLine = line([v3(a.spec.story.pos, 0.55), v3(d.spec.story.pos, 0.55)], color, 0.16);
-      storyLine.userData = { baseOpacity: 0.16, phase };
+      const storyLine = line([v3(a.spec.story.pos, 0.55), v3(d.spec.story.pos, 0.55)], color, 0.26);
+      storyLine.userData = { baseOpacity: 0.26, phase };
       this.storyGroup.add(storyLine);
       this.conns[c.id] = { spec: c, archLine, storyLine };
     }

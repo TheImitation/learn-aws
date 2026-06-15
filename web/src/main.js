@@ -174,7 +174,7 @@ function updateAnalogy(stage) {
 // so the story camera sits further back and centred.
 function vantage(m, scenery) {
   if (m === 'arch') return [0, 16, 21];
-  return scenery === 'open' ? [-1.5, 12.5, 18] : [-0.5, 13, 16.5];
+  return scenery === 'open' ? [-1, 9.5, 14] : [-0.5, 13, 16.5];
 }
 function setView(m) {
   mode = m;
