@@ -71,7 +71,7 @@ function record(id, m, b) {
 let world = null, journey = null, topic = null, mode = 'story', showAnalogy = false;
 let inspectorReal = false, selectedId = null;
 let quiz = null, qi = 0, correctCount = 0, answered = false, picked = new Set(), lastTapped = null;
-let examMode = false, examItems = []; // mock exam: pooled questions from across topics
+let examMode = false, examItems = [], examDomain = null; // mock exam / domain practice: pooled questions
 
 function showScreen(name) {
   for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
@@ -172,7 +172,7 @@ function makeTopicCard(t) {
 }
 
 function openCourseMap() {
-  examMode = false;
+  examMode = false; examDomain = null;
   const total = COURSE.topics.length;
   const mastered = COURSE.topics.filter((t) => masteryOf(t.id) === 'Mastered').length;
   const started = COURSE.topics.filter((t) => masteryOf(t.id) !== 'Not started').length;
@@ -192,7 +192,7 @@ function openCourseMap() {
     ov.appendChild(done);
   }
   const exam = document.createElement('button'); exam.textContent = `🎓 Mock exam (${EXAM_LEN} Q)`;
-  exam.onclick = startMockExam;
+  exam.onclick = () => startMockExam();
   ov.appendChild(exam);
 
   // One section per exam domain, with its own progress, holding a grid of topic cards.
@@ -208,6 +208,9 @@ function openCourseMap() {
       <div class="domain-head"><span class="dot"></span><h2>${d.label}</h2><span class="dom-prog">${dm} / ${topics.length}</span></div>
       <p class="domain-blurb">${d.blurb}</p>
       <div class="domain-bar"><i style="width:${Math.round((dm / topics.length) * 100)}%"></i></div>`;
+    const pb = document.createElement('button'); pb.className = 'dom-practice'; pb.textContent = 'Practice'; pb.title = 'Practice questions from this domain';
+    pb.onclick = () => startMockExam(d.key);
+    sec.querySelector('.domain-head').appendChild(pb);
     const grid = document.createElement('div'); grid.className = 'domain-grid';
     for (const t of topics) grid.appendChild(makeTopicCard(t));
     sec.appendChild(grid);
@@ -302,22 +305,26 @@ function renderInspector() {
 
 // ---------- assessment ----------
 function startAssessment() {
-  examMode = false; $('a-title').textContent = 'Assessment'; $('screen-assess').classList.remove('exam');
+  examMode = false; examDomain = null; $('a-title').textContent = 'Assessment'; $('screen-assess').classList.remove('exam');
   quiz = topic.quiz; qi = 0; correctCount = 0;
   showScreen('assess'); renderQuestion();
 }
 
 // ---------- mock exam (questions pooled from every topic) ----------
-const EXAM_LEN = 20;
-function examPool() {
-  return COURSE.topics.flatMap((t) => t.quiz.filter((q) => q.kind !== 'tapfix').map((q) => ({ q, topic: t })));
+const EXAM_LEN = 20, PRACTICE_LEN = 10;
+function examPool(domainKey) {
+  const topics = domainKey ? COURSE.topics.filter((t) => t.examDomain === domainKey) : COURSE.topics;
+  return topics.flatMap((t) => t.quiz.filter((q) => q.kind !== 'tapfix').map((q) => ({ q, topic: t })));
 }
-function startMockExam() {
-  const pool = examPool();
+// domainKey omitted = full mock exam across all domains; provided = focused practice on one domain.
+function startMockExam(domainKey) {
+  const pool = examPool(domainKey);
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } // shuffle
-  examItems = pool.slice(0, Math.min(EXAM_LEN, pool.length));
-  examMode = true; quiz = examItems.map((e) => e.q); qi = 0; correctCount = 0;
-  $('a-title').textContent = 'Mock exam'; $('screen-assess').classList.add('exam');
+  examItems = pool.slice(0, Math.min(domainKey ? PRACTICE_LEN : EXAM_LEN, pool.length));
+  examMode = true; examDomain = domainKey || null;
+  quiz = examItems.map((e) => e.q); qi = 0; correctCount = 0;
+  const dom = domainKey ? DOMAINS.find((d) => d.key === domainKey) : null;
+  $('a-title').textContent = dom ? `Practice: ${dom.label}` : 'Mock exam'; $('screen-assess').classList.add('exam');
   showScreen('assess'); renderQuestion();
 }
 function renderQuestion() {
@@ -383,10 +390,11 @@ function showResults() {
 function showExamResults() {
   const pct = Math.round((correctCount / examItems.length) * 100);
   const ready = pct >= 72; // SAA-C03 pass mark is ~720/1000
+  const dom = examDomain ? DOMAINS.find((d) => d.key === examDomain) : null;
   $('r-score').textContent = `${pct}%  (${correctCount}/${examItems.length})`;
   $('r-msg').textContent = ready ? 'On track — you’re around the SAA-C03 pass mark.' : 'Keep studying — aim for ~72%+ across every domain.';
-  $('r-mastery').textContent = `Mock exam · ${examItems.length} questions`;
-  $('r-retry').textContent = 'New exam';
+  $('r-mastery').textContent = (dom ? `Practice: ${dom.label}` : 'Mock exam') + ` · ${examItems.length} questions`;
+  $('r-retry').textContent = dom ? 'Practice again' : 'New exam';
   const tally = {};
   examItems.forEach((e) => { const k = e.topic.examDomain; (tally[k] = tally[k] || { ok: 0, total: 0 }).total++; if (e.ok) tally[k].ok++; });
   const rows = DOMAINS.filter((d) => tally[d.key]).map((d) => {
@@ -396,6 +404,14 @@ function showExamResults() {
   const revisit = [...new Set(examItems.filter((e) => e.ok === false).map((e) => e.topic.title))].slice(0, 5);
   const tip = revisit.length ? `<div class="exam-tip"><b>Revisit:</b> ${revisit.join(' · ')}</div>` : '';
   $('r-recap').innerHTML = `<h3>By domain</h3><div class="dom-rows">${rows}</div>${tip}`;
+  // Offer to drill the weakest domain (only meaningful on a full exam with a clear weak spot).
+  const weak = DOMAINS.filter((d) => tally[d.key] && tally[d.key].ok < tally[d.key].total)
+    .sort((a, b) => (tally[a.key].ok / tally[a.key].total) - (tally[b.key].ok / tally[b.key].total))[0];
+  if (!examDomain && weak) {
+    const btn = document.createElement('button'); btn.className = 'practice-weak'; btn.textContent = `Practice ${weak.label} →`;
+    btn.onclick = () => startMockExam(weak.key);
+    $('r-recap').appendChild(btn);
+  }
   showScreen('results');
 }
 
@@ -437,7 +453,7 @@ $('insp-close').onclick = () => $('inspector').classList.add('hidden');
 $('a-submit').onclick = submitAnswer;
 $('a-next').onclick = nextQuestion;
 $('r-back').onclick = openCourseMap;
-$('r-retry').onclick = () => (examMode ? startMockExam() : startAssessment());
+$('r-retry').onclick = () => (examMode ? startMockExam(examDomain) : startAssessment());
 
 // ---------- render loop ----------
 let last = performance.now();
