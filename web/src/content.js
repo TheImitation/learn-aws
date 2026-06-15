@@ -953,8 +953,181 @@ const compute = {
   ],
 };
 
+const hybrid = {
+  id: 'hybrid-connectivity', title: 'Link to On-Premises', examDomain: 'Design Secure Architectures',
+  summary: 'Wire your old kitchen to the cloud one — an armored van over public roads, or a private dedicated cable.',
+  scenery: 'open',
+  blocks: [
+    C('onprem', 'Your datacenter', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'Old kitchen', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Servers you still run on-premises.', 'Your on-prem datacenter.'),
+    C('vpn', 'Site-to-Site VPN', 'networking', { pos: [-0.5, 0.7, -1.6] }, { name: 'Encrypted tunnel', prop: 'servicedoor', pos: [-0.5, -1.6], yaw: -90 }, 'An encrypted tunnel over the public internet.', 'Site-to-Site VPN; encrypted, over the internet.'),
+    C('dx', 'Direct Connect', 'networking', { pos: [-0.5, 0.7, 1.6] }, { name: 'Private cable', prop: 'guardpost', pos: [-0.5, 1.6], yaw: -90 }, 'A dedicated private physical link, not the internet.', 'AWS Direct Connect; private, consistent, high-bandwidth.'),
+    C('aws', 'AWS VPC', 'compute', { pos: [4, 0.7, 0] }, { name: 'Cloud kitchen', prop: 'cook', pos: [4, 0], yaw: -90 }, 'Your VPC in the cloud.', 'Your AWS VPC.'),
+  ],
+  connections: [
+    { id: 'c_op_vpn', from: 'onprem', to: 'vpn', flow: 'network' },
+    { id: 'c_vpn_aws', from: 'vpn', to: 'aws', flow: 'network' },
+    { id: 'c_op_dx', from: 'onprem', to: 'dx', flow: 'network' },
+    { id: 'c_dx_aws', from: 'dx', to: 'aws', flow: 'network' },
+  ],
+  stages: [
+    { title: 'Two kitchens, one operation', focus: 'onprem', narration: 'You still run an on-prem datacenter and want it to reach AWS privately — a hybrid setup.', storyNarration: 'You keep the old kitchen running while the new cloud one opens; they need a private way to pass stock.', concept: 'Hybrid = on-prem connected privately to AWS.', blocks: ['onprem', 'aws'], conns: [] },
+    { title: 'An encrypted tunnel (VPN)', focus: 'vpn', anim: 'chain', chain: ['c_op_vpn', 'c_vpn_aws'], narration: 'Site-to-Site VPN runs an encrypted tunnel over the public internet — quick to set up and cheap.', storyNarration: 'Send stock in an armored van over the public roads: encrypted and private, but sharing the traffic.', concept: 'VPN = encrypted tunnel over the internet.', blocks: ['onprem', 'vpn', 'aws'], conns: ['c_op_vpn', 'c_vpn_aws'] },
+    { title: 'A dedicated private cable (Direct Connect)', focus: 'dx', anim: 'chain', chain: ['c_op_dx', 'c_dx_aws'], narration: 'Direct Connect is a private physical link — consistent low latency and high bandwidth, not over the internet.', storyNarration: 'Lay your own private delivery tunnel between the kitchens: steady, fast, and no public traffic at all.', concept: 'Direct Connect = dedicated private link.', blocks: ['onprem', 'dx', 'aws'], conns: ['c_op_dx', 'c_dx_aws'] },
+    { title: 'Pick by need', focus: 'aws', narration: 'VPN for quick, cheap, encrypted links; Direct Connect for steady high-bandwidth, low-latency needs (often with a VPN as backup).', storyNarration: 'The van for now and for backup; the private tunnel when you move stock constantly and can’t wait on traffic.', concept: 'VPN (quick/cheap) vs Direct Connect (steady/fast).', blocks: ['onprem', 'vpn', 'dx', 'aws'], conns: ['c_op_vpn', 'c_vpn_aws', 'c_op_dx', 'c_dx_aws'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'A quick, encrypted link from on-prem to AWS over the internet?', options: ['Site-to-Site VPN', 'Direct Connect', 'An internet gateway', 'A NAT gateway'], correct: [0], explain: 'VPN gives an encrypted tunnel over the public internet.' },
+    { kind: 'single', prompt: 'Consistent low latency + high bandwidth, not over the internet?', options: ['AWS Direct Connect', 'A VPN only', 'A public IP', 'CloudFront'], correct: [0], explain: 'Direct Connect is a dedicated private physical link.' },
+    { kind: 'single', prompt: '“Hybrid” architecture means…', options: ['On-prem and cloud working together', 'Two AWS regions only', 'Two AZs', 'Two instance sizes'], correct: [0], explain: 'Hybrid connects on-premises with AWS.' },
+    { kind: 'single', prompt: 'A common resilient pattern is…', options: ['Direct Connect with a VPN as backup', 'Two VPNs to the same endpoint', 'No redundancy', 'Public internet only'], correct: [0], explain: 'VPN often backs up Direct Connect for resilience.' },
+  ],
+};
+
+const threats = {
+  id: 'detect-threats', title: 'Detect Threats', examDomain: 'Design Secure Architectures',
+  summary: 'A camera watching for intruders, a scanner finding unlocked doors, and a clerk flagging sensitive papers.',
+  scenery: 'open',
+  blocks: [
+    C('account', 'Your account', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'The activity and data to protect.', 'Your account’s logs, workloads and data.'),
+    C('guardduty', 'GuardDuty', 'security', { pos: [-0.5, 0.7, -1.6] }, { name: 'Security camera', prop: 'cctv', pos: [-0.5, -1.6], yaw: -90 }, 'Watches logs for malicious activity.', 'GuardDuty; threat detection from VPC/DNS/CloudTrail logs.'),
+    C('findings', 'Findings', 'security', { pos: [3.2, 0.7, 0] }, { name: 'Alerts board', prop: 'dashboard', pos: [3.2, 0], yaw: -90 }, 'Suspicious activity surfaced for action.', 'Findings you alert/respond to.'),
+    C('macie', 'Macie', 'security', { pos: [0.5, 0.7, 1.7] }, { name: 'Sensitive-data clerk', prop: 'securitydesk', pos: [0.5, 1.7], yaw: -90 }, 'Flags sensitive data (PII) left exposed.', 'Amazon Macie; sensitive-data discovery in S3.'),
+  ],
+  connections: [
+    { id: 'c_acc_gd', from: 'account', to: 'guardduty', flow: 'data' },
+    { id: 'c_gd_find', from: 'guardduty', to: 'findings', flow: 'request' },
+    { id: 'c_acc_macie', from: 'account', to: 'macie', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Spot the intruder (GuardDuty)', focus: 'guardduty', anim: 'pulse', animConn: 'c_acc_gd', narration: 'GuardDuty continuously watches your logs (VPC, DNS, CloudTrail) for malicious or unusual activity.', storyNarration: 'A camera quietly watches the doors and tills all night for anyone who shouldn’t be there.', concept: 'GuardDuty = threat detection from your logs.', blocks: ['account', 'guardduty'], conns: ['c_acc_gd'] },
+    { title: 'Raise findings', focus: 'findings', anim: 'pulse', animConn: 'c_gd_find', narration: 'Detected threats become findings you can alert on and respond to automatically.', storyNarration: 'Anything suspicious lights up on the board so the manager acts at once.', concept: 'Findings drive alerting and response.', blocks: ['account', 'guardduty', 'findings'], conns: ['c_acc_gd', 'c_gd_find'] },
+    { title: 'Find weak spots (Inspector)', focus: 'account', narration: 'Amazon Inspector scans your workloads for known software vulnerabilities (CVEs) and exposure.', storyNarration: 'An inspector walks the kitchen checking for unlocked back doors and dodgy wiring before anyone exploits them.', concept: 'Inspector = vulnerability scanning.', blocks: ['account', 'guardduty', 'findings'], conns: ['c_acc_gd', 'c_gd_find'] },
+    { title: 'Protect sensitive data (Macie)', focus: 'macie', anim: 'pulse', animConn: 'c_acc_macie', narration: 'Macie discovers and flags sensitive data such as PII sitting in your S3 buckets.', storyNarration: 'A clerk spots customer details left out on a counter and flags them before they walk.', concept: 'Macie = sensitive-data (PII) discovery.', blocks: ['account', 'guardduty', 'findings', 'macie'], conns: ['c_acc_gd', 'c_gd_find', 'c_acc_macie'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Detect malicious activity from your account’s logs?', options: ['Amazon GuardDuty', 'Amazon Macie', 'An EBS volume', 'Route 53'], correct: [0], explain: 'GuardDuty analyzes logs for threats.' },
+    { kind: 'single', prompt: 'Scan workloads for known software vulnerabilities?', options: ['Amazon Inspector', 'GuardDuty', 'Macie', 'CloudFront'], correct: [0], explain: 'Inspector checks for CVEs and exposure.' },
+    { kind: 'single', prompt: 'Discover sensitive data (PII) sitting in S3?', options: ['Amazon Macie', 'Inspector', 'A NAT gateway', 'EFS'], correct: [0], explain: 'Macie finds and classifies sensitive data in S3.' },
+    { kind: 'tapfix', prompt: 'You want continuous detection of malicious activity across the account. Tap the right service.', tapTarget: 'guardduty', explain: 'GuardDuty continuously analyzes logs for threats.' },
+  ],
+};
+
+const accelerator = {
+  id: 'global-accelerator', title: 'Accelerate Global Traffic', examDomain: 'Design High-Performing Architectures',
+  summary: 'Express lanes: users enter at the nearest edge and ride the AWS backbone to the best healthy region.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A user far from your app.', 'A client far from your regions.'),
+    C('ga', 'Global Accelerator', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The express gate', prop: 'hub', pos: [-1.5, 0], yaw: 0 }, 'Static anycast entry at the nearest edge.', 'AWS Global Accelerator; anycast IPs + backbone routing.'),
+    C('r1', 'Region A', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Kitchen A', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One regional endpoint.', 'An app endpoint in region A.'),
+    C('r2', 'Region B', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Kitchen B', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Another regional endpoint.', 'An app endpoint in region B.'),
+  ],
+  connections: [
+    { id: 'c_user_ga', from: 'user', to: 'ga', flow: 'request' },
+    { id: 'c_ga_r1', from: 'ga', to: 'r1', flow: 'request' },
+    { id: 'c_ga_r2', from: 'ga', to: 'r2', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Users far from your app', focus: 'user', anim: 'pulse', animConn: 'c_user_ga', narration: 'Distant users cross the unpredictable public internet, adding latency and jitter.', storyNarration: 'A guest across the country waits while their order crawls through traffic on the public roads.', concept: 'Global users need a fast, stable path in.', blocks: ['user', 'ga'], conns: ['c_user_ga'] },
+    { title: 'Enter at the nearest edge', focus: 'ga', anim: 'pulse', animConn: 'c_user_ga', narration: 'Global Accelerator gives you static anycast IPs; every user enters at the closest AWS edge location.', storyNarration: 'Open an express gate at every city; each guest steps in at the nearest one, same address everywhere.', concept: 'Anycast entry at the nearest edge.', blocks: ['user', 'ga'], conns: ['c_user_ga'] },
+    { title: 'Ride the AWS backbone', focus: 'r1', anim: 'chain', chain: ['c_user_ga', 'c_ga_r1'], narration: 'From the edge, traffic travels AWS’s private backbone to the best healthy region — and fails over automatically.', storyNarration: 'From the gate, a private express lane carries the order straight to the nearest open kitchen, rerouting if one closes.', concept: 'Backbone routing to the best region + failover.', blocks: ['user', 'ga', 'r1', 'r2'], conns: ['c_user_ga', 'c_ga_r1', 'c_ga_r2'] },
+    { title: 'vs CloudFront', focus: 'ga', narration: 'CloudFront caches content at the edge; Global Accelerator routes/accelerates whole apps (TCP/UDP) without caching.', storyNarration: 'Grab-and-go shelves hand out copies of popular dishes; the express gate speeds you to the actual kitchen for anything.', concept: 'Global Accelerator (apps) vs CloudFront (content).', blocks: ['user', 'ga', 'r1', 'r2'], conns: ['c_user_ga', 'c_ga_r1', 'c_ga_r2'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Static anycast IPs + the AWS backbone to reach your app fast worldwide?', options: ['AWS Global Accelerator', 'A bigger instance', 'An EBS volume', 'A NAT gateway'], correct: [0], explain: 'Global Accelerator gives anycast entry and backbone routing.' },
+    { kind: 'single', prompt: 'Global Accelerator differs from CloudFront because it…', options: ['Accelerates whole apps (TCP/UDP); CloudFront caches content', 'Stores objects', 'Is a database', 'Resolves DNS'], correct: [0], explain: 'GA routes/accelerates apps; CloudFront is a content cache.' },
+    { kind: 'single', prompt: 'A benefit of entering at the nearest edge?', options: ['Lower, more consistent latency + fast failover', 'Cheaper storage', 'More IAM users', 'Bigger disks'], correct: [0], explain: 'Edge entry + backbone gives stable latency and failover.' },
+    { kind: 'single', prompt: 'Best fit for Global Accelerator?', options: ['Non-HTTP or latency-sensitive apps across regions', 'Caching images', 'A single-region static site', 'A relational join'], correct: [0], explain: 'GA suits app traffic (incl. TCP/UDP) needing global speed/failover.' },
+  ],
+};
+
+const cognito = {
+  id: 'user-signin-cognito', title: 'Sign In Your Users', examDomain: 'Design Secure Architectures',
+  summary: 'A membership desk that signs your app’s customers up and in — separate from the staff keys (IAM).',
+  scenery: 'open',
+  blocks: [
+    C('user', 'App user', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'An end user of your application.', 'An application end user (not an AWS user).'),
+    C('cognito', 'Cognito', 'security', { pos: [-1, 0.7, 0] }, { name: 'Membership desk', prop: 'securitydesk', pos: [-1, 0], yaw: -90 }, 'Signs users up and in; issues tokens.', 'Amazon Cognito user pool; sign-up/in, MFA, social/SSO.'),
+    C('app', 'Your app', 'compute', { pos: [3.5, 0.7, -1.5] }, { name: 'The app', prop: 'cook', pos: [3.5, -1.5], yaw: -90 }, 'Accepts the user’s token.', 'Your app/API trusting Cognito tokens.'),
+    C('api', 'API / data', 'database', { pos: [4, 0.7, 1.5] }, { name: 'The pantry', prop: 'pantry', pos: [4, 1.5], yaw: -90 }, 'Protected resource behind the token.', 'A protected API/resource.'),
+  ],
+  connections: [
+    { id: 'c_user_cognito', from: 'user', to: 'cognito', flow: 'request' },
+    { id: 'c_user_app', from: 'user', to: 'app', flow: 'request' },
+    { id: 'c_app_api', from: 'app', to: 'api', flow: 'data' },
+  ],
+  stages: [
+    { title: 'App users aren’t IAM users', focus: 'cognito', narration: 'IAM secures AWS access for you and your services. Your app’s customers need their own sign-in — that’s Cognito.', storyNarration: 'Staff have keys to the building; diners don’t. Diners sign in at a membership desk of their own.', concept: 'App users use Cognito, not IAM.', blocks: ['user', 'cognito'], conns: ['c_user_cognito'] },
+    { title: 'Sign up & sign in (Cognito)', focus: 'cognito', anim: 'pulse', animConn: 'c_user_cognito', narration: 'A Cognito user pool handles registration, login, MFA and social/SSO sign-in — managed for you.', storyNarration: 'The desk signs new members up, checks them in, and even takes a second ID for the careful ones.', concept: 'Cognito user pools = managed app sign-in.', blocks: ['user', 'cognito', 'app'], conns: ['c_user_cognito'] },
+    { title: 'Issue a token', focus: 'app', anim: 'chain', chain: ['c_user_cognito', 'c_user_app'], narration: 'On login the user gets a token; your app/API verifies it — no passwords stored in your app.', storyNarration: 'The desk hands the member a wristband; every counter just checks the band, never asks for a password again.', concept: 'Token-based access to your app.', blocks: ['user', 'cognito', 'app', 'api'], conns: ['c_user_cognito', 'c_user_app', 'c_app_api'] },
+    { title: 'Scale to millions', focus: 'cognito', narration: 'Cognito is managed and scales to millions of users, and plugs into API Gateway and ALB for authorization.', storyNarration: 'One desk that never gets overwhelmed, however many members turn up.', concept: 'Managed, scalable user identity.', blocks: ['user', 'cognito', 'app', 'api'], conns: ['c_user_cognito', 'c_user_app', 'c_app_api'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Sign-up/sign-in for your application’s end users?', options: ['Amazon Cognito', 'IAM users', 'A security group', 'Route 53'], correct: [0], explain: 'Cognito manages app end-user identity; IAM is for AWS access.' },
+    { kind: 'single', prompt: 'IAM vs Cognito:', options: ['IAM = AWS access; Cognito = your app’s users', 'They are the same', 'Cognito = AWS access', 'IAM = app users'], correct: [0], explain: 'Different audiences: AWS principals vs application users.' },
+    { kind: 'single', prompt: 'A Cognito user pool provides…', options: ['Registration, login, MFA, social/SSO', 'Object storage', 'A CDN', 'A message queue'], correct: [0], explain: 'User pools are a managed identity store for apps.' },
+    { kind: 'single', prompt: 'After login, how does your API trust the user?', options: ['It verifies the Cognito-issued token', 'It stores their password', 'It checks their IP', 'It uses the root user'], correct: [0], explain: 'Apps verify the issued token rather than handling passwords.' },
+  ],
+};
+
+const iac = {
+  id: 'iac-cloudformation', title: 'Blueprint Your Stack', examDomain: 'Design Resilient Architectures',
+  summary: 'A written blueprint that builds the whole kitchen identically every time — no hand-assembly.',
+  scenery: 'open',
+  blocks: [
+    C('template', 'Template', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The blueprint', prop: 'dashboard', pos: [-6.5, 0], yaw: 90 }, 'A declarative description of all resources.', 'A CloudFormation template (infrastructure as code).'),
+    C('cfn', 'CloudFormation', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The builder', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Provisions exactly what the blueprint says.', 'AWS CloudFormation; provisions stacks from templates.'),
+    C('dev', 'Dev stack', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Dev kitchen', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One environment built from the template.', 'A dev environment.'),
+    C('prod', 'Prod stack', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Prod kitchen', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'An identical environment from the same template.', 'An identical prod environment.'),
+  ],
+  connections: [
+    { id: 'c_tmpl_cfn', from: 'template', to: 'cfn', flow: 'data' },
+    { id: 'c_cfn_dev', from: 'cfn', to: 'dev', flow: 'request' },
+    { id: 'c_cfn_prod', from: 'cfn', to: 'prod', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Don’t build by hand', focus: 'template', anim: 'overload', animConn: 'c_tmpl_cfn', narration: 'Clicking around the console to build infra is slow, error-prone and impossible to reproduce exactly.', storyNarration: 'Fitting out each kitchen by hand from memory means every one comes out slightly different — and mistakes creep in.', concept: 'Manual setup doesn’t reproduce or scale.', blocks: ['template', 'cfn'], conns: ['c_tmpl_cfn'] },
+    { title: 'Write a blueprint', focus: 'template', anim: 'pulse', animConn: 'c_tmpl_cfn', narration: 'Describe every resource declaratively in a CloudFormation template — infrastructure as code.', storyNarration: 'Draw one exact blueprint of the kitchen: every counter, socket and shelf written down.', concept: 'IaC = declare infrastructure as a template.', blocks: ['template', 'cfn'], conns: ['c_tmpl_cfn'] },
+    { title: 'Stamp out identical stacks', focus: 'dev', anim: 'pulse', animConn: 'c_cfn_dev', narration: 'CloudFormation provisions the whole stack consistently — dev, staging and prod come out identical.', storyNarration: 'Hand the blueprint to the builder and every kitchen — dev, staging, prod — is fitted out exactly the same.', concept: 'Reproducible environments from one template.', blocks: ['template', 'cfn', 'dev', 'prod'], conns: ['c_tmpl_cfn', 'c_cfn_dev', 'c_cfn_prod'] },
+    { title: 'Version, review, roll back', focus: 'cfn', narration: 'Templates live in version control; changes are reviewed, repeatable, and can be rolled back cleanly.', storyNarration: 'The blueprint is filed and dated; propose a change, get it checked, and if it’s wrong, revert to the last good plan.', concept: 'Infra is versioned, reviewable and reversible.', blocks: ['template', 'cfn', 'dev', 'prod'], conns: ['c_tmpl_cfn', 'c_cfn_dev', 'c_cfn_prod'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Provision AWS infrastructure repeatably from a definition?', options: ['CloudFormation (infrastructure as code)', 'Click it in the console each time', 'A bigger instance', 'Route 53'], correct: [0], explain: 'CloudFormation builds stacks from declarative templates.' },
+    { kind: 'single', prompt: 'A key benefit of infrastructure as code?', options: ['Consistent, repeatable environments', 'Faster CPUs', 'Cheaper storage', 'More IAM users'], correct: [0], explain: 'One template yields identical environments.' },
+    { kind: 'single', prompt: 'Where should templates live?', options: ['Version control, reviewed like code', 'Only in someone’s laptop', 'Pasted in chat', 'Nowhere — memorize them'], correct: [0], explain: 'Versioning gives history, review and rollback.' },
+    { kind: 'single', prompt: 'A change goes wrong. With CloudFormation you can…', options: ['Roll back to the previous stack state', 'Only rebuild by hand', 'Nothing', 'Delete the account'], correct: [0], explain: 'Stacks support rollback to a known-good state.' },
+  ],
+};
+
+const audit = {
+  id: 'audit-cloudtrail', title: 'Audit Every Action', examDomain: 'Design Secure Architectures',
+  summary: 'A logbook of who did what, and when, across the whole operation — for investigations and compliance.',
+  scenery: 'open',
+  blocks: [
+    C('users', 'Users & services', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The staff', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Everyone making API calls.', 'IAM users, roles and services calling AWS APIs.'),
+    C('cloudtrail', 'CloudTrail', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The logbook', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Records who did what, when.', 'AWS CloudTrail; records account API activity.'),
+    C('log', 'Audit log (S3)', 'storage', { pos: [3.5, 0.7, 0] }, { name: 'The archive', prop: 'larder', pos: [3.5, 0], yaw: -90 }, 'Stores the trail durably for later.', 'CloudTrail logs delivered to S3 (often locked).'),
+  ],
+  connections: [
+    { id: 'c_users_ct', from: 'users', to: 'cloudtrail', flow: 'request' },
+    { id: 'c_ct_log', from: 'cloudtrail', to: 'log', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Who did what?', focus: 'cloudtrail', anim: 'pulse', animConn: 'c_users_ct', narration: 'For security and compliance you need a record of every action taken in the account.', storyNarration: 'When something’s off, the manager needs to know exactly who opened which door, and when.', concept: 'You need an audit trail of actions.', blocks: ['users', 'cloudtrail'], conns: ['c_users_ct'] },
+    { title: 'CloudTrail logs every API call', focus: 'cloudtrail', anim: 'pulse', animConn: 'c_users_ct', narration: 'CloudTrail records the who, what and when of API calls across your account.', storyNarration: 'A logbook by the door notes every entry: who, what they did, and the time.', concept: 'CloudTrail = an audit log of API activity.', blocks: ['users', 'cloudtrail'], conns: ['c_users_ct'] },
+    { title: 'Store it durably', focus: 'log', anim: 'chain', chain: ['c_users_ct', 'c_ct_log'], narration: 'Trails are delivered to S3 — often with retention and object-lock — for later investigation and compliance.', storyNarration: 'Each night’s logbook is filed in the archive and can’t be edited, ready if anyone asks questions later.', concept: 'Durable, tamper-resistant audit storage.', blocks: ['users', 'cloudtrail', 'log'], conns: ['c_users_ct', 'c_ct_log'] },
+    { title: 'CloudTrail vs CloudWatch', focus: 'cloudtrail', narration: 'CloudTrail answers “who did what” (audit); CloudWatch answers “how is it performing” (metrics/logs).', storyNarration: 'The logbook says who came and went; the gauges on the board say how busy the kitchen is. Different questions.', concept: 'CloudTrail = audit; CloudWatch = monitoring.', blocks: ['users', 'cloudtrail', 'log'], conns: ['c_users_ct', 'c_ct_log'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Get a record of every API call (who/what/when) in your account?', options: ['AWS CloudTrail', 'CloudWatch metrics', 'A NAT gateway', 'EFS'], correct: [0], explain: 'CloudTrail records account API activity for audit.' },
+    { kind: 'single', prompt: 'CloudTrail vs CloudWatch:', options: ['CloudTrail = who-did-what; CloudWatch = performance', 'They are identical', 'CloudTrail = metrics', 'CloudWatch = audit log'], correct: [0], explain: 'Audit trail vs monitoring/metrics.' },
+    { kind: 'single', prompt: 'Where are CloudTrail logs typically delivered for retention?', options: ['Amazon S3 (often with object lock)', 'An EBS volume', 'A DynamoDB item', 'A security group'], correct: [0], explain: 'Trails are stored durably in S3, often locked.' },
+    { kind: 'single', prompt: 'Investigating a suspicious change, you check…', options: ['CloudTrail', 'The billing console', 'Route 53', 'An SQS queue'], correct: [0], explain: 'CloudTrail shows who made the change and when.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute, hybrid, threats, accelerator, cognito, iac, audit],
 };

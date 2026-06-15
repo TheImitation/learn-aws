@@ -302,6 +302,16 @@ function hub(color) {
   return g;
 }
 
+// A security camera on a post (threat detection — watching for intruders).
+function cctv(color) {
+  const g = new THREE.Group(); const dk = darker(color, 0.55);
+  add(g, box(0.08, 0.8, 0.08, dk), 0, 0.4, 0);                     // post
+  add(g, box(0.34, 0.22, 0.4, color), 0, 0.86, 0.05, 0.22, 0, 0); // body, tilted down-forward
+  add(g, cyl(0.1, 0.12, darker(color, 0.35)), 0, 0.82, 0.28, Math.PI / 2, 0, 0); // lens (+z)
+  add(g, box(0.06, 0.06, 0.06, 0xff5a5a, true), 0.14, 0.97, 0.04); // recording light
+  return g;
+}
+
 export function makeProp(kind, color) {
   switch (kind) {
     case 'customer': return person(color);
@@ -323,6 +333,7 @@ export function makeProp(kind, color) {
     case 'crate': return crate(color);
     case 'safe': return safe(color);
     case 'hub': return hub(color);
+    case 'cctv': return cctv(color);
     default: return station(color);
   }
 }

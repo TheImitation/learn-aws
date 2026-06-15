@@ -112,6 +112,12 @@ const CARD = {
   'stream-data-kinesis': { icon: '🌊', accent: '#33b38c', level: 3 },
   'right-storage-class': { icon: '🏷️', accent: '#d9842e', level: 2 },
   'choose-compute': { icon: '⚙️', accent: '#f0a92e', level: 1 },
+  'hybrid-connectivity': { icon: '🔌', accent: '#3585c6', level: 3 },
+  'detect-threats': { icon: '📹', accent: '#d15656', level: 3 },
+  'global-accelerator': { icon: '🚀', accent: '#33b38c', level: 3 },
+  'user-signin-cognito': { icon: '🪪', accent: '#d15656', level: 2 },
+  'iac-cloudformation': { icon: '📜', accent: '#5a8fd1', level: 3 },
+  'audit-cloudtrail': { icon: '📒', accent: '#cf6b4a', level: 2 },
 };
 const LEVEL_NAME = { 1: 'Foundational', 2: 'Core', 3: 'Advanced' };
 // The four SAA-C03 exam domains, in order, with a short label, blurb and accent.
