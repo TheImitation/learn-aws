@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 // Category → colour (mirrors the Unity MaterialFactory palette).
 export const PALETTE = {
@@ -222,7 +223,7 @@ function _loadModel(url) {
 export function applyModel(group, kind) {
   const m = MODELS[kind]; if (!m) return;
   _loadModel(m.url).then((scene) => {
-    const model = scene.clone(true);
+    const model = cloneSkinned(scene); // skinned/rigged model — SkeletonUtils gives each instance its own skeleton
     model.scale.setScalar(m.scale || 1);
     model.rotation.y = m.yaw || 0;
     model.position.y = m.y || 0;
