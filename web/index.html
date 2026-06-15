@@ -102,6 +102,22 @@
         </div>
       </div>
     </section>
+
+    <!-- FIND / GLOSSARY -->
+    <section id="screen-find" class="screen backdrop">
+      <div class="col">
+        <div class="find-head">
+          <div>
+            <h1>Find a topic</h1>
+            <p class="sub">Search lessons, AWS services, and concepts across the whole course.</p>
+          </div>
+          <button id="find-map">← Course map</button>
+        </div>
+        <input id="find-input" type="search" placeholder="Try &ldquo;NACL&rdquo;, &ldquo;Aurora&rdquo;, &ldquo;egress&rdquo;, &ldquo;stateless&rdquo;&hellip;" autocomplete="off" spellcheck="false" />
+        <p id="find-count" class="find-count"></p>
+        <div id="find-list" class="topic-list"></div>
+      </div>
+    </section>
   </div>
 
   <script type="module" src="./src/main.js"></script>

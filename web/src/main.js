@@ -194,6 +194,9 @@ function openCourseMap() {
   const exam = document.createElement('button'); exam.textContent = `🎓 Mock exam (${EXAM_LEN} Q)`;
   exam.onclick = () => startMockExam();
   ov.appendChild(exam);
+  const find = document.createElement('button'); find.textContent = '🔎 Find a topic';
+  find.onclick = openFind;
+  ov.appendChild(find);
 
   // One section per exam domain, with its own progress, holding a grid of topic cards.
   const list = $('topic-list'); list.innerHTML = '';
@@ -217,6 +220,68 @@ function openCourseMap() {
     list.appendChild(sec);
   }
   showScreen('map');
+}
+
+// ---------- find / search ----------
+// One searchable record per topic: a flat "haystack" of every word a learner
+// might type (titles, summaries, AWS service names, plain + real descriptions,
+// stage concepts) plus the service terms we can surface as "why it matched".
+let findIndex = null;
+function buildFindIndex() {
+  findIndex = orderedTopics().map((t) => {
+    const parts = [t.title, t.summary, t.examDomain, LEVEL_NAME[meta(t.id).level]];
+    const blocks = [];
+    for (const b of (t.blocks || [])) {
+      const bits = [b.name, b.plain, b.real, b.code, b.story && b.story.name].filter(Boolean);
+      parts.push(...bits);
+      if (b.name) blocks.push({ name: b.name, text: bits.join(' ').toLowerCase() });
+    }
+    for (const s of (t.stages || [])) parts.push(s.concept, s.title);
+    return { t, hay: parts.filter(Boolean).join(' · ').toLowerCase(), blocks };
+  });
+}
+// Which services/components in this lesson did the search actually touch — shown as chips.
+function findHits(entry, words) {
+  const seen = new Set(), hits = [];
+  for (const b of entry.blocks) {
+    const low = b.name.toLowerCase();
+    if (words.some((w) => b.text.includes(w)) && !seen.has(low)) { seen.add(low); hits.push(b.name); }
+  }
+  return hits.slice(0, 4);
+}
+function renderFind(query) {
+  if (!findIndex) buildFindIndex();
+  const raw = (query || '').trim();
+  const words = raw ? raw.toLowerCase().split(/\s+/) : [];
+  const matches = findIndex.filter((e) => words.every((w) => e.hay.includes(w)));
+  $('find-count').textContent = raw
+    ? `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} for “${raw}”`
+    : `${findIndex.length} topics across ${DOMAINS.length} domains — start typing to filter`;
+  const list = $('find-list'); list.innerHTML = '';
+  if (!matches.length) {
+    const empty = document.createElement('p'); empty.className = 'find-empty';
+    empty.textContent = 'No topics match. Try a service name (e.g. “Lambda”) or a concept (e.g. “stateless”).';
+    list.appendChild(empty); return;
+  }
+  const grid = document.createElement('div'); grid.className = 'domain-grid';
+  for (const e of matches) {
+    const card = makeTopicCard(e.t);
+    const hits = words.length ? findHits(e, words) : [];
+    if (hits.length) {
+      const hit = document.createElement('div'); hit.className = 'find-hit';
+      hit.innerHTML = hits.map((h) => `<span>${esc(h)}</span>`).join('');
+      card.querySelector('.card-body').appendChild(hit);
+    }
+    grid.appendChild(card);
+  }
+  list.appendChild(grid);
+}
+function openFind() {
+  examMode = false; examDomain = null;
+  $('find-input').value = '';
+  renderFind('');
+  showScreen('find');
+  setTimeout(() => $('find-input').focus(), 30);
 }
 
 // ---------- topic ----------
@@ -454,6 +519,9 @@ $('a-submit').onclick = submitAnswer;
 $('a-next').onclick = nextQuestion;
 $('r-back').onclick = openCourseMap;
 $('r-retry').onclick = () => (examMode ? startMockExam(examDomain) : startAssessment());
+$('find-map').onclick = openCourseMap;
+$('find-input').oninput = (e) => renderFind(e.target.value);
+$('find-input').onkeydown = (e) => { if (e.key === 'Escape') openCourseMap(); };
 
 // ---------- render loop ----------
 let last = performance.now();
