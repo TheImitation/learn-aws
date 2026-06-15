@@ -65,9 +65,15 @@ function buildScene(group, scene, world, w) {
   put(box(0.25, 1.5, b.d, M.wall), b.x + b.w / 2 + 0.05, 0.75, 0);        // right wall
   put(box(b.w, 0.18, 0.07, M.trim), b.x, 0.16, -b.d / 2 + 0.1);           // back baseboard
   put(box(b.w, 0.3, 0.22, M.trim), b.x, 0.15, b.d / 2 + 0.05);            // low front lip
-  for (const z of (scene.zones || [])) {                                  // per-zone floor tint
-    if (z.rect && z.floorTint != null) { const r = z.rect; put(box(Math.abs(r.x1 - r.x0), 0.02, Math.abs(r.z1 - r.z0), z.floorTint), (r.x0 + r.x1) / 2, 0.012, (r.z0 + r.z1) / 2); }
+  for (const pt of (scene.partitions || [])) {                           // interior wall splitting zones (e.g. front/back of house), with a doorway gap
+    const gx = pt.x, z0 = pt.z0 ?? (-b.d / 2 + 0.2), z1 = pt.z1 ?? (b.d / 2 - 0.2), gap = pt.gap;
+    const segs = gap ? [[z0, gap[0]], [gap[1], z1]] : [[z0, z1]];
+    for (const [za, zc] of segs) { const len = Math.abs(zc - za); if (len < 0.05) continue; put(box(0.2, 1.3, len, M.wall), gx, 0.65, (za + zc) / 2); }
+    if (gap) put(box(0.3, 0.2, Math.abs(gap[1] - gap[0]) + 0.4, M.trim), gx, 1.35, (gap[0] + gap[1]) / 2); // lintel over the doorway
   }
+  (scene.zones || []).forEach((z, zi) => {                                // per-zone floor tint (tiny y stagger so overlapping tints don't z-fight)
+    if (z.rect && z.floorTint != null) { const r = z.rect; put(box(Math.abs(r.x1 - r.x0), 0.02, Math.abs(r.z1 - r.z0), z.floorTint), (r.x0 + r.x1) / 2, 0.012 + zi * 0.002, (r.z0 + r.z1) / 2); }
+  });
   for (const z of (scene.zones || [])) for (const d of (z.dressing || [])) { // ambient dressing scatter
     const piece = makeDressing(d.kind, Object.assign({ accent: z.accent }, d.opts || {}));
     if (!piece) continue;

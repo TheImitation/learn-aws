@@ -16,6 +16,7 @@ const kitchen = {
   anchors: { door: [-3.5, 0], entrance: [-9.0, 0] },
   scene: {
     bounds: { w: 22, d: 14, x: -0.75 },
+    partitions: [{ x: -3.6, gap: [-1.3, 1.3] }], // the wall between front-of-house and the kitchen; the service door is its doorway
     zones: [
       { id: 'foh', label: 'Front of house', rect: { x0: -11.5, z0: -6.8, x1: -3.5, z1: 6.8 }, floorTint: 0x4a3f37, accent: 0xf2b25a, dressing: [
         { kind: 'diningtable', pos: [-6.8, -1.2] }, { kind: 'chair', pos: [-6.8, -0.5], yaw: 180, opts: { occupied: true } }, { kind: 'chair', pos: [-6.8, -1.9], opts: { occupied: true } },
@@ -25,14 +26,14 @@ const kitchen = {
         { kind: 'plant', pos: [-10.9, 5.9] }, { kind: 'plant', pos: [-4.0, 6.2] },
         { kind: 'bar', pos: [-5.2, -6.3] }, { kind: 'barstool', pos: [-6.1, -5.5] }, { kind: 'barstool', pos: [-5.6, -5.5] }, { kind: 'barstool', pos: [-4.8, -5.5] },
       ] },
-      { id: 'pass', label: 'The pass', rect: { x0: -3.5, z0: -2.6, x1: 0.6, z1: 2.6 }, floorTint: 0x4a4033, accent: 0xf2b25a, dressing: [
+      { id: 'pass', label: 'The pass', rect: { x0: -3.5, z0: -6.8, x1: 0.6, z1: 6.8 }, floorTint: 0x4a4033, accent: 0xf2b25a, dressing: [
         { kind: 'signage', pos: [-1.6, -2.4], opts: { accent: 0xf2b25a } },
       ] },
-      { id: 'kitchen', label: 'Kitchen line', rect: { x0: 0.6, z0: -3.6, x1: 5.6, z1: 3.6 }, floorTint: 0x3b3a3f, accent: 0x9aa0aa, dressing: [
+      { id: 'kitchen', label: 'Kitchen line', rect: { x0: 0.6, z0: -6.8, x1: 5.6, z1: 6.8 }, floorTint: 0x3b3a3f, accent: 0x9aa0aa, dressing: [
         { kind: 'extractor', pos: [2.6, -3.0], y: 1.45 }, { kind: 'potrack', pos: [3.0, 0.2], y: 1.6 },
         { kind: 'preptable', pos: [4.3, -3.1] }, { kind: 'shelving', pos: [1.4, -3.3] }, { kind: 'shelving', pos: [5.0, -3.3] }, { kind: 'bin', pos: [5.3, 3.2] },
       ] },
-      { id: 'cold', label: 'Cold store', rect: { x0: 5.6, z0: -3.6, x1: 9.8, z1: 3.6 }, floorTint: 0x33414a, accent: 0x5a8fd1, dressing: [
+      { id: 'cold', label: 'Cold store', rect: { x0: 5.6, z0: -6.8, x1: 9.8, z1: 6.8 }, floorTint: 0x33414a, accent: 0x5a8fd1, dressing: [
         { kind: 'shelving', pos: [9.4, -2.0], yaw: -90 }, { kind: 'shelving', pos: [9.4, 2.0], yaw: -90 }, { kind: 'bin', pos: [6.3, 3.2] },
       ] },
       { id: 'office', label: 'Back office', rect: { x0: -11.5, z0: -6.9, x1: -7.0, z1: -4.6 }, floorTint: 0x3a3630, accent: 0x67ad5b, dressing: [

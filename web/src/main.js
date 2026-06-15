@@ -35,6 +35,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(-0.8, 0.3, 0);
 controls.enableDamping = true;
 controls.update();
+window.__camera = camera; window.__controls = controls; // dev hooks for preview verification
 
 // Cinematic camera ease — used to "arrive" into a topic and to smooth view toggles.
 let camTween = null;
