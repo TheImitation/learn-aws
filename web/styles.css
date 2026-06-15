@@ -144,3 +144,18 @@ button.primary:hover { filter: brightness(1.06); }
 .recap ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .recap li { position: relative; padding-left: 20px; font-size: 13.5px; color: #d2d7e0; line-height: 1.45; }
 .recap li::before { content: '•'; position: absolute; left: 5px; color: var(--accent); font-weight: 700; }
+
+/* mock exam: centre the card over a backdrop (no 3D distraction) */
+#screen-assess.exam { justify-content: center; align-items: center; pointer-events: auto;
+  background: radial-gradient(120% 90% at 50% 0%, #1a1d26 0%, #0b0d12 70%); }
+#screen-assess.exam .card { margin: auto; }
+
+/* exam results: per-domain breakdown */
+.dom-rows { display: flex; flex-direction: column; gap: 8px; }
+.dom-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.dom-name { flex: 1; min-width: 0; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dom-mini { flex: none; width: 90px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.dom-mini i { display: block; height: 100%; border-radius: 999px; }
+.dom-score { flex: none; width: 40px; text-align: right; color: var(--dim); }
+.exam-tip { margin-top: 13px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+.exam-tip b { color: var(--ink); }

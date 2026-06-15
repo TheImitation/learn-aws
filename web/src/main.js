@@ -71,6 +71,7 @@ function record(id, m, b) {
 let world = null, journey = null, topic = null, mode = 'story', showAnalogy = false;
 let inspectorReal = false, selectedId = null;
 let quiz = null, qi = 0, correctCount = 0, answered = false, picked = new Set(), lastTapped = null;
+let examMode = false, examItems = []; // mock exam: pooled questions from across topics
 
 function showScreen(name) {
   for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
@@ -153,11 +154,12 @@ function makeTopicCard(t) {
 }
 
 function openCourseMap() {
+  examMode = false;
   const total = COURSE.topics.length;
   const mastered = COURSE.topics.filter((t) => masteryOf(t.id) === 'Mastered').length;
   const started = COURSE.topics.filter((t) => masteryOf(t.id) !== 'Not started').length;
 
-  // Overview: overall progress + a Continue/Start CTA for the next unmastered topic.
+  // Overview: overall progress + a Continue/Start CTA + a Mock exam across all topics.
   const ov = $('map-overview');
   ov.innerHTML = `<div class="ov-stat"><b>${mastered}</b> / ${total} mastered</div>
     <div class="ov-bar"><i style="width:${Math.round((mastered / total) * 100)}%"></i></div>`;
@@ -171,6 +173,9 @@ function openCourseMap() {
     const done = document.createElement('div'); done.className = 'ov-stat'; done.textContent = '🎉 All topics mastered';
     ov.appendChild(done);
   }
+  const exam = document.createElement('button'); exam.textContent = `🎓 Mock exam (${EXAM_LEN} Q)`;
+  exam.onclick = startMockExam;
+  ov.appendChild(exam);
 
   // One section per exam domain, with its own progress, holding a grid of topic cards.
   const list = $('topic-list'); list.innerHTML = '';
@@ -273,7 +278,22 @@ function renderInspector() {
 
 // ---------- assessment ----------
 function startAssessment() {
+  examMode = false; $('a-title').textContent = 'Assessment'; $('screen-assess').classList.remove('exam');
   quiz = topic.quiz; qi = 0; correctCount = 0;
+  showScreen('assess'); renderQuestion();
+}
+
+// ---------- mock exam (questions pooled from every topic) ----------
+const EXAM_LEN = 20;
+function examPool() {
+  return COURSE.topics.flatMap((t) => t.quiz.filter((q) => q.kind !== 'tapfix').map((q) => ({ q, topic: t })));
+}
+function startMockExam() {
+  const pool = examPool();
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } // shuffle
+  examItems = pool.slice(0, Math.min(EXAM_LEN, pool.length));
+  examMode = true; quiz = examItems.map((e) => e.q); qi = 0; correctCount = 0;
+  $('a-title').textContent = 'Mock exam'; $('screen-assess').classList.add('exam');
   showScreen('assess'); renderQuestion();
 }
 function renderQuestion() {
@@ -315,13 +335,14 @@ function submitAnswer() {
     });
   }
   if (ok) correctCount++;
+  if (examMode) examItems[qi].ok = ok;
   answered = true;
   const ex = $('a-explain'); ex.textContent = (ok ? 'Correct. ' : 'Not quite. ') + q.explain; ex.classList.remove('hidden');
   $('a-submit').classList.add('hidden');
   $('a-next').textContent = qi === quiz.length - 1 ? 'See results' : 'Next ›';
   $('a-next').classList.remove('hidden');
 }
-function nextQuestion() { if (qi < quiz.length - 1) { qi++; renderQuestion(); } else showResults(); }
+function nextQuestion() { if (qi < quiz.length - 1) { qi++; renderQuestion(); } else if (examMode) showExamResults(); else showResults(); }
 function showResults() {
   const pct = Math.round((correctCount / quiz.length) * 100);
   const passed = pct >= 80;
@@ -329,8 +350,28 @@ function showResults() {
   $('r-score').textContent = `${pct}%  (${correctCount}/${quiz.length})`;
   $('r-msg').textContent = passed ? 'Passed — you can run this kitchen through a bad night.' : 'Keep going — you need 80% to master this topic.';
   $('r-mastery').textContent = 'Mastery: ' + masteryOf(topic.id);
+  $('r-retry').textContent = 'Retry';
   const learn = [...new Set(topic.stages.map((s) => s.concept).filter(Boolean))];
   $('r-recap').innerHTML = '<h3>Key takeaways</h3><ul>' + learn.map((c) => `<li>${c}</li>`).join('') + '</ul>';
+  showScreen('results');
+}
+
+function showExamResults() {
+  const pct = Math.round((correctCount / examItems.length) * 100);
+  const ready = pct >= 72; // SAA-C03 pass mark is ~720/1000
+  $('r-score').textContent = `${pct}%  (${correctCount}/${examItems.length})`;
+  $('r-msg').textContent = ready ? 'On track — you’re around the SAA-C03 pass mark.' : 'Keep studying — aim for ~72%+ across every domain.';
+  $('r-mastery').textContent = `Mock exam · ${examItems.length} questions`;
+  $('r-retry').textContent = 'New exam';
+  const tally = {};
+  examItems.forEach((e) => { const k = e.topic.examDomain; (tally[k] = tally[k] || { ok: 0, total: 0 }).total++; if (e.ok) tally[k].ok++; });
+  const rows = DOMAINS.filter((d) => tally[d.key]).map((d) => {
+    const t = tally[d.key], p = Math.round((t.ok / t.total) * 100);
+    return `<div class="dom-row"><span class="dom-name">${d.label}</span><span class="dom-mini"><i style="width:${p}%;background:${d.accent}"></i></span><span class="dom-score">${t.ok}/${t.total}</span></div>`;
+  }).join('');
+  const revisit = [...new Set(examItems.filter((e) => e.ok === false).map((e) => e.topic.title))].slice(0, 5);
+  const tip = revisit.length ? `<div class="exam-tip"><b>Revisit:</b> ${revisit.join(' · ')}</div>` : '';
+  $('r-recap').innerHTML = `<h3>By domain</h3><div class="dom-rows">${rows}</div>${tip}`;
   showScreen('results');
 }
 
@@ -372,7 +413,7 @@ $('insp-close').onclick = () => $('inspector').classList.add('hidden');
 $('a-submit').onclick = submitAnswer;
 $('a-next').onclick = nextQuestion;
 $('r-back').onclick = openCourseMap;
-$('r-retry').onclick = startAssessment;
+$('r-retry').onclick = () => (examMode ? startMockExam() : startAssessment());
 
 // ---------- render loop ----------
 let last = performance.now();
