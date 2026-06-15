@@ -291,6 +291,17 @@ export function applyModel(group, kind, opts = {}) {
   }).catch(() => { /* keep procedural prop */ });
 }
 
+// A central hub with radial connectors (Transit Gateway / event bus).
+function hub(color) {
+  const g = new THREE.Group(); const dk = darker(color, 0.6);
+  add(g, cyl(0.1, 0.55, dk), 0, 0.28, 0);                       // post
+  add(g, cyl(0.36, 0.18, color), 0, 0.62, 0);                   // hub body
+  add(g, cyl(0.42, 0.05, darker(color, 0.45)), 0, 0.73, 0);     // cap ring
+  add(g, box(0.18, 0.18, 0.18, color, true), 0, 0.62, 0);       // glowing core
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; add(g, box(0.16, 0.06, 0.06, dk), Math.cos(a) * 0.42, 0.62, Math.sin(a) * 0.42, 0, -a, 0); } // spokes
+  return g;
+}
+
 export function makeProp(kind, color) {
   switch (kind) {
     case 'customer': return person(color);
@@ -311,6 +322,7 @@ export function makeProp(kind, color) {
     case 'tannoy': return tannoy(color);
     case 'crate': return crate(color);
     case 'safe': return safe(color);
+    case 'hub': return hub(color);
     default: return station(color);
   }
 }

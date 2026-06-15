@@ -775,8 +775,186 @@ const aurora = {
   ],
 };
 
+const networks = {
+  id: 'connect-networks', title: 'Connect Your Networks', examDomain: 'Design Secure Architectures',
+  summary: 'Separate buildings stay private — link two with a corridor, or wire many to one central hub.',
+  scenery: 'open',
+  blocks: [
+    C('vpcA', 'VPC A', 'compute', { pos: [-6, 0.7, -1.7] }, { name: 'Kitchen A', prop: 'cook', pos: [-6, -1.7], yaw: -90 }, 'A private network and its resources.', 'A VPC.'),
+    C('vpcB', 'VPC B', 'compute', { pos: [-6, 0.7, 1.7] }, { name: 'Kitchen B', prop: 'cook', pos: [-6, 1.7], yaw: -90 }, 'Another private network.', 'Another VPC.'),
+    C('tgw', 'Transit Gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'The hub', prop: 'hub', pos: [-0.5, 0], yaw: 0 }, 'A central hub every network plugs into.', 'AWS Transit Gateway; hub-and-spoke for many VPCs.'),
+    C('vpcC', 'VPC C', 'compute', { pos: [4, 0.7, 0] }, { name: 'Kitchen C', prop: 'cook', pos: [4, 0], yaw: -90 }, 'A third network on the hub.', 'A third VPC.'),
+  ],
+  connections: [
+    { id: 'c_a_b', from: 'vpcA', to: 'vpcB', flow: 'network' },
+    { id: 'c_a_tgw', from: 'vpcA', to: 'tgw', flow: 'network' },
+    { id: 'c_b_tgw', from: 'vpcB', to: 'tgw', flow: 'network' },
+    { id: 'c_c_tgw', from: 'vpcC', to: 'tgw', flow: 'network' },
+  ],
+  stages: [
+    { title: 'Private by default', focus: 'vpcA', narration: 'By default, separate VPCs can’t reach each other — that isolation is a security feature.', storyNarration: 'Each kitchen is its own locked building; nobody wanders between them by accident.', concept: 'VPCs are isolated from each other by default.', blocks: ['vpcA', 'vpcB'], conns: [] },
+    { title: 'A private link (peering)', focus: 'vpcB', anim: 'pulse', animConn: 'c_a_b', narration: 'VPC peering connects two VPCs privately, over the AWS network — no internet, no gateway.', storyNarration: 'Cut a private corridor between two buildings so staff pass directly, never stepping onto the street.', concept: 'Peering = a private 1:1 link between two VPCs.', blocks: ['vpcA', 'vpcB'], conns: ['c_a_b'] },
+    { title: 'Many networks? Use a hub', focus: 'tgw', anim: 'pulse', animConn: 'c_a_tgw', narration: 'Peering every VPC to every other doesn’t scale. A Transit Gateway is one hub that all VPCs attach to.', storyNarration: 'Don’t dig a corridor between every pair of buildings — build one central hub they all connect into.', concept: 'Transit Gateway = hub-and-spoke for many VPCs.', blocks: ['vpcA', 'vpcB', 'tgw', 'vpcC'], conns: ['c_a_tgw', 'c_b_tgw', 'c_c_tgw'] },
+    { title: 'Private and controlled', focus: 'tgw', narration: 'All this traffic stays on AWS’s private network; route tables decide exactly who can reach whom.', storyNarration: 'Every corridor is staff-only and signposted: each building reaches just the rooms its passes allow.', concept: 'Connectivity stays private and route-controlled.', blocks: ['vpcA', 'vpcB', 'tgw', 'vpcC'], conns: ['c_a_tgw', 'c_b_tgw', 'c_c_tgw'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Two VPCs by default can…', options: ['Not reach each other (isolated)', 'Always reach each other', 'Only talk via the internet', 'Share one subnet'], correct: [0], explain: 'VPCs are isolated until you connect them.' },
+    { kind: 'single', prompt: 'Privately connect exactly two VPCs?', options: ['VPC peering', 'A public IP each', 'An SQS queue', 'A NAT gateway'], correct: [0], explain: 'Peering is a private 1:1 link between two VPCs.' },
+    { kind: 'single', prompt: 'Connect dozens of VPCs without a mesh of links?', options: ['Transit Gateway (hub-and-spoke)', 'Peer them all pairwise', 'Give each a public IP', 'One big subnet'], correct: [0], explain: 'A Transit Gateway is a central hub for many VPCs.' },
+    { kind: 'single', prompt: 'VPC peering is…', options: ['Private, non-transitive (A–B doesn’t link A–C)', 'Transitive by default', 'Over the public internet', 'A DNS feature'], correct: [0], explain: 'Peering isn’t transitive; that’s a reason to use TGW at scale.' },
+  ],
+};
+
+const stateless = {
+  id: 'keep-it-stateless', title: 'Keep Servers Stateless', examDomain: 'Design Resilient Architectures',
+  summary: 'Don’t keep the order in one cook’s head — put it on the rail so any cook can pick it up.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'User', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'A returning user with a session.', 'A client with session state.'),
+    C('lb', 'Load balancer', 'networking', { pos: [-3, 0.7, 0] }, { name: 'The pass', prop: 'pass', pos: [-3, 0], yaw: -90 }, 'Sends each request to any server.', 'An ALB spreading requests.'),
+    C('srvA', 'Server A', 'compute', { pos: [1, 0.7, -1.6] }, { name: 'Cook A', prop: 'cook', pos: [1, -1.6], yaw: -90 }, 'One interchangeable server.', 'A stateless app instance.'),
+    C('srvB', 'Server B', 'compute', { pos: [1.4, 0.7, 1.6] }, { name: 'Cook B', prop: 'cook', pos: [1.4, 1.6], yaw: -90 }, 'Another interchangeable server.', 'Another instance.'),
+    C('store', 'Session store', 'database', { pos: [4.5, 0.7, 0] }, { name: 'Shared locker', prop: 'coldroom', pos: [4.5, 0], yaw: -90 }, 'Holds session/state outside the servers.', 'DynamoDB / ElastiCache for sessions.'),
+  ],
+  connections: [
+    { id: 'c_user_lb', from: 'user', to: 'lb', flow: 'request' },
+    { id: 'c_lb_a', from: 'lb', to: 'srvA', flow: 'request' },
+    { id: 'c_lb_b', from: 'lb', to: 'srvB', flow: 'request' },
+    { id: 'c_a_store', from: 'srvA', to: 'store', flow: 'data' },
+    { id: 'c_b_store', from: 'srvB', to: 'store', flow: 'data' },
+  ],
+  stages: [
+    { title: 'State stuck in one server', focus: 'srvA', anim: 'overload', animConn: 'c_lb_a', narration: 'If a server keeps your session in its own memory, losing that server logs you out — and you must keep coming back to it.', storyNarration: 'If only one cook remembers your order, you’re stuck with that cook — and if they walk off, the order’s gone.', concept: 'In-memory state makes servers fragile and sticky.', blocks: ['user', 'lb', 'srvA'], conns: ['c_user_lb', 'c_lb_a'] },
+    { title: 'Put state in a shared store', focus: 'store', anim: 'pulse', animConn: 'c_a_store', narration: 'Externalize session/state to a shared store like DynamoDB or ElastiCache.', storyNarration: 'Write every order on the rail and in a shared locker, not in any one cook’s memory.', concept: 'Externalize state to a shared store.', blocks: ['user', 'lb', 'srvA', 'store'], conns: ['c_user_lb', 'c_lb_a', 'c_a_store'] },
+    { title: 'Any server can serve you', focus: 'lb', anim: 'pulse', animConn: 'c_lb_b', narration: 'With state outside, any server can handle any request — the load balancer spreads freely, no stickiness.', storyNarration: 'Now any cook reads the locker and finishes your dish; the pass hands the ticket to whoever’s free.', concept: 'Stateless servers = free load balancing.', blocks: ['user', 'lb', 'srvA', 'srvB', 'store'], conns: ['c_user_lb', 'c_lb_a', 'c_lb_b', 'c_a_store', 'c_b_store'] },
+    { title: 'Scale and recover freely', focus: 'srvB', anim: 'spike', narration: 'Add, remove or lose a server with no user impact — the state lives elsewhere.', storyNarration: 'Call in extra cooks for the rush and send them home after; nobody’s order is lost when a cook clocks out.', concept: 'Statelessness enables elastic scaling and recovery.', blocks: ['user', 'lb', 'srvA', 'srvB', 'store'], conns: ['c_user_lb', 'c_lb_a', 'c_lb_b', 'c_a_store', 'c_b_store'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Why is keeping session state in a server’s memory a problem?', options: ['Losing the server loses the session; it forces sticky routing', 'It’s faster', 'It improves security', 'It scales better'], correct: [0], explain: 'In-memory state is fragile and ties users to one server.' },
+    { kind: 'single', prompt: 'Where should shared session state live?', options: ['An external store like DynamoDB or ElastiCache', 'Each server’s RAM', 'The load balancer', 'An EBS root volume'], correct: [0], explain: 'Externalizing state makes servers interchangeable.' },
+    { kind: 'single', prompt: 'A benefit of stateless servers?', options: ['Any server handles any request; easy scaling/recovery', 'No need for a database', 'No need for IAM', 'Lower latency always'], correct: [0], explain: 'Statelessness enables free load balancing and elasticity.' },
+    { kind: 'tapfix', prompt: 'Users get logged out whenever an instance is replaced. Tap where session state should move.', tapTarget: 'store', explain: 'Move session state to a shared external store so servers stay stateless.' },
+  ],
+};
+
+const events = {
+  id: 'route-events-eventbridge', title: 'Route Events', examDomain: 'Design Resilient Architectures',
+  summary: 'A smart noticeboard that reads each event and sends it, by rule, to exactly the right handler.',
+  scenery: 'open',
+  blocks: [
+    C('source', 'Event source', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Emits events (“order placed”, “refund”).', 'A producer / AWS service event.'),
+    C('bus', 'EventBridge', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The router', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Matches each event to a rule and routes it.', 'Amazon EventBridge; content-based event bus.'),
+    C('h1', 'Orders handler', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Orders cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Handles order events.', 'A target (Lambda/queue) for one rule.'),
+    C('h2', 'Audit handler', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Audit cook', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Handles audit/other events.', 'A target for a different rule.'),
+  ],
+  connections: [
+    { id: 'c_src_bus', from: 'source', to: 'bus', flow: 'request' },
+    { id: 'c_bus_h1', from: 'bus', to: 'h1', flow: 'data' },
+    { id: 'c_bus_h2', from: 'bus', to: 'h2', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Many events, many handlers', focus: 'bus', anim: 'pulse', animConn: 'c_src_bus', narration: 'Different event types should go to different places — orders to one service, audit to another.', storyNarration: 'Tickets of all kinds arrive; each should reach exactly the right station, not everyone.', concept: 'Events need routing by type/content.', blocks: ['source', 'bus'], conns: ['c_src_bus'] },
+    { title: 'Rules route each event', focus: 'bus', anim: 'pulse', animConn: 'c_bus_h1', narration: 'EventBridge matches each event against rules and delivers it to the matching targets.', storyNarration: 'The router reads each ticket and clips it to the right rail by its rules — orders here, audits there.', concept: 'EventBridge = rule/content-based routing.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
+    { title: 'Producers don’t know consumers', focus: 'h2', anim: 'pulse', animConn: 'c_bus_h2', narration: 'Add a new rule and target without touching the producer — fully decoupled, event-driven.', storyNarration: 'Open a new station and add a routing rule; the line that raised the ticket never has to know.', concept: 'Event-driven decoupling via the bus.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
+    { title: 'EventBridge vs SNS', focus: 'bus', narration: 'SNS fans one message to all subscribers; EventBridge routes by content from many AWS sources to chosen targets.', storyNarration: 'A tannoy shouts to everyone; the router reads each ticket and sends it only where it belongs.', concept: 'EventBridge routes by content; SNS broadcasts.', blocks: ['source', 'bus', 'h1', 'h2'], conns: ['c_src_bus', 'c_bus_h1', 'c_bus_h2'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Route events to different targets based on their content?', options: ['Amazon EventBridge', 'A single SQS queue', 'An EBS volume', 'Route 53'], correct: [0], explain: 'EventBridge matches events to rules and routes accordingly.' },
+    { kind: 'single', prompt: 'Add a new consumer for an event type. With EventBridge you…', options: ['Add a rule + target; the producer is untouched', 'Edit the producer’s code', 'Restart the source', 'Create a new VPC'], correct: [0], explain: 'Producers and consumers are decoupled by the bus.' },
+    { kind: 'single', prompt: 'EventBridge differs from SNS in that it…', options: ['Routes by content/rules from many sources', 'Only stores files', 'Is a DNS service', 'Cannot have multiple targets'], correct: [0], explain: 'SNS = broadcast pub/sub; EventBridge = content-based routing.' },
+    { kind: 'single', prompt: 'EventBridge is best described as…', options: ['A serverless event bus', 'A relational database', 'A CDN', 'A block storage volume'], correct: [0], explain: 'It’s a managed, serverless event bus with routing rules.' },
+  ],
+};
+
+const kinesis = {
+  id: 'stream-data-kinesis', title: 'Stream Real-Time Data', examDomain: 'Design High-Performing Architectures',
+  summary: 'A conveyor of records flowing past in real time, that several apps can read at once.',
+  scenery: 'open',
+  blocks: [
+    C('producers', 'Producers', 'generic', { pos: [-7, 0.7, 0] }, { name: 'The sources', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'Devices/apps emitting a high-volume feed.', 'Producers writing records (clicks, logs, telemetry).'),
+    C('stream', 'Kinesis stream', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The conveyor', prop: 'ticketrail', pos: [-1.5, 0], yaw: 0 }, 'An ordered, real-time stream of records.', 'A Kinesis Data Stream; ordered, replayable.'),
+    C('rt', 'Real-time app', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Live cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Processes records as they arrive.', 'A real-time consumer.'),
+    C('an', 'Analytics', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Analytics cook', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Reads the same stream for analysis.', 'A second, independent consumer.'),
+  ],
+  connections: [
+    { id: 'c_prod_stream', from: 'producers', to: 'stream', flow: 'data' },
+    { id: 'c_stream_rt', from: 'stream', to: 'rt', flow: 'data' },
+    { id: 'c_stream_an', from: 'stream', to: 'an', flow: 'data' },
+  ],
+  stages: [
+    { title: 'A firehose of records', focus: 'stream', anim: 'overload', animConn: 'c_prod_stream', narration: 'Clicks, logs and telemetry arrive continuously and fast — far too much to handle one request at a time.', storyNarration: 'Orders pour in nonstop on a conveyor belt — there’s no pausing to deal with them one by one.', concept: 'Some workloads are continuous high-volume streams.', blocks: ['producers', 'stream'], conns: ['c_prod_stream'] },
+    { title: 'Put it on a stream (Kinesis)', focus: 'stream', anim: 'pulse', animConn: 'c_prod_stream', narration: 'Kinesis ingests the ordered stream of records in real time and holds them for a retention window.', storyNarration: 'Run everything onto one ordered conveyor that keeps moving and remembers the last while of tickets.', concept: 'Kinesis = ordered, real-time, replayable stream.', blocks: ['producers', 'stream'], conns: ['c_prod_stream'] },
+    { title: 'Many consumers, one stream', focus: 'rt', anim: 'pulse', animConn: 'c_stream_rt', narration: 'Multiple applications read the same stream independently — a real-time app and an analytics job at once.', storyNarration: 'Different stations watch the same belt at the same time, each taking what it needs.', concept: 'Multiple independent consumers per stream.', blocks: ['producers', 'stream', 'rt', 'an'], conns: ['c_prod_stream', 'c_stream_rt', 'c_stream_an'] },
+    { title: 'Stream vs queue', focus: 'stream', narration: 'A queue removes a message once it’s processed; a stream keeps an ordered log many consumers can replay.', storyNarration: 'A ticket rail clears each ticket as it’s cooked; the conveyor keeps the ordered record so anyone can re-watch it.', concept: 'Stream = replayable ordered log (vs a queue).', blocks: ['producers', 'stream', 'rt', 'an'], conns: ['c_prod_stream', 'c_stream_rt', 'c_stream_an'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Ingest a high-volume, real-time feed (clicks/logs/telemetry)?', options: ['Amazon Kinesis', 'A single RDS instance', 'S3 Glacier', 'A NAT gateway'], correct: [0], explain: 'Kinesis ingests ordered, real-time streams at scale.' },
+    { kind: 'single', prompt: 'How many apps can read one Kinesis stream?', options: ['Many, independently and in parallel', 'Only one', 'None — it’s write-only', 'Only Lambda'], correct: [0], explain: 'Multiple consumers read the same stream independently.' },
+    { kind: 'single', prompt: 'A stream differs from an SQS queue because it…', options: ['Keeps an ordered, replayable log', 'Deletes data faster', 'Can’t scale', 'Is for files'], correct: [0], explain: 'Streams retain ordered records consumers can replay; queues remove on consume.' },
+    { kind: 'single', prompt: 'Good use case for Kinesis?', options: ['Clickstream / log / IoT real-time processing', 'Storing static images', 'A relational join', 'DNS routing'], correct: [0], explain: 'Real-time, high-throughput event/data streams suit Kinesis.' },
+  ],
+};
+
+const storageclass = {
+  id: 'right-storage-class', title: 'Right Storage Class', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'Hot stock on the front shelf, cold stock in the deep freeze, and a rule that moves it as it ages.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'Access', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'How often the data is read.', 'Object access pattern.'),
+    C('standard', 'S3 Standard', 'storage', { pos: [-1.5, 0.7, -1.4] }, { name: 'Front shelf', prop: 'larder', pos: [-1.5, -1.4], yaw: -90 }, 'Frequently-accessed data; instant, priciest per GB.', 'S3 Standard (or Standard-IA for less-frequent).'),
+    C('glacier', 'S3 Glacier', 'storage', { pos: [2.5, 0.7, -1.4] }, { name: 'Deep freeze', prop: 'coldroom', pos: [2.5, -1.4], yaw: -90 }, 'Rarely-accessed archives; very cheap, slower to fetch.', 'S3 Glacier / Deep Archive.'),
+    C('smart', 'Intelligent-Tiering', 'edge', { pos: [0.5, 0.7, 1.6] }, { name: 'Auto-sorter', prop: 'grabandgo', pos: [0.5, 1.6], yaw: -90 }, 'Moves objects between tiers by actual access.', 'S3 Intelligent-Tiering.'),
+  ],
+  connections: [
+    { id: 'c_user_standard', from: 'user', to: 'standard', flow: 'request' },
+    { id: 'c_standard_glacier', from: 'standard', to: 'glacier', flow: 'data' },
+    { id: 'c_user_smart', from: 'user', to: 'smart', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Hot data, front shelf', focus: 'standard', anim: 'pulse', animConn: 'c_user_standard', narration: 'Frequently-read objects belong in S3 Standard — instant access, but the priciest per GB.', storyNarration: 'The dishes you serve all night sit on the front shelf, within arm’s reach.', concept: 'Standard for frequently-accessed data.', blocks: ['user', 'standard'], conns: ['c_user_standard'] },
+    { title: 'Cold data, deep freeze', focus: 'glacier', anim: 'pulse', animConn: 'c_standard_glacier', narration: 'Rarely-accessed archives go to Glacier / Deep Archive — a fraction of the cost, retrieved in minutes to hours.', storyNarration: 'Stock you almost never touch goes to the deep freeze in the back — pennies to keep, just slower to fetch.', concept: 'Glacier for cold/archival data.', blocks: ['user', 'standard', 'glacier'], conns: ['c_user_standard', 'c_standard_glacier'] },
+    { title: 'Let a rule move it', focus: 'glacier', anim: 'pulse', animConn: 'c_standard_glacier', narration: 'A lifecycle rule automatically transitions objects to colder, cheaper classes as they age.', storyNarration: 'Set a standing rule: anything untouched for a month gets carried to the freeze without anyone deciding.', concept: 'Lifecycle rules automate transitions.', blocks: ['user', 'standard', 'glacier'], conns: ['c_user_standard', 'c_standard_glacier'] },
+    { title: 'Unsure? Intelligent-Tiering', focus: 'smart', anim: 'pulse', animConn: 'c_user_smart', narration: 'If access is unpredictable, S3 Intelligent-Tiering moves each object between tiers automatically — no guessing.', storyNarration: 'Can’t predict what’ll be popular? An auto-sorter quietly shelves each item where it belongs by how often it’s grabbed.', concept: 'Intelligent-Tiering auto-optimizes cost.', blocks: ['user', 'standard', 'glacier', 'smart'], conns: ['c_user_standard', 'c_standard_glacier', 'c_user_smart'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Frequently-accessed objects should use…', options: ['S3 Standard', 'Glacier Deep Archive', 'An EBS volume', 'EFS'], correct: [0], explain: 'Standard gives instant access for hot data.' },
+    { kind: 'single', prompt: 'Cheapest class for rarely-accessed archives?', options: ['S3 Glacier / Deep Archive', 'S3 Standard', 'A read replica', 'DynamoDB'], correct: [0], explain: 'Glacier classes cost the least for cold data.' },
+    { kind: 'single', prompt: 'Move objects to colder classes automatically as they age?', options: ['A lifecycle rule', 'A NAT gateway', 'A security group', 'Route 53'], correct: [0], explain: 'Lifecycle rules transition objects on a schedule.' },
+    { kind: 'single', prompt: 'Access patterns are unknown/changing. Use…', options: ['S3 Intelligent-Tiering', 'Always Standard', 'Always Glacier', 'EFS'], correct: [0], explain: 'Intelligent-Tiering auto-moves objects between tiers.' },
+  ],
+};
+
+const compute = {
+  id: 'choose-compute', title: 'Choose Your Compute', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'Full-time cooks, on-call cooks who appear per order, or pre-packed kit stations — match it to the work.',
+  scenery: 'open',
+  blocks: [
+    C('work', 'The work', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The workload to run.', 'Your workload.'),
+    C('ec2', 'EC2', 'compute', { pos: [-1, 0.7, -1.7] }, { name: 'Full-time cook', prop: 'cook', pos: [-1, -1.7], yaw: -90 }, 'A server you control and run by the hour.', 'EC2; full OS control, pay per running hour.'),
+    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-call cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Runs per event; no servers; pay per use.', 'Lambda; serverless functions.'),
+    C('cont', 'Containers', 'edge', { pos: [3.8, 0.7, 1.7] }, { name: 'Kit station', prop: 'crate', pos: [3.8, 1.7], yaw: 0 }, 'Portable packaged units (ECS/Fargate).', 'Containers on ECS/Fargate.'),
+  ],
+  connections: [
+    { id: 'c_work_ec2', from: 'work', to: 'ec2', flow: 'request' },
+    { id: 'c_work_lambda', from: 'work', to: 'lambda', flow: 'request' },
+    { id: 'c_work_cont', from: 'work', to: 'cont', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Run your own servers (EC2)', focus: 'ec2', anim: 'pulse', animConn: 'c_work_ec2', narration: 'EC2 gives full control of the OS and instance — best for steady, heavy or special workloads. You manage and pay per hour.', storyNarration: 'Hire full-time cooks: total control of the kitchen, but you pay them for every hour on shift.', concept: 'EC2 = full control, you manage, per-hour.', blocks: ['work', 'ec2'], conns: ['c_work_ec2'] },
+    { title: 'Just run code (Lambda)', focus: 'lambda', anim: 'spike', narration: 'Lambda runs code per event with no servers to manage; pay per execution. Great for spiky or glue work.', storyNarration: 'On-call cooks appear when a ticket lands, cook it, and clock out — you pay only per dish.', concept: 'Lambda = serverless, per-use, no servers.', blocks: ['work', 'ec2', 'lambda'], conns: ['c_work_ec2', 'c_work_lambda'] },
+    { title: 'Package it (containers)', focus: 'cont', anim: 'pulse', animConn: 'c_work_cont', narration: 'Containers give consistent, portable units; run them on ECS/Fargate (serverless containers, no hosts to manage).', storyNarration: 'Pre-pack identical kit stations you can stamp out anywhere — and with Fargate, you don’t staff the building.', concept: 'Containers = portable; Fargate = no hosts.', blocks: ['work', 'ec2', 'lambda', 'cont'], conns: ['c_work_ec2', 'c_work_lambda', 'c_work_cont'] },
+    { title: 'Match compute to the work', focus: 'work', narration: 'Steady/heavy or needs OS control → EC2; spiky/event-driven → Lambda; portable services at scale → containers.', storyNarration: 'A packed restaurant every night → full-time cooks; the odd surprise order → on-call; many identical outlets → kit stations.', concept: 'Pick compute by workload shape and ops appetite.', blocks: ['work', 'ec2', 'lambda', 'cont'], conns: ['c_work_ec2', 'c_work_lambda', 'c_work_cont'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'You need full control of the operating system. Choose…', options: ['EC2', 'Lambda', 'S3', 'Route 53'], correct: [0], explain: 'EC2 gives OS-level control of the instance.' },
+    { kind: 'single', prompt: 'Spiky, event-driven work with no servers to manage?', options: ['Lambda', 'A fleet of always-on EC2', 'Glacier', 'A NAT gateway'], correct: [0], explain: 'Lambda is serverless and event-driven; pay per use.' },
+    { kind: 'single', prompt: 'Portable, consistent units you can run many of?', options: ['Containers (ECS/Fargate)', 'A single EBS volume', 'An SNS topic', 'A hosted zone'], correct: [0], explain: 'Containers package the app to run identically anywhere.' },
+    { kind: 'single', prompt: 'Run containers without managing servers/clusters?', options: ['AWS Fargate', 'Self-managed EC2 only', 'Glacier', 'A bastion host'], correct: [0], explain: 'Fargate runs containers serverlessly.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute],
 };
