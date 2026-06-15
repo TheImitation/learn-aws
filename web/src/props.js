@@ -10,6 +10,9 @@ export const PALETTE = {
 };
 
 const CHEF = 0xefefe8, SKIN = 0xeac79e, STEEL = 0x9fa3aa, WARM = 0xfa8c33;
+// Neutral set-dressing palette (decoration, deliberately NOT category-coloured so service props keep
+// their semantic colour-coding). Shared across worlds.
+const WOOD = 0x6f5138, LINEN = 0xe9e2d4, BRASS = 0xb8924a, LEAF = 0x4f7a43, NIGHT = 0x223049, KRAFT = 0xcfa15a;
 
 function mat(color, emissive = false) {
   return new THREE.MeshStandardMaterial({
@@ -22,6 +25,11 @@ function cyl(r, h, color) { return new THREE.Mesh(new THREE.CylinderGeometry(r, 
 function sph(r, color) { return new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), mat(color)); }
 function add(g, mesh, x, y, z, rx = 0, ry = 0, rz = 0) { mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz); g.add(mesh); return mesh; }
 function darker(hex, f = 0.6) { const c = new THREE.Color(hex); c.multiplyScalar(f); return c.getHex(); }
+
+// Yaw (about Y) that turns a prop's front (+z) to point from `from` toward `to`. Uses the SAME
+// atan2(dx,dz) convention as the movers, so "facing" and "walking toward" always agree.
+export function faceYaw(from, to) { return Math.atan2(to[0] - from[0], to[1] - from[1]); }
+export function faceYawDeg(from, to) { return THREE.MathUtils.radToDeg(faceYaw(from, to)); }
 
 // Each prop is built ~1 unit, base on the floor (y=0), "front" facing +z.
 function person(color) {
@@ -334,6 +342,165 @@ export function makeProp(kind, color) {
     case 'safe': return safe(color);
     case 'hub': return hub(color);
     case 'cctv': return cctv(color);
+    // Sorting Office world (depot) service props.
+    case 'intake': return intakeDesk(color);
+    case 'sorter': return sorter(color);
+    case 'mailbin': return mailbin(color);
+    case 'clerk': return clerk(color);
     default: return station(color);
+  }
+}
+
+// ===== Sorting Office (depot) service props =================================================
+// publisher drop-off counter (SNS Publish)
+function intakeDesk(color) {
+  const g = new THREE.Group(); const dk = darker(color, 0.78);
+  add(g, box(0.8, 0.5, 0.5, dk), 0, 0.25, 0);
+  add(g, box(0.84, 0.06, 0.54, color), 0, 0.5, 0);          // accent counter top
+  add(g, box(0.34, 0.14, 0.22, KRAFT), 0, 0.61, 0.08);       // a parcel waiting to be sent
+  add(g, box(0.5, 0.34, 0.04, dk), 0, 0.74, -0.22);          // back board
+  add(g, box(0.4, 0.02, 0.02, color, true), 0, 0.86, -0.2);  // glowing "IN" strip
+  return g;
+}
+// SNS topic = a sorting machine with a pigeonhole wall that fans one item to many slots
+function sorter(color) {
+  const g = new THREE.Group(); const fr = darker(color, 0.6);
+  add(g, box(1.0, 1.0, 0.4, fr), 0, 0.5, 0);                 // cabinet
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) add(g, box(0.24, 0.24, 0.18, darker(color, 0.95)), -0.3 + c * 0.3, 0.27 + r * 0.3, 0.12); // pigeonholes
+  add(g, box(1.06, 0.08, 0.46, color, true), 0, 1.02, 0);    // glowing sort bar
+  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.5, 0.28, 4), mat(darker(color, 0.5))), 0, 1.2, 0, 0, Math.PI / 4, 0); // intake hopper on top
+  return g;
+}
+// SQS queue = a labelled bin / chute with letters stacked, waiting to be pulled
+function mailbin(color) {
+  const g = new THREE.Group();
+  add(g, box(0.5, 0.6, 0.42, darker(color, 0.75)), 0, 0.3, 0);
+  add(g, box(0.54, 0.06, 0.46, color), 0, 0.6, 0);           // accent rim
+  for (let i = 0; i < 4; i++) add(g, box(0.34, 0.02, 0.26, 0xffffff), 0, 0.5 - i * 0.06, 0); // stacked letters peeking out
+  add(g, box(0.3, 0.18, 0.02, 0xf0ead8), 0, 0.4, 0.22);      // label card on the front
+  return g;
+}
+// subscriber department = a clerk working at a small sorting desk
+function clerk(color) {
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.3, 6, 12), mat(0x415a76)), 0, 0.3, -0.18);
+  add(g, sph(0.14, SKIN), 0, 0.62, -0.18);
+  add(g, box(0.6, 0.4, 0.4, darker(color, 0.8)), 0, 0.2, 0.05);
+  add(g, box(0.64, 0.05, 0.44, color), 0, 0.4, 0.05);
+  add(g, box(0.2, 0.1, 0.14, KRAFT), 0, 0.47, 0.1);          // a parcel being handled
+  return g;
+}
+
+// ===== Set-dressing (ambient decoration) ====================================================
+// Never given a userData.blockId by the caller → automatically label-free and non-pickable.
+// Animatable pieces tag a child with userData.flicker / userData.diner so one world updater finds them.
+function diningTable(o = {}) {
+  const g = new THREE.Group(); const top = o.color || WOOD;
+  add(g, cyl(0.42, 0.06, top), 0, 0.52, 0);                  // round top
+  add(g, cyl(0.05, 0.5, darker(top, 0.7)), 0, 0.26, 0);      // pedestal
+  add(g, cyl(0.22, 0.04, darker(top, 0.6)), 0, 0.02, 0);     // foot
+  for (const s of [-1, 1]) add(g, cyl(0.09, 0.015, 0xf2f2f2), s * 0.22, 0.555, 0); // two place settings
+  add(g, cyl(0.02, 0.1, LINEN), 0, 0.6, 0);                  // candle
+  const flame = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xff8a1e, emissiveIntensity: 2.0, transparent: true, opacity: 0.95 }));
+  flame.position.set(0, 0.68, 0); flame.userData.flicker = true; flame.userData.ph = Math.random() * 6.28; flame.userData.base = 2.0; g.add(flame);
+  return g;
+}
+function chair(o = {}) {
+  const g = new THREE.Group(); const c = o.color || darker(WOOD, 0.9);
+  add(g, box(0.3, 0.04, 0.3, c), 0, 0.26, 0);                // seat
+  add(g, box(0.3, 0.34, 0.04, c), 0, 0.43, -0.13);           // back
+  for (const [x, z] of [[-0.12, -0.12], [0.12, -0.12], [-0.12, 0.12], [0.12, 0.12]]) add(g, box(0.04, 0.26, 0.04, darker(c, 0.8)), x, 0.13, z);
+  if (o.occupied) { const d = person(o.dinerColor || 0x9a8c7a); d.scale.setScalar(0.9); d.position.set(0, 0.26, 0.03); d.userData.diner = true; d.userData.ph = Math.random() * 6.28; g.add(d); }
+  return g;
+}
+function pendant(o = {}) {
+  const g = new THREE.Group();
+  add(g, cyl(0.012, 0.5, 0x2a2c30), 0, 0.75, 0);             // cord
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.18, 16, 1, true), new THREE.MeshStandardMaterial({ color: 0x3a3d44, emissive: 0xffd9a0, emissiveIntensity: 1.4, side: THREE.DoubleSide }));
+  shade.position.set(0, 0.5, 0); shade.userData.flicker = true; shade.userData.ph = Math.random() * 6.28; shade.userData.base = 1.4; g.add(shade);
+  return g;
+}
+function windowPanel(o = {}) {
+  const g = new THREE.Group(); const night = o.variant === 'night';
+  add(g, box(0.1, 1.0, 1.4, darker(WOOD, 0.5)), 0, 0.7, 0);  // frame (thin in x → sits in a side wall)
+  add(g, new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.84, 1.24), new THREE.MeshStandardMaterial({ color: night ? NIGHT : 0xbfe0ff, emissive: night ? 0x2a3b66 : 0x8fb6e6, emissiveIntensity: night ? 0.85 : 0.5 })), 0.04, 0.7, 0);
+  add(g, box(0.06, 0.06, 1.3, darker(WOOD, 0.4)), 0, 0.7, 0); add(g, box(0.06, 0.9, 0.06, darker(WOOD, 0.4)), 0, 0.7, 0); // mullions
+  return g;
+}
+function plant(o = {}) {
+  const g = new THREE.Group();
+  add(g, cyl(0.13, 0.22, 0xb07a4a), 0, 0.11, 0);
+  add(g, sph(0.22, LEAF), 0, 0.42, 0); add(g, sph(0.15, darker(LEAF, 1.1)), 0.1, 0.55, 0.05); add(g, sph(0.15, darker(LEAF, 0.9)), -0.1, 0.5, -0.05);
+  return g;
+}
+function potRack(o = {}) {                                    // ceiling-hung; place at y≈1.7
+  const g = new THREE.Group();
+  add(g, box(1.2, 0.05, 0.3, STEEL), 0, 0.3, 0);
+  for (const x of [-0.4, -0.1, 0.2, 0.45]) { add(g, box(0.02, 0.12, 0.02, STEEL), x, 0.2, 0); add(g, cyl(0.1, 0.12, 0x73777f), x, 0.08, 0); }
+  return g;
+}
+function extractorHood(o = {}) {                              // place at y≈1.5 over the line
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.85, 0.4, 4), mat(darker(STEEL, 0.8))), 0, 0.2, 0, 0, Math.PI / 4, 0);
+  add(g, box(1.5, 0.1, 0.8, STEEL), 0, 0.42, 0);
+  return g;
+}
+function prepTable(o = {}) {
+  const g = new THREE.Group();
+  add(g, box(1.0, 0.06, 0.5, STEEL), 0, 0.52, 0); add(g, box(1.0, 0.46, 0.46, darker(STEEL, 0.7)), 0, 0.26, 0);
+  add(g, box(0.34, 0.03, 0.24, WOOD), -0.2, 0.56, 0);        // cutting board
+  add(g, box(0.06, 0.12, 0.06, 0x2a2c30), 0.18, 0.6, 0);     // knife block
+  return g;
+}
+function shelving(o = {}) {
+  const g = new THREE.Group(); const fr = darker(o.color || WOOD, 0.6), stock = 0xa9855a;
+  add(g, box(0.05, 1.1, 0.4, fr), -0.45, 0.55, 0); add(g, box(0.05, 1.1, 0.4, fr), 0.45, 0.55, 0);
+  for (const y of [0.3, 0.6, 0.9]) { add(g, box(0.95, 0.04, 0.4, darker(fr, 1.2)), 0, y, 0); for (const x of [-0.28, 0, 0.28]) add(g, box(0.16, 0.16, 0.16, darker(stock, 0.8 + Math.random() * 0.5)), x, y + 0.12, 0); }
+  return g;
+}
+function binDress() { const g = new THREE.Group(); add(g, cyl(0.16, 0.4, darker(STEEL, 0.7)), 0, 0.2, 0); add(g, cyl(0.17, 0.04, STEEL), 0, 0.42, 0); return g; }
+function barCounter(o = {}) {
+  const g = new THREE.Group(); const top = o.color || WOOD;
+  add(g, box(2.0, 0.9, 0.5, darker(top, 0.8)), 0, 0.45, 0); add(g, box(2.1, 0.08, 0.6, top), 0, 0.92, 0);
+  for (const x of [-0.7, -0.4, 0.4, 0.7]) add(g, cyl(0.035, 0.3, [0x6a8f5a, 0x8f6a5a, 0x5a6a8f][Math.floor(Math.random() * 3)]), x, 1.07, -0.18); // bottles
+  return g;
+}
+function barStool(o = {}) { const g = new THREE.Group(); add(g, cyl(0.14, 0.04, darker(WOOD, 0.9)), 0, 0.55, 0); add(g, cyl(0.04, 0.55, STEEL), 0, 0.28, 0); add(g, cyl(0.16, 0.03, STEEL), 0, 0.06, 0); return g; }
+function officeDesk(o = {}) {
+  const g = new THREE.Group();
+  add(g, box(0.9, 0.04, 0.5, WOOD), 0, 0.5, 0); add(g, box(0.06, 0.5, 0.46, darker(WOOD, 0.7)), -0.4, 0.25, 0); add(g, box(0.06, 0.5, 0.46, darker(WOOD, 0.7)), 0.4, 0.25, 0);
+  add(g, box(0.34, 0.24, 0.03, 0x12151c), 0, 0.66, -0.1); add(g, box(0.36, 0.02, 0.2, 0x2a2c30), 0, 0.53, 0.05); // monitor + keyboard
+  return g;
+}
+function wallArt(o = {}) { const g = new THREE.Group(); add(g, box(0.06, 0.5, 0.7, darker(BRASS, 0.8)), 0, 0, 0); add(g, box(0.02, 0.4, 0.6, o.color || 0x6a8caf), 0.03, 0, 0); return g; } // mount on a wall at y≈1.1
+function signage(o = {}) { // a glowing zone strip (mesh only; no text)
+  const g = new THREE.Group();
+  add(g, new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, Math.max(0.6, (o.label || '').length * 0.12)), new THREE.MeshStandardMaterial({ color: 0x1a1d24, emissive: o.accent || 0x8fb6e6, emissiveIntensity: 0.7 })), 0, 0, 0);
+  return g;
+}
+function parcelStack(o = {}) { const g = new THREE.Group(); const cols = [KRAFT, 0xb98b50, 0xd8b878]; let y = 0; for (let i = 0; i < 3; i++) { const s = 0.32 - i * 0.05; add(g, box(s, 0.18, s, cols[i % 3]), (Math.random() - 0.5) * 0.1, y + 0.09, (Math.random() - 0.5) * 0.1); y += 0.18; } return g; }
+function loadingDock(o = {}) { const g = new THREE.Group(); add(g, box(1.2, 0.3, 0.8, darker(STEEL, 0.7)), 0, 0.15, 0); add(g, box(1.2, 0.04, 0.8, STEEL), 0, 0.32, 0); return g; }
+
+// Factory for ambient decoration (sibling to makeProp). Returns null for unknown kinds.
+export function makeDressing(kind, opts = {}) {
+  switch (kind) {
+    case 'diningtable': return diningTable(opts);
+    case 'chair': return chair(opts);
+    case 'pendant': return pendant(opts);
+    case 'window': return windowPanel(opts);
+    case 'plant': return plant(opts);
+    case 'potrack': return potRack(opts);
+    case 'extractor': return extractorHood(opts);
+    case 'preptable': return prepTable(opts);
+    case 'shelving': return shelving(opts);
+    case 'bin': return binDress(opts);
+    case 'bar': return barCounter(opts);
+    case 'barstool': return barStool(opts);
+    case 'officedesk': return officeDesk(opts);
+    case 'wallart': return wallArt(opts);
+    case 'signage': return signage(opts);
+    case 'parcels': return parcelStack(opts);
+    case 'dock': return loadingDock(opts);
+    default: return null;
   }
 }

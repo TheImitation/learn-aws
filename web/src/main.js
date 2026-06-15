@@ -306,9 +306,10 @@ function openTopic(t) {
   $('inspector').classList.add('hidden');
   $('p-analogy').classList.add('hidden');
   world = new World(scene, t);
+  window.__world = world; // dev hook for preview verification
   world.setMode('story');
   journey = new Journey(world, controls, onStage);
-  const van = vantage('story', t.scenery);
+  const van = vantage('story', t);
   camera.position.set(van[0] + 1.5, van[1] + 4, van[2] + 5.5); // hold wide behind the intro...
   journey.begin();
   $('p-scrub').max = String(journey.count - 1);
@@ -350,15 +351,19 @@ function updateAnalogy(stage) {
   el.classList.remove('hidden');
 }
 
-// Camera vantage per view + scenery. Open-floor topics span a wider line than the restaurant,
-// so the story camera sits further back and centred.
-function vantage(m, scenery) {
+// Camera vantage per view. A `scene` topic backs the story camera off proportional to its bounds so
+// the bigger, decorated set frames fully; legacy topics keep their tuned open/restaurant vantages.
+function vantage(m, topic) {
   if (m === 'arch') return [0, 16, 21];
-  return scenery === 'open' ? [-1, 9.5, 14] : [-0.5, 13, 16.5];
+  if (topic.scene && topic.scene.bounds) {
+    const b = topic.scene.bounds, d = Math.max(b.d || 13, b.w || 22);
+    return [b.x ?? -0.75, 12 + d * 0.35, d * 1.25];
+  }
+  return topic.scenery === 'open' ? [-1, 9.5, 14] : [-0.5, 13, 16.5];
 }
 function setView(m) {
   mode = m;
-  flyCamera(vantage(m, topic.scenery), 0.9);
+  flyCamera(vantage(m, topic), 0.9);
   journey.setMode(m);
   $('inspector').classList.add('hidden');
 }
@@ -564,7 +569,7 @@ $('b-view').onclick = () => setView(mode === 'story' ? 'arch' : 'story');
 $('b-analogy').onclick = () => { showAnalogy = !showAnalogy; updateAnalogy(journey.stage); };
 $('b-assess').onclick = startAssessment;
 $('b-map').onclick = openCourseMap;
-$('intro-begin').onclick = () => { $('intro').classList.add('hidden'); flyCamera(vantage('story', topic.scenery), 1.6); };
+$('intro-begin').onclick = () => { $('intro').classList.add('hidden'); flyCamera(vantage('story', topic), 1.6); };
 $('intro-back').onclick = openCourseMap;
 $('p-scrub').oninput = (e) => journey.goto(parseInt(e.target.value, 10));
 $('insp-tangible').onclick = () => { inspectorReal = false; $('insp-tangible').classList.add('on'); $('insp-real').classList.remove('on'); renderInspector(); };

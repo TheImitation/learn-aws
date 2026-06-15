@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { makeProp, makeToken, makeRunner, applyModel, archBlock, containerWire, box, PALETTE } from './props.js';
+import { makeProp, makeDressing, makeToken, makeRunner, applyModel, archBlock, containerWire, box, PALETTE, faceYaw } from './props.js';
 
 const FLOW = { request: 0x66ccff, data: 0x6cda7f, replication: 0xa680e6, network: 0xaeb4bf };
 const CONTAINER = { networking: 0x4a9fe0, compute: 0xf2b25a, database: 0x9a86e6, edge: 0x4fc7a3, generic: 0xb0b4b0 };
@@ -43,13 +43,50 @@ function buildOpenFloor(group) {
 }
 
 
+// Per-world room mood (floor/wall/trim colours). A world's character comes mostly from its dressing
+// and service props; the shell just sets the tone.
+const WORLD_MOOD = {
+  restaurant: { floor: 0x423a33, wall: 0x726c61, trim: 0x534f47 },
+  sortingoffice: { floor: 0x3a3b40, wall: 0x55585f, trim: 0x3f4146 },
+  transit: { floor: 0x33363d, wall: 0x4a4e57, trim: 0x3a3d44 },
+  library: { floor: 0x40342a, wall: 0x6b5a44, trim: 0x4a3d2e },
+};
+// Build a bespoke, decorated scene from a topic's `scene` config (works for any world). Adds the room
+// shell + zone tints + ambient dressing to storyGroup; functional service props are added afterwards
+// by _buildBlocks at their authored story.pos. Dressing never gets a blockId, so it stays label-free
+// and non-pickable. A single post-build traverse collects the animatable pieces into world._ambient.
+function buildScene(group, scene, world, w) {
+  const M = WORLD_MOOD[world] || WORLD_MOOD.restaurant;
+  const b = Object.assign({ w: 22, d: 13, x: -0.75 }, scene.bounds || {});
+  const put = (m, x, y, z, ry = 0) => { m.position.set(x, y, z); m.rotation.y = ry; group.add(m); };
+  put(box(b.w, 0.16, b.d, M.floor), b.x, -0.08, 0);                       // floor
+  put(box(b.w, 1.5, 0.25, M.wall), b.x, 0.75, -b.d / 2 - 0.05);           // back wall
+  put(box(0.25, 1.5, b.d, M.wall), b.x - b.w / 2 - 0.05, 0.75, 0);        // left wall
+  put(box(0.25, 1.5, b.d, M.wall), b.x + b.w / 2 + 0.05, 0.75, 0);        // right wall
+  put(box(b.w, 0.18, 0.07, M.trim), b.x, 0.16, -b.d / 2 + 0.1);           // back baseboard
+  put(box(b.w, 0.3, 0.22, M.trim), b.x, 0.15, b.d / 2 + 0.05);            // low front lip
+  for (const z of (scene.zones || [])) {                                  // per-zone floor tint
+    if (z.rect && z.floorTint != null) { const r = z.rect; put(box(Math.abs(r.x1 - r.x0), 0.02, Math.abs(r.z1 - r.z0), z.floorTint), (r.x0 + r.x1) / 2, 0.012, (r.z0 + r.z1) / 2); }
+  }
+  for (const z of (scene.zones || [])) for (const d of (z.dressing || [])) { // ambient dressing scatter
+    const piece = makeDressing(d.kind, Object.assign({ accent: z.accent }, d.opts || {}));
+    if (!piece) continue;
+    piece.position.set(d.pos[0], d.y || 0, d.pos[1]);
+    piece.rotation.y = THREE.MathUtils.degToRad(d.yaw || 0);
+    group.add(piece);
+  }
+  w._collectAmbient(group);
+}
+
 export class World {
   constructor(scene, topic) {
-    this.scene = scene; this.topic = topic; this.mode = 'story'; this.stageIndex = 0; this.tweens = []; this.animators = []; this.t = 0; this._stageObjs = [];
+    this.scene = scene; this.topic = topic; this.mode = 'story'; this.stageIndex = 0; this.tweens = []; this.animators = []; this.t = 0; this._stageObjs = []; this._ambient = null;
     this.archGroup = new THREE.Group(); this.storyGroup = new THREE.Group();
     scene.add(this.archGroup, this.storyGroup);
     this.blocks = {}; this.conns = {};
-    if (topic.scenery === 'restaurant') buildRestaurant(this.storyGroup); else buildOpenFloor(this.storyGroup);
+    if (topic.scene) buildScene(this.storyGroup, topic.scene, topic.world || 'restaurant', this);
+    else if (topic.scenery === 'restaurant') buildRestaurant(this.storyGroup);
+    else buildOpenFloor(this.storyGroup);
     this._buildBlocks(); this._buildConns();
     this.storyGroup.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.applyStage(0);
@@ -72,7 +109,7 @@ export class World {
       if (b.story && b.story.prop) {
         story = makeProp(b.story.prop, PALETTE[cat] ?? PALETTE.generic);
         story.position.set(b.story.pos[0], 0, b.story.pos[1]);
-        story.rotation.y = THREE.MathUtils.degToRad(b.story.yaw || 0);
+        story.rotation.y = b.story.face != null ? this._resolveFace(b.story) : THREE.MathUtils.degToRad(b.story.yaw || 0);
         story.userData.blockId = b.id;
         this.storyGroup.add(story);
         applyModel(story, b.story.prop, { clip: 'Idle' });
@@ -171,6 +208,72 @@ export class World {
   }
   _disposeObj(o) { o.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material) { Array.isArray(n.material) ? n.material.forEach((m) => m.dispose()) : n.material.dispose(); } }); this.scene.remove(o); }
 
+  // Orientation: turn a prop to face a target (another block, a floor point, or a named anchor),
+  // overriding manual yaw. Resolves against static block specs so build order never matters.
+  _resolveFace(story) {
+    const f = story.face; let target = null;
+    if (Array.isArray(f)) target = f;
+    else if (f === 'door' || f === 'entrance') target = (this.topic.anchors && this.topic.anchors[f]) || null;
+    else if (typeof f === 'string') { const b = this.topic.blocks.find((x) => x.id === f); target = b && b.story ? b.story.pos : null; }
+    return target ? faceYaw(story.pos, target) : THREE.MathUtils.degToRad(story.yaw || 0);
+  }
+
+  // Ambient set-dressing: collected once at build, animated by one batched updater (perf: a handful
+  // of meshes, independent of the per-stage animators).
+  _collectAmbient(group) {
+    const a = { flickers: [], diners: [] };
+    group.traverse((o) => {
+      if (o.userData && o.userData.flicker) { o.userData.ph = o.userData.ph ?? Math.random() * 6.28; a.flickers.push(o); }
+      if (o.userData && o.userData.diner) { o.userData.ph = o.userData.ph ?? Math.random() * 6.28; a.diners.push(o); }
+    });
+    this._ambient = a;
+  }
+  _updateAmbient() {
+    const t = this.t;
+    for (const f of this._ambient.flickers) { if (f.material) f.material.emissiveIntensity = (f.userData.base || 1) * (0.78 + 0.22 * Math.sin(t * 7 + f.userData.ph) + 0.08 * Math.sin(t * 13 + f.userData.ph)); }
+    for (const d of this._ambient.diners) d.rotation.z = Math.sin(t * 1.4 + d.userData.ph) * 0.045;
+  }
+
+  // A mover's route through the scene. Story mode threads optional connection waypoints so people and
+  // messages walk believable paths (e.g. through a doorway) instead of clipping walls; arch mode keeps
+  // the straight topology edge. No waypoints ⇒ [A,B], identical to the old straight-line behaviour.
+  _pathPoints(connId, ep, opts) {
+    const A = ep[0].clone(); A.y = 0; const B = ep[1].clone(); B.y = 0;
+    const wps = this.conns[connId] && this.conns[connId].spec.waypoints;
+    if (this.mode === 'story' && wps && wps.length) return [A, ...wps.map((p) => new THREE.Vector3(p[0], 0, p[1])), B];
+    return [A, B];
+  }
+  _polyline(pts) {
+    const seg = [], yaws = []; let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) { const dx = pts[i + 1].x - pts[i].x, dz = pts[i + 1].z - pts[i].z; const L = Math.hypot(dx, dz) || 1e-6; seg.push(L); total += L; yaws.push(Math.atan2(dx, dz)); }
+    return { pts, seg, total, yaws };
+  }
+  _alongPath(pl, dist) {
+    let d = Math.max(0, Math.min(dist, pl.total));
+    for (let i = 0; i < pl.seg.length; i++) {
+      if (d <= pl.seg[i] || i === pl.seg.length - 1) { const tt = pl.seg[i] ? d / pl.seg[i] : 0, a = pl.pts[i], b = pl.pts[i + 1]; return { x: a.x + (b.x - a.x) * tt, z: a.z + (b.z - a.z) * tt, yaw: pl.yaws[i] }; }
+      d -= pl.seg[i];
+    }
+    const last = pl.pts[pl.pts.length - 1]; return { x: last.x, z: last.z, yaw: pl.yaws[pl.yaws.length - 1] || 0 };
+  }
+
+  // Replication reads as a synchronized mirrored pair held in lockstep (primary ↔ standby), not a
+  // one-way delivery. Two ledger tokens pulse out from the midpoint to each end together.
+  _replicate(connId) {
+    const c = this.conns[connId]; const ep = this._endpoints(connId); if (!ep || !c) return;
+    if (this.mode !== 'story') { this._flow([connId], 2.0); return; }
+    const A = ep[0].clone(); A.y = 0; const B = ep[1].clone(); B.y = 0; const mid = A.clone().lerp(B, 0.5);
+    const t1 = makeToken('replication'), t2 = makeToken('replication');
+    [t1, t2].forEach((tk) => { tk.visible = false; this.scene.add(tk); this._stageObjs.push(tk); });
+    const cycle = 2.4;
+    this.animators.push({ timer: 0, fn: (t, dt, a) => {
+      a.timer += dt; const p = (a.timer % cycle) / cycle, k = p < 0.5 ? p / 0.5 : 1 - (p - 0.5) / 0.5;
+      t1.visible = t2.visible = true;
+      t1.position.lerpVectors(mid, A, k); t1.position.y = 0.3 + Math.sin(k * Math.PI) * 0.12;
+      t2.position.lerpVectors(mid, B, k); t2.position.y = 0.3 + Math.sin(k * Math.PI) * 0.12;
+    } });
+  }
+
   // One shaped token (ticket / plate / packet) travels a connection, arcing as it goes.
   _pulse(connId, delay = 0, dur = 1.0) {
     const c = this.conns[connId]; const ep = this._endpoints(connId); if (!ep || !c) return;
@@ -252,7 +355,7 @@ export class World {
   }
   _carryOne(connId, ep, opts) {
     const c = this.conns[connId];
-    const A = ep[0].clone(); A.y = 0; const B = ep[1].clone(); B.y = 0;
+    const pl = this._polyline(this._pathPoints(connId, ep, opts)); // straight line when no waypoints
     const isPerson = opts.mover === 'person';
     let mover, token = null;
     if (isPerson) {
@@ -265,18 +368,17 @@ export class World {
     mover.visible = false; this.scene.add(mover); this._stageObjs.push(mover);
     const cycle = opts.cycle || 4.4, reach = opts.stuck ? 0.74 : 1.0;
     const oneWay = opts.oneWay ?? isPerson, fetch = !!opts.fetch;
-    const fwd = Math.atan2(B.x - A.x, B.z - A.z), back = Math.atan2(A.x - B.x, A.z - B.z);
     this.animators.push({ timer: -(opts.delay || 0), fn: (t, dt, a) => {
       a.timer += dt; if (mover.userData.mixer) mover.userData.mixer.update(dt);
       if (a.timer < 0) { mover.visible = false; return; }
       const p = (a.timer % cycle) / cycle;
-      let k, forward, yaw;
-      if (p < 0.5) { k = reach * (p / 0.5); forward = true; yaw = fwd; }
-      else { k = reach * (1 - (p - 0.5) / 0.5); forward = false; yaw = back; }
+      let k, forward;
+      if (p < 0.5) { k = reach * (p / 0.5); forward = true; }
+      else { k = reach * (1 - (p - 0.5) / 0.5); forward = false; }
       mover.visible = !(oneWay && !forward);                       // one-way movers vanish on the way back
-      mover.position.lerpVectors(A, B, k);
-      mover.position.y = Math.abs(Math.sin(p * Math.PI * 9)) * 0.05; // step bounce
-      mover.rotation.y = yaw;
+      const at = this._alongPath(pl, k * pl.total);
+      mover.position.set(at.x, Math.abs(Math.sin(p * Math.PI * 9)) * 0.05, at.z); // along the route + step bounce
+      mover.rotation.y = forward ? at.yaw : at.yaw + Math.PI;       // face travel direction per segment
       if (opts.stuck && forward && k > reach - 0.03) mover.position.x += (Math.random() - 0.5) * 0.06; // blocked
       if (token) token.visible = fetch ? !forward : forward;        // deliver carries out; fetch brings back
     } });
@@ -302,6 +404,7 @@ export class World {
         case 'pop': this._pop(b.id); break;
         case 'shake': this._shakeLoop(b.id); break;
         case 'bob': this._bob(b.id); break;
+        case 'replicate': this._replicate(b.conn); break;
       }
     }
   }
@@ -329,12 +432,17 @@ export class World {
     } else {
       order = vis.map((c) => c.id).sort((x, y) => this._connScore(y, st.focus) - this._connScore(x, st.focus));
     }
+    // Per-flow visual language: request/data are carried by people/porters; replication is a mirrored
+    // pair; network streams as faint tokens. Overflow past the mover cap also streams.
     const beats = [];
-    const carried = order.slice(0, CAP);
+    const flowOf = (id) => this.conns[id].spec.flow;
+    const movable = order.filter((id) => flowOf(id) !== 'replication' && flowOf(id) !== 'network');
+    const carried = movable.slice(0, CAP);
     carried.forEach((id, i) => beats.push({ type: 'carry', conn: id, delay: i * 0.6, ...this._moverFor(this.conns[id].spec) }));
     if (a === 'spike') beats.push({ type: 'pop', id: st.focus });
-    const rest = order.slice(CAP).filter((id) => this.conns[id].spec.flow !== 'replication');
-    if (rest.length) beats.push({ type: 'flow', conns: rest });
+    order.filter((id) => flowOf(id) === 'replication').forEach((id) => beats.push({ type: 'replicate', conn: id }));
+    const streamed = order.filter((id) => flowOf(id) === 'network').concat(movable.slice(CAP));
+    if (streamed.length) beats.push({ type: 'flow', conns: streamed });
     return beats.length ? beats : [{ type: 'flow', conns: vis.map((c) => c.id) }];
   }
   _connScore(id, focus) {
@@ -363,6 +471,7 @@ export class World {
       if (ln && ln.visible) ln.material.opacity = ln.userData.baseOpacity * (0.6 + 0.4 * (0.5 + 0.5 * Math.sin(this.t * 1.3 + ln.userData.phase)));
     }
     if (this.mode === 'story') for (const id in this.blocks) { const s = this.blocks[id].story; if (s && s.userData.mixer) s.userData.mixer.update(dt); } // idle animation on standing people
+    if (this.mode === 'story' && this._ambient) this._updateAmbient(); // batched set-dressing life
     for (const a of this.animators) a.fn(this.t, dt, a);
     for (const tw of this.tweens) { tw.t += dt; tw.update(tw); if (tw.t >= tw.dur && !tw._done) { tw._done = true; tw.done && tw.done(); } }
     this.tweens = this.tweens.filter((tw) => !tw._done);
@@ -398,10 +507,13 @@ export class World {
     for (const id in this.blocks) { const o = this._obj(id); if (o && o.visible) arr.push(o); }
     return arr;
   }
+  _disposeGroup(g) { g.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material) (Array.isArray(n.material) ? n.material : [n.material]).forEach((m) => m.dispose()); }); }
   dispose() {
     for (const tw of this.tweens) tw.done && tw.done();
     for (const o of this._stageObjs) this._disposeObj(o);
+    this._disposeGroup(this.archGroup); this._disposeGroup(this.storyGroup); // free GPU geometry/materials
     this.scene.remove(this.archGroup); this.scene.remove(this.storyGroup);
     for (const id in this.blocks) this.scene.remove(this.blocks[id].label);
+    this._ambient = null;
   }
 }
