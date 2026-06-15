@@ -106,7 +106,7 @@ button.primary:hover { filter: brightness(1.06); }
 #insp-body .k { color: var(--dim); font-size: 12px; margin-top: 8px; }
 
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px;
-  width: min(440px, 92vw); pointer-events: auto; }
+  width: min(440px, 92vw); pointer-events: auto; position: relative; }
 .side .card { margin: 14px 14px 14px auto; align-self: stretch; max-height: calc(100% - 28px); overflow: auto;
   width: min(420px, 92vw); }
 #a-prompt { font-size: 15.5px; line-height: 1.55; margin: 8px 0 14px; }
@@ -159,6 +159,13 @@ button.primary:hover { filter: brightness(1.06); }
 .dom-score { flex: none; width: 40px; text-align: right; color: var(--dim); }
 .exam-tip { margin-top: 13px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
 .exam-tip b { color: var(--ink); }
+
+/* timed-exam countdown pill */
+.exam-timer { position: absolute; top: 16px; right: 18px; font-variant-numeric: tabular-nums; font-size: 13px;
+  font-weight: 600; color: var(--dim); background: rgba(255,255,255,0.05); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 11px; letter-spacing: .3px; }
+.exam-timer.warn { color: #f2b25a; border-color: rgba(242,178,90,0.5); }
+.exam-timer.danger { color: #e87171; border-color: rgba(232,113,113,0.6); background: rgba(232,113,113,0.12); }
 
 /* real-AWS syntax snippet in the inspector's Real tab */
 #insp-body .code { margin: 10px 0 0; padding: 9px 11px; background: #0d0f15; border: 1px solid var(--line);
