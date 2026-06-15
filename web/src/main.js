@@ -89,6 +89,12 @@ const CARD = {
   'pick-the-pantry': { icon: '🗄️', accent: '#7d66d1' },
   'cache-hot-items': { icon: '🍽️', accent: '#3aa9b5' },
   'optimise-cost': { icon: '💰', accent: '#67ad5b' },
+  'monitor-cloudwatch': { icon: '📊', accent: '#b06ed1' },
+  'block-vs-file-storage': { icon: '🧊', accent: '#d9842e' },
+  'fan-out-sns': { icon: '📣', accent: '#d98a8a' },
+  'dns-routing-route53': { icon: '🧭', accent: '#5a8fd1' },
+  'disaster-recovery': { icon: '🛟', accent: '#cf6b6b' },
+  'containers-ecs': { icon: '📦', accent: '#4f9ed1' },
 };
 
 function openCourseMap() {

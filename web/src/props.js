@@ -182,6 +182,32 @@ function cubbies(color) {
   add(g, box(0.9, 0.06, 0.36, color), 0, 0.97, 0);                                  // top trim (accent)
   return g;
 }
+// A status board with gauges (CloudWatch dashboard).
+function dashboard(color) {
+  const g = new THREE.Group(); const bar = [0x6cda7f, 0xf5c451, 0xe06b6b, 0x66ccff];
+  add(g, box(0.08, 0.7, 0.08, darker(color, 0.55)), 0, 0.35, 0);          // post
+  add(g, box(0.95, 0.62, 0.06, darker(color, 0.85)), 0, 0.92, 0);         // board
+  for (let i = 0; i < 4; i++) { const h = 0.12 + 0.09 * (i % 3); add(g, box(0.13, h, 0.02, bar[i]), -0.32 + i * 0.21, 0.78 + h / 2, 0.04); }
+  return g;
+}
+// A PA horn on a post (SNS — broadcast to everyone).
+function tannoy(color) {
+  const g = new THREE.Group();
+  add(g, box(0.07, 0.95, 0.07, darker(color, 0.55)), 0, 0.47, 0);         // post
+  add(g, new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.34, 18, 1, true), mat(color)), 0, 1.0, 0.12, -Math.PI / 2); // horn points +z
+  add(g, sph(0.07, darker(color, 0.5)), 0, 1.0, -0.08);
+  return g;
+}
+// A stack of identical packaged units (containers / images).
+function crate(color) {
+  const g = new THREE.Group(); const seam = darker(color, 0.55), alt = darker(color, 0.82);
+  add(g, box(0.52, 0.3, 0.42, color), 0, 0.15, 0);
+  add(g, box(0.52, 0.3, 0.42, alt), 0, 0.47, 0);
+  add(g, box(0.48, 0.04, 0.38, seam), 0, 0.31, 0);
+  add(g, box(0.48, 0.04, 0.38, seam), 0, 0.63, 0);
+  add(g, box(0.16, 0.16, 0.02, seam), 0, 0.3, 0.22);                       // a stamped label
+  return g;
+}
 
 // A small object that travels along a connection — shaped by the kind of flow.
 export function makeToken(flow) {
@@ -257,6 +283,9 @@ export function makeProp(kind, color) {
     case 'guardpost': return guardpost(color);
     case 'ticketrail': return ticketrail(color);
     case 'cubbies': return cubbies(color);
+    case 'dashboard': return dashboard(color);
+    case 'tannoy': return tannoy(color);
+    case 'crate': return crate(color);
     default: return station(color);
   }
 }

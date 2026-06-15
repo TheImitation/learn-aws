@@ -339,8 +339,181 @@ const cost = {
   ],
 };
 
+const monitor = {
+  id: 'monitor-cloudwatch', title: 'See What’s Happening', examDomain: 'Design Resilient Architectures',
+  summary: 'A manager’s board watching every station, an alarm when things heat up, and a log of what happened.',
+  scenery: 'open',
+  blocks: [
+    C('kitchen', 'Your workload', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The stations', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The running system being watched.', 'Your EC2 / app emitting metrics.'),
+    C('cw', 'CloudWatch', 'edge', { pos: [0.5, 0.7, -1.6] }, { name: 'The board', prop: 'dashboard', pos: [0.5, -1.6], yaw: -90 }, 'Live gauges for every station: load, latency, errors.', 'CloudWatch metrics + dashboards + Logs.'),
+    C('alarm', 'CloudWatch Alarm', 'security', { pos: [3.5, 0.7, 1], }, { name: 'The alarm', prop: 'tannoy', pos: [3.5, 1], yaw: -90 }, 'Goes off when a gauge crosses a line.', 'A CloudWatch Alarm on a metric threshold.'),
+  ],
+  connections: [
+    { id: 'c_kitchen_cw', from: 'kitchen', to: 'cw', flow: 'data' },
+    { id: 'c_cw_alarm', from: 'cw', to: 'alarm', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Watch every station (metrics)', focus: 'cw', anim: 'pulse', animConn: 'c_kitchen_cw', narration: 'CloudWatch collects metrics from your resources — CPU, latency, errors, queue depth — onto dashboards.', storyNarration: 'A board on the wall shows a live gauge for every station: how hot, how busy, how backed up.', concept: 'CloudWatch gathers metrics you can see on dashboards.', blocks: ['kitchen', 'cw'], conns: ['c_kitchen_cw'] },
+    { title: 'Set an alarm', focus: 'alarm', anim: 'pulse', animConn: 'c_cw_alarm', narration: 'A CloudWatch Alarm watches a metric and fires when it crosses a threshold (e.g. CPU > 80% for 5 min).', storyNarration: 'Set a line on a gauge: when the fryer runs too hot or tickets pile too high, the alarm goes off.', concept: 'Alarms fire when a metric crosses a threshold.', blocks: ['kitchen', 'cw', 'alarm'], conns: ['c_kitchen_cw', 'c_cw_alarm'] },
+    { title: 'Make it act', focus: 'alarm', anim: 'pulse', animConn: 'c_cw_alarm', narration: 'An alarm can notify you (SNS) or trigger an action — like Auto Scaling to add capacity automatically.', storyNarration: 'The alarm doesn’t just ring — it pages the manager and calls in more cooks before things break.', concept: 'Alarms drive notifications and automated responses.', blocks: ['kitchen', 'cw', 'alarm'], conns: ['c_kitchen_cw', 'c_cw_alarm'] },
+    { title: 'Logs tell the story', focus: 'cw', anim: 'pulse', animConn: 'c_kitchen_cw', narration: 'CloudWatch Logs capture what each component did, so you can investigate after the fact.', storyNarration: 'Every station keeps a written log of the night, so the manager can see exactly what went wrong, and when.', concept: 'Logs record events for troubleshooting.', blocks: ['kitchen', 'cw', 'alarm'], conns: ['c_kitchen_cw', 'c_cw_alarm'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'What does Amazon CloudWatch primarily provide?', options: ['Metrics, dashboards, alarms and logs', 'A relational database', 'Object storage', 'A load balancer'], correct: [0], explain: 'CloudWatch is AWS’s monitoring + observability service.' },
+    { kind: 'single', prompt: 'You want capacity to grow automatically when CPU stays high. Use…', options: ['A CloudWatch Alarm triggering Auto Scaling', 'A bigger S3 bucket', 'A DynamoDB table', 'A NAT gateway'], correct: [0], explain: 'Alarms on metrics can trigger Auto Scaling actions.' },
+    { kind: 'single', prompt: 'Where do you look to investigate what an app did at 2am?', options: ['CloudWatch Logs', 'IAM policies', 'Route 53', 'A security group'], correct: [0], explain: 'CloudWatch Logs retain event/log data for analysis.' },
+    { kind: 'tapfix', prompt: 'You have no visibility into load and errors across the system. Tap what to add.', tapTarget: 'cw', explain: 'CloudWatch gives metrics, dashboards and logs across your resources.' },
+  ],
+};
+
+const blockfile = {
+  id: 'block-vs-file-storage', title: 'Disks vs Shared Files', examDomain: 'Design High-Performing Architectures',
+  summary: 'A cooler bolted to one station, or a shared walk-in every cook uses at once — EBS vs EFS.',
+  scenery: 'open',
+  blocks: [
+    C('cookA', 'Instance A', 'compute', { pos: [-5, 0.7, -1.6] }, { name: 'Cook A', prop: 'cook', pos: [-5, -1.6], yaw: -90 }, 'One server.', 'An EC2 instance.'),
+    C('cookB', 'Instance B', 'compute', { pos: [-5, 0.7, 1.6] }, { name: 'Cook B', prop: 'cook', pos: [-5, 1.6], yaw: -90 }, 'Another server.', 'Another EC2 instance.'),
+    C('ebs', 'EBS volume', 'storage', { pos: [-1, 0.7, -1.6] }, { name: 'Bolted-on cooler', prop: 'coldroom', pos: [-1, -1.6], yaw: -90 }, 'A fast disk attached to ONE station, in one AZ.', 'Amazon EBS; block volume, one instance, one AZ.'),
+    C('efs', 'EFS', 'storage', { pos: [3, 0.7, 0] }, { name: 'Shared walk-in', prop: 'larder', pos: [3, 0], yaw: -90 }, 'A shared store every station can use at once.', 'Amazon EFS; shared NFS file system, multi-instance, multi-AZ.'),
+  ],
+  connections: [
+    { id: 'c_cookA_ebs', from: 'cookA', to: 'ebs', flow: 'data' },
+    { id: 'c_cookA_efs', from: 'cookA', to: 'efs', flow: 'data' },
+    { id: 'c_cookB_efs', from: 'cookB', to: 'efs', flow: 'data' },
+  ],
+  stages: [
+    { title: 'A cooler for one station (EBS)', focus: 'ebs', anim: 'pulse', animConn: 'c_cookA_ebs', narration: 'EBS is a block volume attached to a single instance in a single AZ — fast, like a local disk.', storyNarration: 'Bolt a cooler to one station. It’s right there and quick — but it belongs to that station alone.', concept: 'EBS = block storage for ONE instance, in ONE AZ.', blocks: ['cookA', 'ebs'], conns: ['c_cookA_ebs'] },
+    { title: 'A shared walk-in (EFS)', focus: 'efs', anim: 'pulse', animConn: 'c_cookA_efs', narration: 'EFS is a shared file system many instances mount at the same time, across AZs.', storyNarration: 'Open a shared walk-in fridge: any cook, at any station, reaches the same shelves at once.', concept: 'EFS = shared file storage many instances use together.', blocks: ['cookA', 'cookB', 'efs'], conns: ['c_cookA_efs', 'c_cookB_efs'] },
+    { title: 'Many cooks, one walk-in', focus: 'efs', anim: 'pulse', animConn: 'c_cookB_efs', narration: 'Because EFS is shared and elastic, several servers can read and write the same files concurrently.', storyNarration: 'Add more cooks and they all share the same walk-in — no copying stock between coolers.', concept: 'EFS scales and is shared across many instances.', blocks: ['cookA', 'cookB', 'efs'], conns: ['c_cookA_efs', 'c_cookB_efs'] },
+    { title: 'Pick by how it’s used', focus: 'cookA', narration: 'One instance needing a fast local disk → EBS. Many instances sharing the same files → EFS.', storyNarration: 'A private cooler for one station’s speed; a shared walk-in when everyone needs the same stock.', concept: 'EBS for single-instance disks; EFS for shared files.', blocks: ['cookA', 'cookB', 'ebs', 'efs'], conns: ['c_cookA_ebs', 'c_cookA_efs', 'c_cookB_efs'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'A single EC2 instance needs a fast disk for its database files. Use…', options: ['An EBS volume', 'EFS', 'An SNS topic', 'CloudFront'], correct: [0], explain: 'EBS is a block device attached to one instance.' },
+    { kind: 'single', prompt: 'Twenty instances must read and write the SAME files concurrently. Use…', options: ['EFS (shared file system)', 'One EBS volume', 'A DynamoDB table', 'Glacier'], correct: [0], explain: 'EFS is a shared, multi-instance NFS file system.' },
+    { kind: 'single', prompt: 'Which is TRUE of an EBS volume?', options: ['Attaches to one instance, in one AZ', 'Mounted by many instances at once', 'Is an object store', 'Is a CDN'], correct: [0], explain: 'A standard EBS volume is single-attach within an AZ.' },
+    { kind: 'tapfix', prompt: 'A fleet of servers needs to share one set of files. Tap the right storage.', tapTarget: 'efs', explain: 'EFS is shared file storage many instances mount together.' },
+  ],
+};
+
+const fanout = {
+  id: 'fan-out-sns', title: 'Broadcast with SNS', examDomain: 'Design Resilient Architectures',
+  summary: 'Shout an event once over the kitchen tannoy; every station that cares reacts on its own.',
+  scenery: 'open',
+  blocks: [
+    C('producer', 'Producer', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Something that happens (an event).', 'A publisher; e.g. “order placed”.'),
+    C('sns', 'SNS topic', 'generic', { pos: [-1.5, 0.7, 0] }, { name: 'The tannoy', prop: 'tannoy', pos: [-1.5, 0], yaw: 0 }, 'Announces the event to everyone subscribed.', 'An SNS topic; push-based pub/sub.'),
+    C('billing', 'Billing queue', 'generic', { pos: [2.5, 0.7, -1.7] }, { name: 'Billing rail', prop: 'ticketrail', pos: [2.5, -1.7], yaw: 0 }, 'One subscriber that bills the order.', 'An SQS queue subscribed to the topic.'),
+    C('analytics', 'Analytics queue', 'generic', { pos: [2.5, 0.7, 0] }, { name: 'Analytics rail', prop: 'ticketrail', pos: [2.5, 0], yaw: 0 }, 'Another subscriber that records stats.', 'Another SQS queue subscriber.'),
+    C('notify', 'Lambda', 'compute', { pos: [3.2, 0.7, 1.7] }, { name: 'Notify cook', prop: 'cook', pos: [3.2, 1.7], yaw: -90 }, 'A subscriber that sends a notification.', 'A Lambda subscribed to the topic.'),
+  ],
+  connections: [
+    { id: 'c_prod_sns', from: 'producer', to: 'sns', flow: 'request' },
+    { id: 'c_sns_billing', from: 'sns', to: 'billing', flow: 'data' },
+    { id: 'c_sns_analytics', from: 'sns', to: 'analytics', flow: 'data' },
+    { id: 'c_sns_notify', from: 'sns', to: 'notify', flow: 'data' },
+  ],
+  stages: [
+    { title: 'One event, many care', focus: 'producer', anim: 'pulse', animConn: 'c_prod_sns', narration: 'When one thing happens, several systems need to know — billing, analytics, notifications.', storyNarration: 'An order is placed. The kitchen, the till, and the front desk all need to hear about it.', concept: 'One event often has many interested consumers.', blocks: ['producer', 'sns'], conns: ['c_prod_sns'] },
+    { title: 'Shout it once (SNS)', focus: 'sns', anim: 'spike', narration: 'Publish to an SNS topic and it pushes a copy to every subscriber — fan-out, no point-to-point wiring.', storyNarration: 'Call it once over the tannoy. Everyone who’s listening hears it at the same moment.', concept: 'SNS = pub/sub topic that fans out to all subscribers.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
+    { title: 'Each reacts on its own', focus: 'analytics', anim: 'pulse', animConn: 'c_sns_analytics', narration: 'Each subscriber gets its own copy and processes independently — add or remove subscribers without touching the producer.', storyNarration: 'The till rings it up, the log writes it down, the front desk pings the guest — each does its own job.', concept: 'Subscribers are decoupled and independent.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
+    { title: 'SNS + SQS together', focus: 'billing', anim: 'pulse', animConn: 'c_sns_billing', narration: 'Subscribe SQS queues to the topic so each consumer also gets buffering and retries — the classic fan-out pattern.', storyNarration: 'Give each listener its own ticket rail off the tannoy, so a busy one can work through the backlog at its pace.', concept: 'SNS fan-out into SQS queues = decoupled + buffered.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'One event must reach several independent systems at once. Use…', options: ['SNS (pub/sub fan-out)', 'A single SQS queue', 'An EBS volume', 'Route 53'], correct: [0], explain: 'SNS pushes each message to all subscribers.' },
+    { kind: 'single', prompt: 'How do SNS and SQS differ?', options: ['SNS pushes to many subscribers; SQS is a queue consumers pull from', 'They are identical', 'SNS stores files; SQS routes DNS', 'SQS is push; SNS is pull'], correct: [0], explain: 'SNS = push pub/sub; SQS = pull queue.' },
+    { kind: 'single', prompt: 'Why subscribe SQS queues to an SNS topic?', options: ['Fan-out plus per-consumer buffering and retries', 'To make SNS durable', 'To replace IAM', 'To cache reads'], correct: [0], explain: 'The SNS→SQS pattern gives independent, buffered consumers.' },
+    { kind: 'tapfix', prompt: 'A producer must notify three independent services about each event. Tap what to publish through.', tapTarget: 'sns', explain: 'An SNS topic fans the event out to all subscribers.' },
+  ],
+};
+
+const dns = {
+  id: 'dns-routing-route53', title: 'Route Users with DNS', examDomain: 'Design High-Performing Architectures',
+  summary: 'The host stand sends each guest the smart way: nearest kitchen, around a closed one, or split the crowd.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person looking up your domain.', 'A client DNS resolution.'),
+    C('r53', 'Route 53', 'networking', { pos: [-2, 0.7, 0] }, { name: 'Host stand', prop: 'host', pos: [-2, 0], yaw: -90 }, 'Turns your name into the best address by policy.', 'Route 53; DNS with routing policies + health checks.'),
+    C('kA', 'Region: London', 'compute', { pos: [2.5, 0.7, -1.7] }, { name: 'London kitchen', prop: 'cook', pos: [2.5, -1.7], yaw: -90 }, 'One regional endpoint.', 'An endpoint in eu-west-2.'),
+    C('kB', 'Region: New York', 'compute', { pos: [2.5, 0.7, 1.7] }, { name: 'New York kitchen', prop: 'cook', pos: [2.5, 1.7], yaw: -90 }, 'Another regional endpoint.', 'An endpoint in us-east-1.'),
+  ],
+  connections: [
+    { id: 'c_user_r53', from: 'user', to: 'r53', flow: 'request' },
+    { id: 'c_r53_kA', from: 'r53', to: 'kA', flow: 'request' },
+    { id: 'c_r53_kB', from: 'r53', to: 'kB', flow: 'request' },
+  ],
+  stages: [
+    { title: 'One name, many doors', focus: 'r53', anim: 'pulse', animConn: 'c_user_r53', narration: 'Route 53 resolves your domain to an endpoint — and can choose among several by policy.', storyNarration: 'Every guest asks the host stand where to go; the host can point them to any of several kitchens.', concept: 'Route 53 maps a name to the right endpoint, by policy.', blocks: ['user', 'r53'], conns: ['c_user_r53'] },
+    { title: 'Send them to the nearest', focus: 'kA', anim: 'chain', chain: ['c_user_r53', 'c_r53_kA'], narration: 'Latency-based routing sends each user to the region that answers fastest for them.', storyNarration: 'Seat each guest at the nearest kitchen, so their food travels the shortest distance.', concept: 'Latency routing → lowest-latency region per user.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kA'] },
+    { title: 'Skip a closed kitchen', focus: 'kB', anim: 'chain', chain: ['c_user_r53', 'c_r53_kB'], narration: 'Health checks + failover routing steer users away from an unhealthy endpoint to a healthy one.', storyNarration: 'If a kitchen’s gone dark, the host simply stops seating there and sends everyone to the open one.', concept: 'Failover routing + health checks route around outages.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kB'] },
+    { title: 'Split or target the crowd', focus: 'r53', narration: 'Weighted routing splits traffic (e.g. canary 5%); geolocation routing sends users to a region by where they are.', storyNarration: 'Send one in twenty to the new kitchen to try it; or always seat European guests in London.', concept: 'Weighted (canary) and geolocation policies.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kA', 'c_r53_kB'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Send each user to the lowest-latency region. Which routing policy?', options: ['Latency-based routing', 'Failover routing', 'Simple routing', 'Weighted 50/50'], correct: [0], explain: 'Latency routing picks the fastest region per user.' },
+    { kind: 'single', prompt: 'Automatically route away from an unhealthy region. Use…', options: ['Failover routing with health checks', 'A bigger instance', 'An EBS volume', 'A NAT gateway'], correct: [0], explain: 'Route 53 health checks drive failover routing.' },
+    { kind: 'single', prompt: 'Send 5% of traffic to a new version to test it. Use…', options: ['Weighted routing', 'Geolocation routing', 'Latency routing', 'A security group'], correct: [0], explain: 'Weighted records split traffic by assigned weights (canary).' },
+    { kind: 'single', prompt: 'What is Route 53?', options: ['A DNS service with routing policies + health checks', 'A block storage service', 'A message queue', 'A container runtime'], correct: [0], explain: 'Route 53 is AWS’s scalable DNS with smart routing.' },
+  ],
+};
+
+const dr = {
+  id: 'disaster-recovery', title: 'Survive a Whole Region', examDomain: 'Design Resilient Architectures',
+  summary: 'Back up the recipes off-site and keep a standby kitchen in another city, ready if the lights go out.',
+  scenery: 'open',
+  blocks: [
+    C('primary', 'Primary region', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Main kitchen', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'Where you serve from today.', 'Your primary AWS region.'),
+    C('backup', 'Cross-region backup', 'storage', { pos: [-0.5, 0.7, -1.7] }, { name: 'Off-site store', prop: 'larder', pos: [-0.5, -1.7], yaw: -90 }, 'Copies of your data kept in another region.', 'S3 cross-region replication / backups.'),
+    C('drk', 'DR region', 'compute', { pos: [3.5, 0.7, 1.3] }, { name: 'Standby kitchen', prop: 'cook', pos: [3.5, 1.3], yaw: -90 }, 'A second site ready to take over.', 'A standby region (pilot light / warm standby).'),
+  ],
+  connections: [
+    { id: 'c_primary_backup', from: 'primary', to: 'backup', flow: 'replication' },
+    { id: 'c_backup_drk', from: 'backup', to: 'drk', flow: 'replication' },
+    { id: 'c_primary_drk', from: 'primary', to: 'drk', flow: 'replication' },
+  ],
+  stages: [
+    { title: 'A whole city can go dark', focus: 'primary', anim: 'overload', animConn: 'c_primary_backup', narration: 'Rare, but an entire region can fail. If everything lives there, you’re down completely.', storyNarration: 'A blackout hits the whole city. If you only have the one kitchen, service stops dead.', concept: 'Plan for region-wide failure, not just one server.', blocks: ['primary', 'backup'], conns: ['c_primary_backup'] },
+    { title: 'Back up off-site', focus: 'backup', anim: 'pulse', animConn: 'c_primary_backup', narration: 'Replicate data to another region so a copy survives even if the primary region is lost.', storyNarration: 'Keep copies of every recipe and the night’s stock in a store across the country.', concept: 'Cross-region backups protect your data.', blocks: ['primary', 'backup'], conns: ['c_primary_backup'] },
+    { title: 'Stand up a second kitchen', focus: 'drk', anim: 'chain', chain: ['c_primary_backup', 'c_backup_drk'], narration: 'Keep a standby in another region. Cost vs recovery time: backup-restore → pilot light → warm standby → active-active.', storyNarration: 'Run a smaller standby kitchen in the other city — from “keep the recipes” up to “keep it half-staffed and ready”.', concept: 'DR strategies trade cost against RTO/RPO.', blocks: ['primary', 'backup', 'drk'], conns: ['c_primary_backup', 'c_backup_drk'] },
+    { title: 'Fail over the region', focus: 'drk', anim: 'chain', chain: ['c_primary_drk'], narration: 'On a regional outage, promote the DR region and redirect traffic to it (e.g. via Route 53 failover).', storyNarration: 'When the main city goes dark, flip the sign: send every guest to the standby kitchen.', concept: 'Regional failover keeps you serving.', blocks: ['primary', 'backup', 'drk'], conns: ['c_primary_drk'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Protect against an entire AWS region failing. You should…', options: ['Replicate data and have a plan in a second region', 'Use a bigger instance', 'Add a second AZ only', 'Use a NAT gateway'], correct: [0], explain: 'AZ redundancy isn’t enough for a region-wide outage; use multi-region.' },
+    { kind: 'single', prompt: 'RPO and RTO describe…', options: ['How much data you can lose, and how fast you recover', 'CPU and memory', 'Storage class tiers', 'DNS record types'], correct: [0], explain: 'RPO = data-loss tolerance; RTO = recovery time. They drive DR choice.' },
+    { kind: 'single', prompt: 'Cheapest DR, but slowest to recover?', options: ['Backup and restore', 'Active-active multi-region', 'Warm standby', 'Pilot light'], correct: [0], explain: 'Backup/restore costs least but takes longest to bring up.' },
+    { kind: 'single', prompt: 'During a region failover, how do you redirect users?', options: ['Route 53 failover routing', 'An EBS snapshot', 'A security group rule', 'An SQS queue'], correct: [0], explain: 'DNS failover sends traffic to the healthy region.' },
+  ],
+};
+
+const containers = {
+  id: 'containers-ecs', title: 'Package It in Containers', examDomain: 'Design High-Performing Architectures',
+  summary: 'Pre-pack the recipe and all its kit into identical boxes you can stamp out and run anywhere.',
+  scenery: 'open',
+  blocks: [
+    C('image', 'Container image', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The meal kit', prop: 'crate', pos: [-6.5, 0], yaw: 0 }, 'App + everything it needs, packed to run identically anywhere.', 'A container image (e.g. in Amazon ECR).'),
+    C('task1', 'Task', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Running kit', prop: 'crate', pos: [-1.5, -1.7], yaw: 0 }, 'One running copy of the image.', 'An ECS task / container.'),
+    C('task2', 'Task', 'compute', { pos: [-1.5, 0.7, 1.7] }, { name: 'Running kit', prop: 'crate', pos: [-1.5, 1.7], yaw: 0 }, 'Another identical running copy.', 'Another ECS task.'),
+    C('task3', 'Task (scaled)', 'compute', { pos: [2.5, 0.7, 0] }, { name: 'Extra kit', prop: 'crate', pos: [2.5, 0], yaw: 0 }, 'One more copy added under load.', 'A task added by service scaling.'),
+  ],
+  connections: [
+    { id: 'c_image_task1', from: 'image', to: 'task1', flow: 'data' },
+    { id: 'c_image_task2', from: 'image', to: 'task2', flow: 'data' },
+    { id: 'c_image_task3', from: 'image', to: 'task3', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Pack the recipe + kit', focus: 'image', anim: 'pulse', animConn: 'c_image_task1', narration: 'A container image bundles your app with its dependencies, so it runs the same on any machine.', storyNarration: 'Pre-pack the recipe and every tool and ingredient into one sealed kit — open it anywhere and it’s identical.', concept: 'A container image = a portable, consistent unit.', blocks: ['image', 'task1'], conns: ['c_image_task1'] },
+    { title: 'Run many identical copies', focus: 'task2', anim: 'pulse', animConn: 'c_image_task2', narration: 'ECS runs many identical container tasks from one image — each isolated, all the same.', storyNarration: 'Stamp out as many identical kits as you need; each cooks exactly the same dish.', concept: 'Run N identical containers from one image.', blocks: ['image', 'task1', 'task2'], conns: ['c_image_task1', 'c_image_task2'] },
+    { title: 'No kitchen to manage (Fargate)', focus: 'task3', anim: 'spike', narration: 'With Fargate you run containers serverlessly — no EC2 hosts or clusters to manage or patch.', storyNarration: 'Don’t rent or staff a building — just drop the kits and they run. The venue is somebody else’s problem.', concept: 'Fargate = serverless containers, no hosts to manage.', blocks: ['image', 'task1', 'task2', 'task3'], conns: ['c_image_task1', 'c_image_task2', 'c_image_task3'] },
+    { title: 'Scale the copies', focus: 'task3', anim: 'pulse', animConn: 'c_image_task3', narration: 'Scale the number of tasks up and down with demand — fast, because each copy is identical and quick to start.', storyNarration: 'Busy night? Stamp out more kits. Quiet? Pack them away. Each one spins up in seconds.', concept: 'Scale container tasks horizontally with load.', blocks: ['image', 'task1', 'task2', 'task3'], conns: ['c_image_task1', 'c_image_task2', 'c_image_task3'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Why package an app as a container image?', options: ['It runs identically anywhere, with its dependencies', 'It becomes a relational database', 'It stops needing IAM', 'It caches reads'], correct: [0], explain: 'Images bundle the app + dependencies for consistent, portable runs.' },
+    { kind: 'single', prompt: 'What does AWS Fargate let you avoid?', options: ['Managing the EC2 hosts/clusters for your containers', 'Writing a Dockerfile', 'Using IAM roles', 'Logging'], correct: [0], explain: 'Fargate runs containers serverlessly — no host management.' },
+    { kind: 'single', prompt: 'In ECS, a running copy of your container is a…', options: ['Task', 'Bucket', 'Hosted zone', 'Volume'], correct: [0], explain: 'ECS runs tasks (one or more containers) from an image.' },
+    { kind: 'single', prompt: 'Demand spikes. With containers you…', options: ['Run more identical tasks, each starting quickly', 'Reboot the database', 'Resize an EBS volume', 'Change DNS TTL'], correct: [0], explain: 'Containers scale out horizontally and start fast.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers],
 };
