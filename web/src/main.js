@@ -82,6 +82,7 @@ function recordExam(entry) {
 let world = null, journey = null, topic = null, mode = 'story', showAnalogy = false;
 let inspectorReal = false, selectedId = null;
 let quiz = null, qi = 0, correctCount = 0, answered = false, picked = new Set(), lastTapped = null;
+let optionOrder = []; // display position → original option index (shuffled per question so the answer isn't always first)
 let examMode = false, examItems = [], examDomain = null; // mock exam / domain practice: pooled questions
 let examTimerId = null, examEndsAt = 0, examStartedAt = 0, examTimed = false, examTimedOut = false; // timed full-exam simulation
 
@@ -451,13 +452,15 @@ function renderQuestion() {
     note.id = 'tap-note'; note.textContent = 'Tap the component in the scene. You tapped: (nothing yet)';
     opts.appendChild(note);
   } else {
-    q.options.forEach((text, idx) => {
-      const b = document.createElement('button'); b.className = 'opt'; b.textContent = text;
+    optionOrder = q.options.map((_, i) => i);
+    for (let i = optionOrder.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [optionOrder[i], optionOrder[j]] = [optionOrder[j], optionOrder[i]]; } // shuffle display order
+    optionOrder.forEach((oi) => {
+      const b = document.createElement('button'); b.className = 'opt'; b.textContent = q.options[oi];
       b.onclick = () => {
         if (answered) return;
-        if (q.kind === 'single') { picked = new Set([idx]); }
-        else { picked.has(idx) ? picked.delete(idx) : picked.add(idx); }
-        [...opts.children].forEach((c, ci) => c.classList.toggle('sel', picked.has(ci)));
+        if (q.kind === 'single') { picked = new Set([oi]); }
+        else { picked.has(oi) ? picked.delete(oi) : picked.add(oi); }
+        [...opts.children].forEach((c, p) => c.classList.toggle('sel', picked.has(optionOrder[p])));
       };
       opts.appendChild(b);
     });
@@ -469,9 +472,10 @@ function submitAnswer() {
   else {
     const want = new Set(q.correct);
     ok = picked.size === want.size && [...picked].every((p) => want.has(p));
-    [...$('a-options').children].forEach((c, ci) => {
-      if (q.correct.includes(ci)) c.classList.add('correct');
-      else if (picked.has(ci)) c.classList.add('wrong');
+    [...$('a-options').children].forEach((c, p) => {
+      const oi = optionOrder[p];
+      if (q.correct.includes(oi)) c.classList.add('correct');
+      else if (picked.has(oi)) c.classList.add('wrong');
     });
   }
   if (ok) correctCount++;
