@@ -348,6 +348,13 @@ export function makeProp(kind, color) {
     case 'mailbin': return mailbin(color);
     case 'clerk': return clerk(color);
     case 'conveyor': return conveyor(color);
+    // Transit / City world service props.
+    case 'district': return district(color);
+    case 'interchange': return interchange(color);
+    case 'dispatchboard': return dispatchboard(color);
+    case 'gate': return gate(color);
+    case 'tunnel': return tunnel(color);
+    case 'freight': return freight(color);
     default: return station(color);
   }
 }
@@ -399,6 +406,54 @@ function conveyor(color) {
   add(g, box(1.5, 0.3, 0.06, darker(color, 0.7)), 0, 0.35, 0.27); add(g, box(1.5, 0.3, 0.06, darker(color, 0.7)), 0, 0.35, -0.27); // side rails
   for (const x of [-0.55, 0, 0.55]) add(g, cyl(0.08, 0.52, 0x6a6f78), x, 0.4, 0, Math.PI / 2); // rollers across the belt
   for (let i = 0; i < 3; i++) add(g, box(0.2, 0.14, 0.2, KRAFT), -0.4 + i * 0.4, 0.63, 0);      // records riding the belt
+  return g;
+}
+
+// ===== Transit / City world service props ====================================================
+function district(color) {                                              // a city block (cluster of buildings) = a VPC / region
+  const g = new THREE.Group(); const b = darker(color, 0.75);
+  add(g, box(0.9, 0.7, 0.9, b), 0, 0.35, 0);
+  add(g, box(0.4, 1.1, 0.4, darker(color, 0.9)), -0.2, 0.55, -0.2);     // a taller tower
+  add(g, box(0.3, 0.5, 0.3, b), 0.28, 0.25, 0.25);
+  for (const [x, y, z] of [[-0.2, 0.7, 0.205], [-0.2, 0.95, 0.205], [0.2, 0.4, 0.46]]) add(g, box(0.08, 0.1, 0.02, 0xffe6a0, true), x, y, z); // lit windows
+  add(g, box(1.0, 0.06, 1.0, color), 0, 0.72, 0);                       // accent roofline
+  return g;
+}
+function interchange(color) {                                           // a road interchange / roundabout = Transit Gateway
+  const g = new THREE.Group(); const road = 0x2c2f36;
+  add(g, cyl(0.5, 0.06, road), 0, 0.06, 0);                             // roundabout disc
+  add(g, cyl(0.18, 0.14, color, true), 0, 0.13, 0);                     // glowing centre
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; add(g, box(0.5, 0.05, 0.16, road), Math.cos(a) * 0.55, 0.05, Math.sin(a) * 0.55, 0, -a, 0); } // radiating roads
+  return g;
+}
+function dispatchboard(color) {                                         // a departures / dispatch board = Route 53 directing each traveller
+  const g = new THREE.Group(); const dk = darker(color, 0.5);
+  add(g, box(0.12, 1.0, 0.12, dk), -0.5, 0.5, 0); add(g, box(0.12, 1.0, 0.12, dk), 0.5, 0.5, 0); // posts
+  add(g, box(1.2, 0.6, 0.1, 0x12151c), 0, 1.0, 0);                      // board
+  for (let r = 0; r < 3; r++) add(g, box(0.9, 0.06, 0.02, [0x6cda7f, 0xf5c451, 0x66ccff][r], true), 0, 1.16 - r * 0.18, 0.06); // glowing rows
+  return g;
+}
+function gate(color) {                                                  // an express-motorway gantry = Global Accelerator anycast entry
+  const g = new THREE.Group(); const dk = darker(color, 0.6);
+  add(g, box(0.16, 1.0, 0.16, dk), -0.5, 0.5, 0); add(g, box(0.16, 1.0, 0.16, dk), 0.5, 0.5, 0); // gantry posts
+  add(g, box(1.2, 0.16, 0.2, dk), 0, 1.0, 0);                           // gantry beam
+  add(g, box(0.9, 0.12, 0.05, color, true), 0, 1.0, 0.12);             // glowing sign
+  add(g, box(0.26, 0.18, 0.05, 0xffffff), 0, 0.66, 0.1);              // arrow panel
+  return g;
+}
+function tunnel(color) {                                                // a private tunnel portal = Direct Connect / VPC peering
+  const g = new THREE.Group(); const stone = darker(color, 0.55);
+  add(g, box(1.1, 0.9, 0.4, stone), 0, 0.45, 0);                        // portal block
+  add(g, box(0.6, 0.7, 0.12, 0x14171d), 0, 0.38, 0.2);                  // dark opening
+  add(g, box(1.16, 0.1, 0.44, color), 0, 0.92, 0);                      // accent lintel
+  return g;
+}
+function freight(color) {                                               // a freight truck = Snow Family / DataSync bulk transfer
+  const g = new THREE.Group(); const cab = darker(color, 0.8), body = 0x5a5f68;
+  add(g, box(0.5, 0.5, 0.5, cab), -0.55, 0.35, 0);                      // cab
+  add(g, box(1.0, 0.7, 0.6, body), 0.25, 0.45, 0);                      // container
+  add(g, box(1.02, 0.06, 0.62, color), 0.25, 0.8, 0);                   // accent stripe
+  for (const x of [-0.6, -0.2, 0.5]) { add(g, cyl(0.14, 0.1, 0x202227), x, 0.12, 0.3, Math.PI / 2); add(g, cyl(0.14, 0.1, 0x202227), x, 0.12, -0.3, Math.PI / 2); } // wheels
   return g;
 }
 

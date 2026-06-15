@@ -475,13 +475,27 @@ const fanout = {
 
 const dns = {
   id: 'dns-routing-route53', title: 'Route Users with DNS', examDomain: 'Design High-Performing Architectures',
-  summary: 'The host stand sends each guest the smart way: nearest kitchen, around a closed one, or split the crowd.',
+  summary: 'A dispatch board sends each traveller the smart way: to the nearest city, around a closed one, or split the crowd.',
   scenery: 'open',
+  world: 'transit',
+  anchors: { entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'arrivals', label: 'Arrivals', rect: { x0: -9.5, z0: -5.4, x1: -3.5, z1: 5.4 }, floorTint: 0x32353c, accent: 0x5a8fd1, dressing: [
+        { kind: 'plant', pos: [-9, 4.4] }, { kind: 'plant', pos: [-9, -4.4] }, { kind: 'signage', pos: [-8.5, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+      { id: 'junction', label: 'The junction', rect: { x0: -3.5, z0: -5.4, x1: 0.8, z1: 5.4 }, floorTint: 0x393c44, accent: 0x9aa0aa, dressing: [] },
+      { id: 'regions', label: 'Regions', rect: { x0: 0.8, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x343b40, accent: 0x67ad5b, dressing: [
+        { kind: 'plant', pos: [7.6, 4.4] }, { kind: 'signage', pos: [1.2, -5.0], opts: { accent: 0x67ad5b } },
+      ] },
+    ],
+  },
   blocks: [
-    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person looking up your domain.', 'A client DNS resolution.'),
-    C('r53', 'Route 53', 'networking', { pos: [-2, 0.7, 0] }, { name: 'Host stand', prop: 'host', pos: [-2, 0], yaw: -90 }, 'Turns your name into the best address by policy.', 'Route 53; DNS with routing policies + health checks.', 'app.example.com  A  ALIAS → ALB\nPolicies: simple · latency · weighted · failover\nHealth check fails → fail over to DR'),
-    C('kA', 'Region: London', 'compute', { pos: [2.5, 0.7, -1.7] }, { name: 'London kitchen', prop: 'cook', pos: [2.5, -1.7], yaw: -90 }, 'One regional endpoint.', 'An endpoint in eu-west-2.'),
-    C('kB', 'Region: New York', 'compute', { pos: [2.5, 0.7, 1.7] }, { name: 'New York kitchen', prop: 'cook', pos: [2.5, 1.7], yaw: -90 }, 'Another regional endpoint.', 'An endpoint in us-east-1.'),
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Traveller', prop: 'customer', pos: [-7, 0], yaw: 90, face: 'r53' }, 'A person looking up your domain.', 'A client DNS resolution.'),
+    C('r53', 'Route 53', 'networking', { pos: [-2, 0.7, 0] }, { name: 'Dispatch board', prop: 'dispatchboard', pos: [-2, 0], face: 'user' }, 'Turns your name into the best address by policy.', 'Route 53; DNS with routing policies + health checks.', 'app.example.com  A  ALIAS → ALB\nPolicies: simple · latency · weighted · failover\nHealth check fails → fail over to DR'),
+    C('kA', 'Region: London', 'compute', { pos: [2.5, 0.7, -1.7] }, { name: 'London', prop: 'district', pos: [2.5, -1.7], yaw: 0 }, 'One regional endpoint.', 'An endpoint in eu-west-2.'),
+    C('kB', 'Region: New York', 'compute', { pos: [2.5, 0.7, 1.7] }, { name: 'New York', prop: 'district', pos: [2.5, 1.7], yaw: 0 }, 'Another regional endpoint.', 'An endpoint in us-east-1.'),
   ],
   connections: [
     { id: 'c_user_r53', from: 'user', to: 'r53', flow: 'request' },
@@ -489,10 +503,10 @@ const dns = {
     { id: 'c_r53_kB', from: 'r53', to: 'kB', flow: 'request' },
   ],
   stages: [
-    { title: 'One name, many doors', focus: 'r53', anim: 'pulse', animConn: 'c_user_r53', narration: 'Route 53 resolves your domain to an endpoint — and can choose among several by policy.', storyNarration: 'Every guest asks the host stand where to go; the host can point them to any of several kitchens.', concept: 'Route 53 maps a name to the right endpoint, by policy.', blocks: ['user', 'r53'], conns: ['c_user_r53'] },
-    { title: 'Send them to the nearest', focus: 'kA', anim: 'chain', chain: ['c_user_r53', 'c_r53_kA'], narration: 'Latency-based routing sends each user to the region that answers fastest for them.', storyNarration: 'Seat each guest at the nearest kitchen, so their food travels the shortest distance.', concept: 'Latency routing → lowest-latency region per user.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kA'] },
-    { title: 'Skip a closed kitchen', focus: 'kB', anim: 'chain', chain: ['c_user_r53', 'c_r53_kB'], narration: 'Health checks + failover routing steer users away from an unhealthy endpoint to a healthy one.', storyNarration: 'If a kitchen’s gone dark, the host simply stops seating there and sends everyone to the open one.', concept: 'Failover routing + health checks route around outages.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kB'] },
-    { title: 'Split or target the crowd', focus: 'r53', narration: 'Weighted routing splits traffic (e.g. canary 5%); geolocation routing sends users to a region by where they are.', storyNarration: 'Send one in twenty to the new kitchen to try it; or always seat European guests in London.', concept: 'Weighted (canary) and geolocation policies.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kA', 'c_r53_kB'] },
+    { title: 'One name, many doors', focus: 'r53', anim: 'pulse', animConn: 'c_user_r53', narration: 'Route 53 resolves your domain to an endpoint — and can choose among several by policy.', storyNarration: 'Every traveller checks the dispatch board, which can send them on to any of several cities.', concept: 'Route 53 maps a name to the right endpoint, by policy.', blocks: ['user', 'r53'], conns: ['c_user_r53'] },
+    { title: 'Send them to the nearest', focus: 'kA', anim: 'chain', chain: ['c_user_r53', 'c_r53_kA'], narration: 'Latency-based routing sends each user to the region that answers fastest for them.', storyNarration: 'Direct each traveller to the nearest city, so their journey is the shortest.', concept: 'Latency routing → lowest-latency region per user.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kA'] },
+    { title: 'Skip a closed city', focus: 'kB', anim: 'chain', chain: ['c_user_r53', 'c_r53_kB'], narration: 'Health checks + failover routing steer users away from an unhealthy endpoint to a healthy one.', storyNarration: 'If a city’s gateway is closed, the board stops sending there and routes everyone to an open one.', concept: 'Failover routing + health checks route around outages.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kB'] },
+    { title: 'Split or target the crowd', focus: 'r53', narration: 'Weighted routing splits traffic (e.g. canary 5%); geolocation routing sends users to a region by where they are.', storyNarration: 'Send one in twenty to the new city to trial it; or always route European travellers to London.', concept: 'Weighted (canary) and geolocation policies.', blocks: ['user', 'r53', 'kA', 'kB'], conns: ['c_user_r53', 'c_r53_kA', 'c_r53_kB'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Send each user to the lowest-latency region. Which routing policy?', options: ['Latency-based routing', 'Failover routing', 'Simple routing', 'Weighted 50/50'], correct: [0], explain: 'Latency routing picks the fastest region per user.' },
@@ -824,13 +838,26 @@ const aurora = {
 
 const networks = {
   id: 'connect-networks', title: 'Connect Your Networks', examDomain: 'Design Secure Architectures',
-  summary: 'Separate buildings stay private — link two with a corridor, or wire many to one central hub.',
+  summary: 'Separate districts stay private — link two with a private road, or wire many to one central interchange.',
   scenery: 'open',
+  world: 'transit',
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'west', label: 'West districts', rect: { x0: -9.5, z0: -5.4, x1: -2.5, z1: 5.4 }, floorTint: 0x33363d, accent: 0x5a8fd1, dressing: [
+        { kind: 'plant', pos: [-9, 4.6] }, { kind: 'plant', pos: [-9, -4.6] }, { kind: 'signage', pos: [-8.6, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+      { id: 'core', label: 'Interchange', rect: { x0: -2.5, z0: -5.4, x1: 1.8, z1: 5.4 }, floorTint: 0x3a3d45, accent: 0x9aa0aa, dressing: [] },
+      { id: 'east', label: 'East district', rect: { x0: 1.8, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x343b40, accent: 0x67ad5b, dressing: [
+        { kind: 'plant', pos: [7.8, 4.6] }, { kind: 'signage', pos: [2.2, -5.0], opts: { accent: 0x67ad5b } },
+      ] },
+    ],
+  },
   blocks: [
-    C('vpcA', 'VPC A', 'compute', { pos: [-6, 0.7, -1.7] }, { name: 'Kitchen A', prop: 'cook', pos: [-6, -1.7], yaw: -90 }, 'A private network and its resources.', 'A VPC.'),
-    C('vpcB', 'VPC B', 'compute', { pos: [-6, 0.7, 1.7] }, { name: 'Kitchen B', prop: 'cook', pos: [-6, 1.7], yaw: -90 }, 'Another private network.', 'Another VPC.'),
-    C('tgw', 'Transit Gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'The hub', prop: 'hub', pos: [-0.5, 0], yaw: 0 }, 'A central hub every network plugs into.', 'AWS Transit Gateway; hub-and-spoke for many VPCs.'),
-    C('vpcC', 'VPC C', 'compute', { pos: [4, 0.7, 0] }, { name: 'Kitchen C', prop: 'cook', pos: [4, 0], yaw: -90 }, 'A third network on the hub.', 'A third VPC.'),
+    C('vpcA', 'VPC A', 'compute', { pos: [-6, 0.7, -1.7] }, { name: 'District A', prop: 'district', pos: [-6, -1.7], yaw: 0 }, 'A private network and its resources.', 'A VPC.'),
+    C('vpcB', 'VPC B', 'compute', { pos: [-6, 0.7, 1.7] }, { name: 'District B', prop: 'district', pos: [-6, 1.7], yaw: 0 }, 'Another private network.', 'Another VPC.'),
+    C('tgw', 'Transit Gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'Central interchange', prop: 'interchange', pos: [-0.5, 0], yaw: 0 }, 'A central hub every network plugs into.', 'AWS Transit Gateway; hub-and-spoke for many VPCs.'),
+    C('vpcC', 'VPC C', 'compute', { pos: [4, 0.7, 0] }, { name: 'District C', prop: 'district', pos: [4, 0], yaw: 0 }, 'A third network on the hub.', 'A third VPC.'),
   ],
   connections: [
     { id: 'c_a_b', from: 'vpcA', to: 'vpcB', flow: 'network' },
@@ -839,10 +866,10 @@ const networks = {
     { id: 'c_c_tgw', from: 'vpcC', to: 'tgw', flow: 'network' },
   ],
   stages: [
-    { title: 'Private by default', focus: 'vpcA', narration: 'By default, separate VPCs can’t reach each other — that isolation is a security feature.', storyNarration: 'Each kitchen is its own locked building; nobody wanders between them by accident.', concept: 'VPCs are isolated from each other by default.', blocks: ['vpcA', 'vpcB'], conns: [] },
-    { title: 'A private link (peering)', focus: 'vpcB', anim: 'pulse', animConn: 'c_a_b', narration: 'VPC peering connects two VPCs privately, over the AWS network — no internet, no gateway.', storyNarration: 'Cut a private corridor between two buildings so staff pass directly, never stepping onto the street.', concept: 'Peering = a private 1:1 link between two VPCs.', blocks: ['vpcA', 'vpcB'], conns: ['c_a_b'] },
-    { title: 'Many networks? Use a hub', focus: 'tgw', anim: 'pulse', animConn: 'c_a_tgw', narration: 'Peering every VPC to every other doesn’t scale. A Transit Gateway is one hub that all VPCs attach to.', storyNarration: 'Don’t dig a corridor between every pair of buildings — build one central hub they all connect into.', concept: 'Transit Gateway = hub-and-spoke for many VPCs.', blocks: ['vpcA', 'vpcB', 'tgw', 'vpcC'], conns: ['c_a_tgw', 'c_b_tgw', 'c_c_tgw'] },
-    { title: 'Private and controlled', focus: 'tgw', narration: 'All this traffic stays on AWS’s private network; route tables decide exactly who can reach whom.', storyNarration: 'Every corridor is staff-only and signposted: each building reaches just the rooms its passes allow.', concept: 'Connectivity stays private and route-controlled.', blocks: ['vpcA', 'vpcB', 'tgw', 'vpcC'], conns: ['c_a_tgw', 'c_b_tgw', 'c_c_tgw'] },
+    { title: 'Private by default', focus: 'vpcA', narration: 'By default, separate VPCs can’t reach each other — that isolation is a security feature.', storyNarration: 'Each district is its own gated quarter; nobody crosses between them by accident.', concept: 'VPCs are isolated from each other by default.', blocks: ['vpcA', 'vpcB'], conns: [] },
+    { title: 'A private link (peering)', focus: 'vpcB', anim: 'pulse', animConn: 'c_a_b', narration: 'VPC peering connects two VPCs privately, over the AWS network — no internet, no gateway.', storyNarration: 'Lay a private road directly between two districts so traffic passes straight across, never touching the public streets.', concept: 'Peering = a private 1:1 link between two VPCs.', blocks: ['vpcA', 'vpcB'], conns: ['c_a_b'] },
+    { title: 'Many networks? Use a hub', focus: 'tgw', anim: 'pulse', animConn: 'c_a_tgw', narration: 'Peering every VPC to every other doesn’t scale. A Transit Gateway is one hub that all VPCs attach to.', storyNarration: 'Don’t lay a private road between every pair of districts — build one central interchange they all connect into.', concept: 'Transit Gateway = hub-and-spoke for many VPCs.', blocks: ['vpcA', 'vpcB', 'tgw', 'vpcC'], conns: ['c_a_tgw', 'c_b_tgw', 'c_c_tgw'] },
+    { title: 'Private and controlled', focus: 'tgw', narration: 'All this traffic stays on AWS’s private network; route tables decide exactly who can reach whom.', storyNarration: 'Every road is private and signposted: each district reaches just the places its routes allow.', concept: 'Connectivity stays private and route-controlled.', blocks: ['vpcA', 'vpcB', 'tgw', 'vpcC'], conns: ['c_a_tgw', 'c_b_tgw', 'c_c_tgw'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Two VPCs by default can…', options: ['Not reach each other (isolated)', 'Always reach each other', 'Only talk via the internet', 'Share one subnet'], correct: [0], explain: 'VPCs are isolated until you connect them.' },
@@ -1034,13 +1061,26 @@ const compute = {
 
 const hybrid = {
   id: 'hybrid-connectivity', title: 'Link to On-Premises', examDomain: 'Design Secure Architectures',
-  summary: 'Wire your old kitchen to the cloud one — an armored van over public roads, or a private dedicated cable.',
+  summary: 'Wire your old depot to the cloud one — an armoured van over public roads, or a private dedicated tunnel.',
   scenery: 'open',
+  world: 'transit',
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'onprem', label: 'On-premises', rect: { x0: -9.5, z0: -5.4, x1: -3, z1: 5.4 }, floorTint: 0x363238, accent: 0xb0843a, dressing: [
+        { kind: 'dock', pos: [-7.5, -4.2] }, { kind: 'plant', pos: [-9, 4.4] }, { kind: 'signage', pos: [-8.6, -5.0], opts: { accent: 0xb0843a } },
+      ] },
+      { id: 'links', label: 'The links', rect: { x0: -3, z0: -5.4, x1: 1.5, z1: 5.4 }, floorTint: 0x393c44, accent: 0x9aa0aa, dressing: [] },
+      { id: 'cloud', label: 'Cloud (AWS)', rect: { x0: 1.5, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x33373f, accent: 0x5a8fd1, dressing: [
+        { kind: 'plant', pos: [7.8, 4.4] }, { kind: 'signage', pos: [2, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('onprem', 'Your datacenter', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'Old kitchen', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Servers you still run on-premises.', 'Your on-prem datacenter.'),
-    C('vpn', 'Site-to-Site VPN', 'networking', { pos: [-0.5, 0.7, -1.6] }, { name: 'Encrypted tunnel', prop: 'servicedoor', pos: [-0.5, -1.6], yaw: -90 }, 'An encrypted tunnel over the public internet.', 'Site-to-Site VPN; encrypted, over the internet.'),
-    C('dx', 'Direct Connect', 'networking', { pos: [-0.5, 0.7, 1.6] }, { name: 'Private cable', prop: 'guardpost', pos: [-0.5, 1.6], yaw: -90 }, 'A dedicated private physical link, not the internet.', 'AWS Direct Connect; private, consistent, high-bandwidth.'),
-    C('aws', 'AWS VPC', 'compute', { pos: [4, 0.7, 0] }, { name: 'Cloud kitchen', prop: 'cook', pos: [4, 0], yaw: -90 }, 'Your VPC in the cloud.', 'Your AWS VPC.'),
+    C('onprem', 'Your datacenter', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'On-prem depot', prop: 'district', pos: [-6.5, 0], yaw: 0 }, 'Servers you still run on-premises.', 'Your on-prem datacenter.'),
+    C('vpn', 'Site-to-Site VPN', 'networking', { pos: [-0.5, 0.7, -1.6] }, { name: 'VPN gateway', prop: 'gate', pos: [-0.5, -1.6], face: 'aws' }, 'An encrypted tunnel over the public internet.', 'Site-to-Site VPN; encrypted, over the internet.'),
+    C('dx', 'Direct Connect', 'networking', { pos: [-0.5, 0.7, 1.6] }, { name: 'Private tunnel', prop: 'tunnel', pos: [-0.5, 1.6], face: 'aws' }, 'A dedicated private physical link, not the internet.', 'AWS Direct Connect; private, consistent, high-bandwidth.'),
+    C('aws', 'AWS VPC', 'compute', { pos: [4, 0.7, 0] }, { name: 'Cloud (AWS)', prop: 'district', pos: [4, 0], yaw: 0 }, 'Your VPC in the cloud.', 'Your AWS VPC.'),
   ],
   connections: [
     { id: 'c_op_vpn', from: 'onprem', to: 'vpn', flow: 'network' },
@@ -1049,10 +1089,10 @@ const hybrid = {
     { id: 'c_dx_aws', from: 'dx', to: 'aws', flow: 'network' },
   ],
   stages: [
-    { title: 'Two kitchens, one operation', focus: 'onprem', narration: 'You still run an on-prem datacenter and want it to reach AWS privately — a hybrid setup.', storyNarration: 'You keep the old kitchen running while the new cloud one opens; they need a private way to pass stock.', concept: 'Hybrid = on-prem connected privately to AWS.', blocks: ['onprem', 'aws'], conns: [] },
-    { title: 'An encrypted tunnel (VPN)', focus: 'vpn', anim: 'chain', chain: ['c_op_vpn', 'c_vpn_aws'], narration: 'Site-to-Site VPN runs an encrypted tunnel over the public internet — quick to set up and cheap.', storyNarration: 'Send stock in an armored van over the public roads: encrypted and private, but sharing the traffic.', concept: 'VPN = encrypted tunnel over the internet.', blocks: ['onprem', 'vpn', 'aws'], conns: ['c_op_vpn', 'c_vpn_aws'] },
-    { title: 'A dedicated private cable (Direct Connect)', focus: 'dx', anim: 'chain', chain: ['c_op_dx', 'c_dx_aws'], narration: 'Direct Connect is a private physical link — consistent low latency and high bandwidth, not over the internet.', storyNarration: 'Lay your own private delivery tunnel between the kitchens: steady, fast, and no public traffic at all.', concept: 'Direct Connect = dedicated private link.', blocks: ['onprem', 'dx', 'aws'], conns: ['c_op_dx', 'c_dx_aws'] },
-    { title: 'Pick by need', focus: 'aws', narration: 'VPN for quick, cheap, encrypted links; Direct Connect for steady high-bandwidth, low-latency needs (often with a VPN as backup).', storyNarration: 'The van for now and for backup; the private tunnel when you move stock constantly and can’t wait on traffic.', concept: 'VPN (quick/cheap) vs Direct Connect (steady/fast).', blocks: ['onprem', 'vpn', 'dx', 'aws'], conns: ['c_op_vpn', 'c_vpn_aws', 'c_op_dx', 'c_dx_aws'] },
+    { title: 'Two depots, one operation', focus: 'onprem', narration: 'You still run an on-prem datacenter and want it to reach AWS privately — a hybrid setup.', storyNarration: 'You keep the old depot running while the new cloud one opens; they need a private way to move freight.', concept: 'Hybrid = on-prem connected privately to AWS.', blocks: ['onprem', 'aws'], conns: [] },
+    { title: 'An encrypted tunnel (VPN)', focus: 'vpn', anim: 'chain', chain: ['c_op_vpn', 'c_vpn_aws'], narration: 'Site-to-Site VPN runs an encrypted tunnel over the public internet — quick to set up and cheap.', storyNarration: 'Send freight in an armoured van over the public roads: encrypted and private, but sharing the traffic.', concept: 'VPN = encrypted tunnel over the internet.', blocks: ['onprem', 'vpn', 'aws'], conns: ['c_op_vpn', 'c_vpn_aws'] },
+    { title: 'A dedicated private cable (Direct Connect)', focus: 'dx', anim: 'chain', chain: ['c_op_dx', 'c_dx_aws'], narration: 'Direct Connect is a private physical link — consistent low latency and high bandwidth, not over the internet.', storyNarration: 'Lay your own private tunnel between the depots: steady, fast, and no public traffic at all.', concept: 'Direct Connect = dedicated private link.', blocks: ['onprem', 'dx', 'aws'], conns: ['c_op_dx', 'c_dx_aws'] },
+    { title: 'Pick by need', focus: 'aws', narration: 'VPN for quick, cheap, encrypted links; Direct Connect for steady high-bandwidth, low-latency needs (often with a VPN as backup).', storyNarration: 'The van for now and for backup; the private tunnel when you move freight constantly and can’t wait on traffic.', concept: 'VPN (quick/cheap) vs Direct Connect (steady/fast).', blocks: ['onprem', 'vpn', 'dx', 'aws'], conns: ['c_op_vpn', 'c_vpn_aws', 'c_op_dx', 'c_dx_aws'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'A quick, encrypted link from on-prem to AWS over the internet?', options: ['Site-to-Site VPN', 'Direct Connect', 'An internet gateway', 'A NAT gateway'], correct: [0], explain: 'VPN gives an encrypted tunnel over the public internet.' },
@@ -1093,13 +1133,27 @@ const threats = {
 
 const accelerator = {
   id: 'global-accelerator', title: 'Accelerate Global Traffic', examDomain: 'Design High-Performing Architectures',
-  summary: 'Express lanes: users enter at the nearest edge and ride the AWS backbone to the best healthy region.',
+  summary: 'Express lanes: travellers enter at the nearest gate and ride the AWS backbone to the best healthy region.',
   scenery: 'open',
+  world: 'transit',
+  anchors: { entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'far', label: 'Distant users', rect: { x0: -9.5, z0: -5.4, x1: -3.5, z1: 5.4 }, floorTint: 0x33363d, accent: 0x5a8fd1, dressing: [
+        { kind: 'plant', pos: [-9, 4.4] }, { kind: 'plant', pos: [-9, -4.4] }, { kind: 'signage', pos: [-8.6, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+      { id: 'edge', label: 'The edge gate', rect: { x0: -3.5, z0: -5.4, x1: 1, z1: 5.4 }, floorTint: 0x3a3d45, accent: 0x33b38c, dressing: [] },
+      { id: 'regions', label: 'Regions', rect: { x0: 1, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x343b40, accent: 0x67ad5b, dressing: [
+        { kind: 'plant', pos: [7.8, 4.4] }, { kind: 'signage', pos: [1.4, -5.0], opts: { accent: 0x67ad5b } },
+      ] },
+    ],
+  },
   blocks: [
-    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A user far from your app.', 'A client far from your regions.'),
-    C('ga', 'Global Accelerator', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The express gate', prop: 'hub', pos: [-1.5, 0], yaw: 0 }, 'Static anycast entry at the nearest edge.', 'AWS Global Accelerator; anycast IPs + backbone routing.'),
-    C('r1', 'Region A', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Kitchen A', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One regional endpoint.', 'An app endpoint in region A.'),
-    C('r2', 'Region B', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Kitchen B', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Another regional endpoint.', 'An app endpoint in region B.'),
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Traveller', prop: 'customer', pos: [-7, 0], yaw: 90, face: 'ga' }, 'A user far from your app.', 'A client far from your regions.'),
+    C('ga', 'Global Accelerator', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The express gate', prop: 'gate', pos: [-1.5, 0], face: 'user' }, 'Static anycast entry at the nearest edge.', 'AWS Global Accelerator; anycast IPs + backbone routing.'),
+    C('r1', 'Region A', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Region A', prop: 'district', pos: [3, -1.6], yaw: 0 }, 'One regional endpoint.', 'An app endpoint in region A.'),
+    C('r2', 'Region B', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Region B', prop: 'district', pos: [3.5, 1.6], yaw: 0 }, 'Another regional endpoint.', 'An app endpoint in region B.'),
   ],
   connections: [
     { id: 'c_user_ga', from: 'user', to: 'ga', flow: 'request' },
@@ -1107,10 +1161,10 @@ const accelerator = {
     { id: 'c_ga_r2', from: 'ga', to: 'r2', flow: 'request' },
   ],
   stages: [
-    { title: 'Users far from your app', focus: 'user', anim: 'pulse', animConn: 'c_user_ga', narration: 'Distant users cross the unpredictable public internet, adding latency and jitter.', storyNarration: 'A guest across the country waits while their order crawls through traffic on the public roads.', concept: 'Global users need a fast, stable path in.', blocks: ['user', 'ga'], conns: ['c_user_ga'] },
-    { title: 'Enter at the nearest edge', focus: 'ga', anim: 'pulse', animConn: 'c_user_ga', narration: 'Global Accelerator gives you static anycast IPs; every user enters at the closest AWS edge location.', storyNarration: 'Open an express gate at every city; each guest steps in at the nearest one, same address everywhere.', concept: 'Anycast entry at the nearest edge.', blocks: ['user', 'ga'], conns: ['c_user_ga'] },
-    { title: 'Ride the AWS backbone', focus: 'r1', anim: 'chain', chain: ['c_user_ga', 'c_ga_r1'], narration: 'From the edge, traffic travels AWS’s private backbone to the best healthy region — and fails over automatically.', storyNarration: 'From the gate, a private express lane carries the order straight to the nearest open kitchen, rerouting if one closes.', concept: 'Backbone routing to the best region + failover.', blocks: ['user', 'ga', 'r1', 'r2'], conns: ['c_user_ga', 'c_ga_r1', 'c_ga_r2'] },
-    { title: 'vs CloudFront', focus: 'ga', narration: 'CloudFront caches content at the edge; Global Accelerator routes/accelerates whole apps (TCP/UDP) without caching.', storyNarration: 'Grab-and-go shelves hand out copies of popular dishes; the express gate speeds you to the actual kitchen for anything.', concept: 'Global Accelerator (apps) vs CloudFront (content).', blocks: ['user', 'ga', 'r1', 'r2'], conns: ['c_user_ga', 'c_ga_r1', 'c_ga_r2'] },
+    { title: 'Users far from your app', focus: 'user', anim: 'pulse', animConn: 'c_user_ga', narration: 'Distant users cross the unpredictable public internet, adding latency and jitter.', storyNarration: 'A traveller across the country waits while their journey crawls through traffic on the public roads.', concept: 'Global users need a fast, stable path in.', blocks: ['user', 'ga'], conns: ['c_user_ga'] },
+    { title: 'Enter at the nearest gate', focus: 'ga', anim: 'pulse', animConn: 'c_user_ga', narration: 'Global Accelerator gives you static anycast IPs; every user enters at the closest AWS edge location.', storyNarration: 'Open an express gate at every city; each traveller steps in at the nearest one, the same address everywhere.', concept: 'Anycast entry at the nearest edge.', blocks: ['user', 'ga'], conns: ['c_user_ga'] },
+    { title: 'Ride the AWS backbone', focus: 'r1', anim: 'chain', chain: ['c_user_ga', 'c_ga_r1'], narration: 'From the edge, traffic travels AWS’s private backbone to the best healthy region — and fails over automatically.', storyNarration: 'From the gate, a private express lane carries them straight to the nearest open region, rerouting if one closes.', concept: 'Backbone routing to the best region + failover.', blocks: ['user', 'ga', 'r1', 'r2'], conns: ['c_user_ga', 'c_ga_r1', 'c_ga_r2'] },
+    { title: 'vs CloudFront', focus: 'ga', narration: 'CloudFront caches content at the edge; Global Accelerator routes/accelerates whole apps (TCP/UDP) without caching.', storyNarration: 'A local branch hands out cached copies of popular items; the express gate instead speeds you to the actual region for anything.', concept: 'Global Accelerator (apps) vs CloudFront (content).', blocks: ['user', 'ga', 'r1', 'r2'], conns: ['c_user_ga', 'c_ga_r1', 'c_ga_r2'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Static anycast IPs + the AWS backbone to reach your app fast worldwide?', options: ['AWS Global Accelerator', 'A bigger instance', 'An EBS volume', 'A NAT gateway'], correct: [0], explain: 'Global Accelerator gives anycast entry and backbone routing.' },
@@ -1480,13 +1534,26 @@ const backups = {
 
 const migrate = {
   id: 'migrate-data', title: 'Move Big Data In', examDomain: 'Design Resilient Architectures',
-  summary: 'Years of stock to shift: a truck of crates for a huge one-off, or a steady conveyor over the wire for ongoing sync.',
+  summary: 'Years of records to shift: a freight truck for a huge one-off, or a steady conveyor over the wire for ongoing sync.',
   scenery: 'open',
+  world: 'transit',
+  scene: {
+    bounds: { w: 18, d: 11, x: -1 },
+    zones: [
+      { id: 'source', label: 'On-premises', rect: { x0: -9.5, z0: -5.4, x1: -3, z1: 5.4 }, floorTint: 0x363238, accent: 0xb0843a, dressing: [
+        { kind: 'dock', pos: [-7.5, -4.2] }, { kind: 'parcels', pos: [-8.4, 3.4] }, { kind: 'signage', pos: [-8.6, -5.0], opts: { accent: 0xb0843a } },
+      ] },
+      { id: 'transfer', label: 'Transfer', rect: { x0: -3, z0: -5.4, x1: 1.5, z1: 5.4 }, floorTint: 0x393c44, accent: 0x9aa0aa, dressing: [] },
+      { id: 'aws', label: 'AWS', rect: { x0: 1.5, z0: -5.4, x1: 8.5, z1: 5.4 }, floorTint: 0x33373f, accent: 0x5a8fd1, dressing: [
+        { kind: 'dock', pos: [6.5, -4.2] }, { kind: 'parcels', pos: [7.6, 3.6] }, { kind: 'signage', pos: [2, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('onprem', 'On-prem data', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'Old store', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Large datasets sitting on-premises.', 'On-prem data to migrate.'),
-    C('snow', 'Snow Family', 'storage', { pos: [-1, 0.7, -1.7] }, { name: 'The truck', prop: 'crate', pos: [-1, -1.7], yaw: 0 }, 'A rugged device AWS ships you for offline transfer.', 'AWS Snowball/Snowmobile; offline bulk transfer.'),
-    C('datasync', 'DataSync', 'edge', { pos: [-0.5, 0.7, 1.6] }, { name: 'The conveyor', prop: 'ticketrail', pos: [-0.5, 1.6], yaw: 0 }, 'Moves and syncs file data over the network.', 'AWS DataSync; online file transfer/sync.'),
-    C('s3', 'S3', 'storage', { pos: [4, 0.7, 0] }, { name: 'New larder', prop: 'larder', pos: [4, 0], yaw: -90 }, 'The destination in AWS.', 'Amazon S3 (or EFS/FSx).'),
+    C('onprem', 'On-prem data', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'On-prem store', prop: 'district', pos: [-6.5, 0], yaw: 0 }, 'Large datasets sitting on-premises.', 'On-prem data to migrate.'),
+    C('snow', 'Snow Family', 'storage', { pos: [-1, 0.7, -1.7] }, { name: 'Freight truck', prop: 'freight', pos: [-1, -1.7], face: 's3' }, 'A rugged device AWS ships you for offline transfer.', 'AWS Snowball/Snowmobile; offline bulk transfer.'),
+    C('datasync', 'DataSync', 'edge', { pos: [-0.5, 0.7, 1.6] }, { name: 'DataSync belt', prop: 'conveyor', pos: [-0.5, 1.6], yaw: 0 }, 'Moves and syncs file data over the network.', 'AWS DataSync; online file transfer/sync.'),
+    C('s3', 'S3', 'storage', { pos: [4, 0.7, 0] }, { name: 'AWS store', prop: 'district', pos: [4, 0], yaw: 0 }, 'The destination in AWS.', 'Amazon S3 (or EFS/FSx).'),
   ],
   connections: [
     { id: 'c_op_snow', from: 'onprem', to: 'snow', flow: 'data' },
@@ -1495,10 +1562,10 @@ const migrate = {
     { id: 'c_ds_s3', from: 'datasync', to: 's3', flow: 'data' },
   ],
   stages: [
-    { title: 'Petabytes to move', focus: 'onprem', narration: 'Pushing huge datasets over a normal internet link could take weeks or months.', storyNarration: 'Carrying years of stock to the new kitchen one box at a time would take all season.', concept: 'Large offline data is slow over the wire.', blocks: ['onprem', 's3'], conns: [] },
-    { title: 'Ship it on a device (Snow)', focus: 'snow', anim: 'chain', chain: ['c_op_snow', 'c_snow_s3'], narration: 'AWS ships you a rugged Snow device; you load the data and send it back — faster than the network for huge one-off moves.', storyNarration: 'AWS sends a truck of crates; load it up, send it back, and it’s shelved far quicker than carrying boxes.', concept: 'Snow Family = offline bulk transfer.', blocks: ['onprem', 'snow', 's3'], conns: ['c_op_snow', 'c_snow_s3'] },
-    { title: 'Sync over the network (DataSync)', focus: 'datasync', anim: 'chain', chain: ['c_op_ds', 'c_ds_s3'], narration: 'For ongoing or online transfers, DataSync moves and continuously syncs file data over the network.', storyNarration: 'For steady restocking, run a conveyor over the wire that keeps the new larder in sync with the old.', concept: 'DataSync = online file transfer/sync.', blocks: ['onprem', 'datasync', 's3'], conns: ['c_op_ds', 'c_ds_s3'] },
-    { title: 'Pick by size & cadence', focus: 's3', narration: 'One-off petabytes or a poor link → Snow; ongoing/online sync → DataSync; databases → DMS.', storyNarration: 'A whole season’s stock at once → the truck; a daily top-up → the conveyor.', concept: 'Choose the transfer by volume and frequency.', blocks: ['onprem', 'snow', 'datasync', 's3'], conns: ['c_op_snow', 'c_snow_s3', 'c_op_ds', 'c_ds_s3'] },
+    { title: 'Petabytes to move', focus: 'onprem', narration: 'Pushing huge datasets over a normal internet link could take weeks or months.', storyNarration: 'Carrying years of records to the new site one box at a time would take all season.', concept: 'Large offline data is slow over the wire.', blocks: ['onprem', 's3'], conns: [] },
+    { title: 'Ship it on a device (Snow)', focus: 'snow', anim: 'chain', chain: ['c_op_snow', 'c_snow_s3'], narration: 'AWS ships you a rugged Snow device; you load the data and send it back — faster than the network for huge one-off moves.', storyNarration: 'AWS sends a freight truck; load it up, send it back, and it’s unloaded far quicker than driving boxes over.', concept: 'Snow Family = offline bulk transfer.', blocks: ['onprem', 'snow', 's3'], conns: ['c_op_snow', 'c_snow_s3'] },
+    { title: 'Sync over the network (DataSync)', focus: 'datasync', anim: 'chain', chain: ['c_op_ds', 'c_ds_s3'], narration: 'For ongoing or online transfers, DataSync moves and continuously syncs file data over the network.', storyNarration: 'For steady transfer, run a conveyor over the wire that keeps the new store in sync with the old.', concept: 'DataSync = online file transfer/sync.', blocks: ['onprem', 'datasync', 's3'], conns: ['c_op_ds', 'c_ds_s3'] },
+    { title: 'Pick by size & cadence', focus: 's3', narration: 'One-off petabytes or a poor link → Snow; ongoing/online sync → DataSync; databases → DMS.', storyNarration: 'A whole archive at once → the freight truck; a daily top-up → the conveyor.', concept: 'Choose the transfer by volume and frequency.', blocks: ['onprem', 'snow', 'datasync', 's3'], conns: ['c_op_snow', 'c_snow_s3', 'c_op_ds', 'c_ds_s3'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Move 100 TB once, over a slow link, fastest?', options: ['AWS Snowball (offline device)', 'Upload over the internet', 'A read replica', 'A NAT gateway'], correct: [0], explain: 'Snow devices beat the wire for big one-off transfers.' },
