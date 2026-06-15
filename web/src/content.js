@@ -6,6 +6,23 @@
 // (ARN, CIDR, IAM JSON, SG rule…) shown under the Real inspector tab to bridge the metaphor to exam wording.
 const C = (id, name, cat, arch, story, plain, real, code) => ({ id, name, cat, arch, story, plain, real, code });
 
+// A decorated, zoned restaurant backdrop reused by the restaurant-world topics that don't warrant the
+// flagship's bespoke re-layout. Dressing sits at the far periphery (|z| ≳ 4.8) so it never collides
+// with the functional props placed mid-floor. Returns a fresh object per call.
+const RScene = () => ({
+  bounds: { w: 19, d: 12, x: -1 },
+  zones: [
+    { id: 'foh', label: 'Front of house', rect: { x0: -10.5, z0: -6, x1: -2.5, z1: 6 }, floorTint: 0x473c34, accent: 0xf2b25a, dressing: [
+      { kind: 'diningtable', pos: [-8.8, 4.8] }, { kind: 'chair', pos: [-8.8, 5.5], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-8.8, 4.8], y: 1.5 },
+      { kind: 'diningtable', pos: [-8.8, -4.9] }, { kind: 'chair', pos: [-8.8, -5.6], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-8.8, -4.9], y: 1.5 },
+      { kind: 'window', pos: [-10.4, 1.6] }, { kind: 'window', pos: [-10.4, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-10, 5.6] },
+    ] },
+    { id: 'kitchen', label: 'Kitchen', rect: { x0: -2.5, z0: -6, x1: 9, z1: 6 }, floorTint: 0x3d3a36, accent: 0x9aa0aa, dressing: [
+      { kind: 'extractor', pos: [1.5, -5.4], y: 1.5 }, { kind: 'potrack', pos: [4.5, -5.4], y: 1.6 }, { kind: 'shelving', pos: [7.6, -5.4] }, { kind: 'preptable', pos: [-1.3, -5.4] }, { kind: 'bin', pos: [8.3, 5.2] }, { kind: 'plant', pos: [8.4, -5.4] },
+    ] },
+  ],
+});
+
 const kitchen = {
   id: 'ha-web-app',
   title: 'Build a Highly Available Web App',
@@ -182,6 +199,7 @@ const storage = {
 
 const iam = {
   id: 'secure-access-iam', title: 'Secure Access with IAM', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Hand out the right keys: individual identities, least privilege, temporary badges, and a second lock.',
   scenery: 'open',
   blocks: [
@@ -211,6 +229,7 @@ const iam = {
 
 const vpc = {
   id: 'network-boundaries-vpc', title: 'Network Boundaries', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Keep servers off the street: private rooms, a bouncer on the door, and one guarded entrance.',
   scenery: 'open',
   blocks: [
@@ -242,6 +261,7 @@ const vpc = {
 
 const sqs = {
   id: 'decouple-with-queue-sqs', title: 'Decouple with a Queue', examDomain: 'Design Resilient Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Stop the waiter waiting on the cook: a ticket rail buffers orders so neither side ever stalls.',
   scenery: 'open',
   blocks: [
@@ -274,6 +294,7 @@ const sqs = {
 
 const lambda = {
   id: 'go-serverless-lambda', title: 'Go Serverless', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Stop paying a cook to stand idle: pop-up cooks who clock in only when an order lands, then vanish.',
   scenery: 'open',
   blocks: [
@@ -345,6 +366,7 @@ const datastore = {
 
 const cache = {
   id: 'cache-hot-items', title: 'Cache the Hot Items', examDomain: 'Design High-Performing Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Keep the popular dishes prepped at the line so most orders never touch the back pantry.',
   scenery: 'open',
   blocks: [
@@ -373,6 +395,7 @@ const cache = {
 
 const cost = {
   id: 'optimise-cost', title: 'Optimize Cost', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Staff the kitchen wisely: per-shift hires, cooks booked ahead at a discount, and cheap casual labour.',
   scenery: 'open',
   blocks: [
@@ -402,6 +425,7 @@ const cost = {
 
 const monitor = {
   id: 'monitor-cloudwatch', title: 'See What’s Happening', examDomain: 'Design Resilient Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A manager’s board watching every station, an alarm when things heat up, and a log of what happened.',
   scenery: 'open',
   blocks: [
@@ -429,6 +453,7 @@ const monitor = {
 
 const blockfile = {
   id: 'block-vs-file-storage', title: 'Disks vs Shared Files', examDomain: 'Design High-Performing Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A cooler bolted to one station, or a shared walk-in every cook uses at once — EBS vs EFS.',
   scenery: 'open',
   blocks: [
@@ -548,6 +573,7 @@ const dns = {
 
 const dr = {
   id: 'disaster-recovery', title: 'Survive a Whole Region', examDomain: 'Design Resilient Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Back up the recipes off-site and keep a standby kitchen in another city, ready if the lights go out.',
   scenery: 'open',
   blocks: [
@@ -576,6 +602,7 @@ const dr = {
 
 const containers = {
   id: 'containers-ecs', title: 'Package It in Containers', examDomain: 'Design High-Performing Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Pre-pack the recipe and all its kit into identical boxes you can stamp out and run anywhere.',
   scenery: 'open',
   blocks: [
@@ -605,6 +632,7 @@ const containers = {
 
 const kms = {
   id: 'encrypt-with-kms', title: 'Lock It with KMS', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Lock every store, and keep the master keys in a vault that decides who may unlock what.',
   scenery: 'open',
   blocks: [
@@ -633,6 +661,7 @@ const kms = {
 
 const edge = {
   id: 'protect-the-edge', title: 'Guard the Front Door', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A barrier that soaks up a stampede, and a doorman who turns away troublemakers before they reach the kitchen.',
   scenery: 'open',
   blocks: [
@@ -662,6 +691,7 @@ const edge = {
 
 const apigw = {
   id: 'api-front-door', title: 'A Front Door for APIs', examDomain: 'Design High-Performing Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'One managed window that takes every order, checks it, limits the pace, and passes it to the kitchen.',
   scenery: 'open',
   blocks: [
@@ -691,6 +721,7 @@ const apigw = {
 
 const orchestrate = {
   id: 'orchestrate-step-functions', title: 'Coordinate the Steps', examDomain: 'Design Resilient Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A head chef with a recipe card who calls each step in order, waits, and handles a step that fails.',
   scenery: 'open',
   blocks: [
@@ -720,6 +751,7 @@ const orchestrate = {
 
 const scaling = {
   id: 'auto-scaling', title: 'Match Staff to Demand', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Call in cooks when the tickets pile up, send them home when it’s quiet — pay only for what you need.',
   scenery: 'open',
   blocks: [
@@ -797,6 +829,7 @@ const analytics = {
 
 const secrets = {
   id: 'manage-secrets', title: 'Manage Secrets', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'No passwords on a sticky note by the till: keep them in a locked box that rotates the locks itself.',
   scenery: 'open',
   blocks: [
@@ -825,6 +858,7 @@ const secrets = {
 
 const bill = {
   id: 'watch-the-bill', title: 'Watch the Bill', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'See where the money goes, get an alarm before you overspend, and let a consultant flag the waste.',
   scenery: 'open',
   blocks: [
@@ -943,6 +977,7 @@ const networks = {
 
 const stateless = {
   id: 'keep-it-stateless', title: 'Keep Servers Stateless', examDomain: 'Design Resilient Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Don’t keep the order in one cook’s head — put it on the rail so any cook can pick it up.',
   scenery: 'open',
   blocks: [
@@ -1110,6 +1145,7 @@ const storageclass = {
 
 const compute = {
   id: 'choose-compute', title: 'Choose Your Compute', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Full-time cooks, on-call cooks who appear per order, or pre-packed kit stations — match it to the work.',
   scenery: 'open',
   blocks: [
@@ -1182,6 +1218,7 @@ const hybrid = {
 
 const threats = {
   id: 'detect-threats', title: 'Detect Threats', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A camera watching for intruders, a scanner finding unlocked doors, and a clerk flagging sensitive papers.',
   scenery: 'open',
   blocks: [
@@ -1254,6 +1291,7 @@ const accelerator = {
 
 const cognito = {
   id: 'user-signin-cognito', title: 'Sign In Your Users', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A membership desk that signs your app’s customers up and in — separate from the staff keys (IAM).',
   scenery: 'open',
   blocks: [
@@ -1283,6 +1321,7 @@ const cognito = {
 
 const iac = {
   id: 'iac-cloudformation', title: 'Blueprint Your Stack', examDomain: 'Design Resilient Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A written blueprint that builds the whole kitchen identically every time — no hand-assembly.',
   scenery: 'open',
   blocks: [
@@ -1312,6 +1351,7 @@ const iac = {
 
 const audit = {
   id: 'audit-cloudtrail', title: 'Audit Every Action', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A logbook of who did what, and when, across the whole operation — for investigations and compliance.',
   scenery: 'open',
   blocks: [
@@ -1339,6 +1379,7 @@ const audit = {
 
 const sgnacl = {
   id: 'sg-vs-nacl', title: 'Security Groups vs NACLs', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A bouncer at each door who remembers you, and a gate guard at the perimeter with a strict allow/deny list.',
   scenery: 'open',
   blocks: [
@@ -1458,6 +1499,7 @@ const messaging = {
 
 const scaleupout = {
   id: 'scale-up-vs-out', title: 'Scale Up vs Scale Out', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A bigger oven, or more cooks? Vertical hits a ceiling; horizontal spreads load and survives failures.',
   scenery: 'open',
   blocks: [
@@ -1487,6 +1529,7 @@ const scaleupout = {
 
 const egress = {
   id: 'private-egress-nat', title: 'Private Servers, Public Updates', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'No street door to the back rooms — but a staffed exit lets staff fetch supplies without letting anyone in.',
   scenery: 'open',
   blocks: [
@@ -1561,6 +1604,7 @@ const s3protect = {
 
 const govern = {
   id: 'govern-accounts', title: 'Govern Many Accounts', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Run franchises from head office: one combined bill with volume discounts, and house rules all must follow.',
   scenery: 'open',
   blocks: [
@@ -1590,6 +1634,7 @@ const govern = {
 
 const endpoints = {
   id: 'vpc-endpoints', title: 'Keep Traffic Private', examDomain: 'Design Cost-Optimized Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'A private hatch straight to the AWS pantry, so deliveries never hit the street — faster, private, no NAT toll.',
   scenery: 'open',
   blocks: [
@@ -1699,6 +1744,7 @@ const migrate = {
 
 const compliance = {
   id: 'stay-compliant', title: 'Stay Compliant', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'An inspector that records the exact setup of every appliance and checks it against the rulebook, flagging breaches.',
   scenery: 'open',
   blocks: [
@@ -1726,6 +1772,7 @@ const compliance = {
 
 const ssm = {
   id: 'ssm-session', title: 'Access Without a Bastion', examDomain: 'Design Secure Architectures',
+  world: 'restaurant', scene: RScene(),
   summary: 'Reach the back room through a secure, logged hatch — no open door, no keys, nothing exposed to the street.',
   scenery: 'open',
   blocks: [
