@@ -198,6 +198,16 @@ function tannoy(color) {
   add(g, sph(0.07, darker(color, 0.5)), 0, 1.0, -0.08);
   return g;
 }
+// A heavy vault with a dial (KMS — the master keys).
+function safe(color) {
+  const g = new THREE.Group(); const steel = darker(color, 0.6), gold = 0xd9c766;
+  add(g, box(0.72, 0.82, 0.6, steel), 0, 0.42, 0);                 // body
+  add(g, box(0.6, 0.68, 0.04, darker(color, 0.82)), 0, 0.42, 0.31); // door
+  add(g, cyl(0.11, 0.06, gold), 0.06, 0.46, 0.34, Math.PI / 2, 0, 0); // dial
+  add(g, box(0.04, 0.18, 0.04, gold), -0.16, 0.3, 0.34);           // handle
+  add(g, box(0.76, 0.06, 0.64, color), 0, 0.85, 0);                // top accent
+  return g;
+}
 // A stack of identical packaged units (containers / images).
 function crate(color) {
   const g = new THREE.Group(); const seam = darker(color, 0.55), alt = darker(color, 0.82);
@@ -286,6 +296,7 @@ export function makeProp(kind, color) {
     case 'dashboard': return dashboard(color);
     case 'tannoy': return tannoy(color);
     case 'crate': return crate(color);
+    case 'safe': return safe(color);
     default: return station(color);
   }
 }

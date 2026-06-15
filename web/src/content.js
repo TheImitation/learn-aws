@@ -512,8 +512,184 @@ const containers = {
   ],
 };
 
+const kms = {
+  id: 'encrypt-with-kms', title: 'Lock It with KMS', examDomain: 'Design Secure Architectures',
+  summary: 'Lock every store, and keep the master keys in a vault that decides who may unlock what.',
+  scenery: 'open',
+  blocks: [
+    C('app', 'App / user', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes the data.', 'Your application requesting data.'),
+    C('data', 'Encrypted data', 'storage', { pos: [0.5, 0.7, -1.6] }, { name: 'Locked larder', prop: 'larder', pos: [0.5, -1.6], yaw: -90 }, 'Stored locked; a stolen disk is useless without the key.', 'Encrypted S3 / EBS / RDS at rest.'),
+    C('kms', 'AWS KMS', 'security', { pos: [0.5, 0.7, 1.6] }, { name: 'Key vault', prop: 'safe', pos: [0.5, 1.6], yaw: -90 }, 'Holds the master keys; only allowed identities may unlock.', 'AWS KMS; managed keys, access via IAM, audited in CloudTrail.'),
+  ],
+  connections: [
+    { id: 'c_app_data', from: 'app', to: 'data', flow: 'data' },
+    { id: 'c_app_kms', from: 'app', to: 'kms', flow: 'request' },
+    { id: 'c_kms_data', from: 'kms', to: 'data', flow: 'network' },
+  ],
+  stages: [
+    { title: 'Lock everything (at rest)', focus: 'data', anim: 'pulse', animConn: 'c_app_data', narration: 'Encrypt data at rest — S3, EBS, RDS — so a stolen disk or snapshot is unreadable.', storyNarration: 'Lock the larder. Even if someone walks off with the shelves, they can’t read what’s inside.', concept: 'Encrypt at rest so raw storage is useless if leaked.', blocks: ['app', 'data'], conns: ['c_app_data'] },
+    { title: 'KMS holds the master keys', focus: 'kms', anim: 'pulse', animConn: 'c_app_kms', narration: 'KMS creates and stores the encryption keys; the keys never leave it in plaintext.', storyNarration: 'The master keys live in a vault, not in a drawer by the door. Nobody pockets them.', concept: 'KMS is a managed, central key store.', blocks: ['app', 'data', 'kms'], conns: ['c_app_kms'] },
+    { title: 'Unlock only if allowed', focus: 'kms', anim: 'chain', chain: ['c_app_kms', 'c_kms_data'], narration: 'To read, the app asks KMS to decrypt — and KMS only obliges identities that IAM permits, logging every use.', storyNarration: 'Want into the larder? Ask the vault. It hands a key only to staff on the list, and writes down every time.', concept: 'Key use is gated by IAM and audited.', blocks: ['app', 'data', 'kms'], conns: ['c_app_kms', 'c_kms_data'] },
+    { title: 'In transit, too (TLS)', focus: 'app', anim: 'pulse', animConn: 'c_app_data', narration: 'Encrypt in transit with TLS as well, so data is protected on the wire, not just at rest.', storyNarration: 'Don’t just lock the larder — carry the stock in a locked case too, so nothing’s exposed on the way.', concept: 'Encrypt in transit (TLS) as well as at rest.', blocks: ['app', 'data', 'kms'], conns: ['c_app_kms', 'c_kms_data'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Why encrypt data at rest?', options: ['A stolen disk/snapshot is unreadable without the key', 'It makes queries faster', 'It removes the need for IAM', 'It compresses the data'], correct: [0], explain: 'At-rest encryption protects data if the underlying storage leaks.' },
+    { kind: 'single', prompt: 'What does AWS KMS provide?', options: ['Managed encryption keys with IAM-controlled, audited access', 'Object storage', 'A message queue', 'A CDN'], correct: [0], explain: 'KMS centrally manages keys; access is governed by IAM and logged.' },
+    { kind: 'single', prompt: 'Who can decrypt data protected by a KMS key?', options: ['Only identities the key policy / IAM allows', 'Anyone in the account', 'Only the root user', 'Anyone on the internet'], correct: [0], explain: 'KMS decryption is gated by key policy and IAM permissions.' },
+    { kind: 'single', prompt: 'Protect data on the network between client and server. Use…', options: ['TLS (encryption in transit)', 'A bigger instance', 'A NAT gateway', 'An SQS queue'], correct: [0], explain: 'TLS encrypts data in transit; KMS-backed encryption covers at rest.' },
+  ],
+};
+
+const edge = {
+  id: 'protect-the-edge', title: 'Guard the Front Door', examDomain: 'Design Secure Architectures',
+  summary: 'A barrier that soaks up a stampede, and a doorman who turns away troublemakers before they reach the kitchen.',
+  scenery: 'open',
+  blocks: [
+    C('traffic', 'Incoming traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'A mix of real users and bad actors.', 'Inbound requests, some malicious.'),
+    C('shield', 'AWS Shield', 'security', { pos: [-3.5, 0.7, 0] }, { name: 'The barrier', prop: 'guardpost', pos: [-3.5, 0], yaw: 90 }, 'Soaks up volumetric floods (DDoS) at the edge.', 'AWS Shield; DDoS protection.'),
+    C('waf', 'AWS WAF', 'security', { pos: [0, 0.7, 0] }, { name: 'The doorman', prop: 'bouncer', pos: [0, 0], yaw: 90 }, 'Inspects each request and blocks bad ones.', 'AWS WAF; L7 rules — SQLi/XSS/bots/rate limits.'),
+    C('app', 'Your app', 'compute', { pos: [4, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [4, 0], yaw: -90 }, 'The protected application.', 'Your app behind CloudFront/ALB.'),
+  ],
+  connections: [
+    { id: 'c_traffic_shield', from: 'traffic', to: 'shield', flow: 'request' },
+    { id: 'c_shield_waf', from: 'shield', to: 'waf', flow: 'request' },
+    { id: 'c_waf_app', from: 'waf', to: 'app', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Floods and bad actors', focus: 'app', anim: 'overload', animConn: 'c_traffic_shield', narration: 'A public endpoint faces volumetric floods (DDoS) and malicious requests (SQL injection, XSS, bad bots).', storyNarration: 'A stampede hits the door — and mixed in the crowd are pickpockets and gate-crashers.', concept: 'The edge faces DDoS + application-layer attacks.', blocks: ['traffic', 'app'], conns: ['c_traffic_shield'] },
+    { title: 'Soak up the stampede (Shield)', focus: 'shield', anim: 'pulse', animConn: 'c_traffic_shield', narration: 'AWS Shield absorbs DDoS floods at the edge, keeping the volumetric attack off your app.', storyNarration: 'A sturdy barrier out front takes the crush of the crowd, so the door isn’t flattened.', concept: 'Shield = DDoS protection at the edge.', blocks: ['traffic', 'shield', 'app'], conns: ['c_traffic_shield'] },
+    { title: 'Screen each request (WAF)', focus: 'waf', anim: 'pulse', animConn: 'c_shield_waf', narration: 'AWS WAF inspects requests against rules — block SQL injection, XSS, known bad bots, or rate-limit abusers.', storyNarration: 'A doorman checks everyone against a list, turning away the pickpockets and the obvious troublemakers.', concept: 'WAF = application-layer (L7) request filtering.', blocks: ['traffic', 'shield', 'waf', 'app'], conns: ['c_shield_waf'] },
+    { title: 'Only clean traffic gets in', focus: 'app', anim: 'chain', chain: ['c_traffic_shield', 'c_shield_waf', 'c_waf_app'], narration: 'Layered at the edge (often on CloudFront/ALB), Shield + WAF let real users through and drop the rest before your app.', storyNarration: 'The barrier and the doorman work together: genuine guests stroll in; everyone else is stopped at the door.', concept: 'Layered edge defense protects the app.', blocks: ['traffic', 'shield', 'waf', 'app'], conns: ['c_traffic_shield', 'c_shield_waf', 'c_waf_app'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Protect against a large DDoS flood. Use…', options: ['AWS Shield', 'AWS WAF rules only', 'An EBS volume', 'A DynamoDB table'], correct: [0], explain: 'Shield is AWS’s managed DDoS protection.' },
+    { kind: 'single', prompt: 'Block SQL injection and XSS in HTTP requests. Use…', options: ['AWS WAF', 'AWS Shield', 'A NAT gateway', 'Route 53'], correct: [0], explain: 'WAF filters application-layer (L7) request content.' },
+    { kind: 'single', prompt: 'AWS WAF operates mainly at…', options: ['Layer 7 (HTTP requests)', 'Layer 3 (IP only)', 'The physical layer', 'The database engine'], correct: [0], explain: 'WAF inspects L7 request attributes and content.' },
+    { kind: 'tapfix', prompt: 'Bots are hammering your site with SQL-injection attempts. Tap what to put in front of the app.', tapTarget: 'waf', explain: 'WAF rules block injection attempts and bad bots at L7.' },
+  ],
+};
+
+const apigw = {
+  id: 'api-front-door', title: 'A Front Door for APIs', examDomain: 'Design High-Performing Architectures',
+  summary: 'One managed window that takes every order, checks it, limits the pace, and passes it to the kitchen.',
+  scenery: 'open',
+  blocks: [
+    C('client', 'API client', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'An app calling your API.', 'A client calling your HTTP API.'),
+    C('api', 'API Gateway', 'networking', { pos: [-1.5, 0.7, 0] }, { name: 'The order window', prop: 'pass', pos: [-1.5, 0], yaw: -90 }, 'Takes, checks, throttles and routes every request.', 'Amazon API Gateway; managed API front door.'),
+    C('lambda', 'Lambda', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'On-demand cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One backend the gateway can route to.', 'A Lambda backend.'),
+    C('svc', 'Service', 'compute', { pos: [3.3, 0.7, 1.6] }, { name: 'Line cook', prop: 'cook', pos: [3.3, 1.6], yaw: -90 }, 'Another backend.', 'An HTTP/container backend.'),
+  ],
+  connections: [
+    { id: 'c_client_api', from: 'client', to: 'api', flow: 'request' },
+    { id: 'c_api_lambda', from: 'api', to: 'lambda', flow: 'request' },
+    { id: 'c_api_svc', from: 'api', to: 'svc', flow: 'request' },
+  ],
+  stages: [
+    { title: 'One front door for your APIs', focus: 'api', anim: 'pulse', animConn: 'c_client_api', narration: 'API Gateway is a single managed entry point for your APIs — clients only ever talk to it.', storyNarration: 'Every order goes through one window. Diners never wander into the kitchen to shout an order.', concept: 'API Gateway = one managed API entry point.', blocks: ['client', 'api'], conns: ['c_client_api'] },
+    { title: 'Check and throttle', focus: 'api', anim: 'pulse', animConn: 'c_client_api', narration: 'It authenticates callers, validates requests, and throttles / rate-limits to protect your backends.', storyNarration: 'The window checks each order is valid and paid, and limits how fast orders fly in so the kitchen isn’t swamped.', concept: 'Auth, validation and throttling at the gateway.', blocks: ['client', 'api'], conns: ['c_client_api'] },
+    { title: 'Route to the right backend', focus: 'lambda', anim: 'chain', chain: ['c_client_api', 'c_api_lambda'], narration: 'It routes each path to the right backend — Lambda, containers, or any HTTP service.', storyNarration: 'The window sends each ticket to the right station — grill, salad, or the on-call cook.', concept: 'Routes requests to Lambda / services.', blocks: ['client', 'api', 'lambda', 'svc'], conns: ['c_client_api', 'c_api_lambda', 'c_api_svc'] },
+    { title: 'Managed scale + caching', focus: 'api', anim: 'pulse', animConn: 'c_client_api', narration: 'It scales automatically and can cache responses — no servers to run for the API layer.', storyNarration: 'The window handles any size of queue and keeps popular answers ready — and you never staff the window itself.', concept: 'Serverless, scaling API layer with caching.', blocks: ['client', 'api', 'lambda', 'svc'], conns: ['c_client_api', 'c_api_lambda', 'c_api_svc'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'What is Amazon API Gateway?', options: ['A managed front door for your APIs', 'A relational database', 'A block storage volume', 'A DNS service'], correct: [0], explain: 'API Gateway is a managed entry point that fronts your APIs.' },
+    { kind: 'single', prompt: 'Stop a client from overwhelming your backend with calls. Use…', options: ['API Gateway throttling / rate limits', 'A bigger EBS volume', 'Glacier', 'A NACL only'], correct: [0], explain: 'API Gateway can throttle and rate-limit requests.' },
+    { kind: 'single', prompt: 'A common serverless API pairing is…', options: ['API Gateway + Lambda', 'API Gateway + EBS', 'Route 53 + SQS', 'KMS + EFS'], correct: [0], explain: 'API Gateway commonly routes to Lambda for serverless APIs.' },
+    { kind: 'single', prompt: 'Who manages/scales the API Gateway layer?', options: ['AWS — it’s managed and auto-scaling', 'You patch its servers', 'Nobody; it’s fixed size', 'The client'], correct: [0], explain: 'API Gateway is fully managed and scales for you.' },
+  ],
+};
+
+const orchestrate = {
+  id: 'orchestrate-step-functions', title: 'Coordinate the Steps', examDomain: 'Design Resilient Architectures',
+  summary: 'A head chef with a recipe card who calls each step in order, waits, and handles a step that fails.',
+  scenery: 'open',
+  blocks: [
+    C('sf', 'Step Functions', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Head chef', prop: 'host', pos: [-5, 0], yaw: 90 }, 'Coordinates the whole multi-step job.', 'AWS Step Functions; a managed state machine.'),
+    C('s1', 'Step 1: Prep', 'compute', { pos: [0, 0.7, -1.7] }, { name: 'Prep cook', prop: 'cook', pos: [0, -1.7], yaw: -90 }, 'The first step.', 'A task (e.g. a Lambda).'),
+    C('s2', 'Step 2: Cook', 'compute', { pos: [1.8, 0.7, 0] }, { name: 'Line cook', prop: 'cook', pos: [1.8, 0], yaw: -90 }, 'The second step, after the first.', 'The next task in the workflow.'),
+    C('s3', 'Step 3: Plate', 'compute', { pos: [3.6, 0.7, 1.7] }, { name: 'Plating cook', prop: 'cook', pos: [3.6, 1.7], yaw: -90 }, 'The final step.', 'The final task.'),
+  ],
+  connections: [
+    { id: 'c_sf_s1', from: 'sf', to: 's1', flow: 'request' },
+    { id: 'c_sf_s2', from: 'sf', to: 's2', flow: 'request' },
+    { id: 'c_sf_s3', from: 'sf', to: 's3', flow: 'request' },
+  ],
+  stages: [
+    { title: 'A recipe with many steps', focus: 'sf', anim: 'pulse', animConn: 'c_sf_s1', narration: 'Real work is often multi-step: do A, then B, then C — with ordering and error handling between them.', storyNarration: 'A dish isn’t one move: prep, then cook, then plate — each must happen in order, and someone must keep track.', concept: 'Multi-step work needs coordination.', blocks: ['sf', 's1'], conns: ['c_sf_s1'] },
+    { title: 'Call each step in order', focus: 's2', anim: 'chain', chain: ['c_sf_s1', 'c_sf_s2', 'c_sf_s3'], narration: 'Step Functions runs a state machine: it invokes each step, waits for it, then moves to the next.', storyNarration: 'The head chef calls “prep!”, waits, then “cook!”, waits, then “plate!” — never out of order.', concept: 'A state machine sequences the steps.', blocks: ['sf', 's1', 's2', 's3'], conns: ['c_sf_s1', 'c_sf_s2', 'c_sf_s3'] },
+    { title: 'Handle a step that fails', focus: 's2', anim: 'overload', animConn: 'c_sf_s2', narration: 'Built-in retries, catch and branching mean a failed step is retried or handled — not a silent dead end.', storyNarration: 'A step goes wrong? The head chef calls for a re-do or takes the back-up plan — the dish doesn’t just stall.', concept: 'Built-in retry / catch / branching.', blocks: ['sf', 's1', 's2', 's3'], conns: ['c_sf_s1', 'c_sf_s2', 'c_sf_s3'] },
+    { title: 'See the whole flow', focus: 'sf', anim: 'pulse', animConn: 'c_sf_s1', narration: 'Step Functions tracks state for long-running workflows and shows the flow visually — easy to follow and audit.', storyNarration: 'The recipe card shows exactly where every dish is, so nothing is forgotten on a busy night.', concept: 'Durable, visible orchestration of workflows.', blocks: ['sf', 's1', 's2', 's3'], conns: ['c_sf_s1', 'c_sf_s2', 'c_sf_s3'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'What does AWS Step Functions do?', options: ['Orchestrates multi-step workflows as a state machine', 'Stores objects', 'Serves DNS', 'Caches reads'], correct: [0], explain: 'Step Functions coordinates steps with ordering and error handling.' },
+    { kind: 'single', prompt: 'A step in the workflow fails. Step Functions can…', options: ['Retry, catch the error, or branch', 'Only crash the whole app', 'Nothing — you handle it manually', 'Delete the data'], correct: [0], explain: 'Retries, catchers and choice states are built in.' },
+    { kind: 'single', prompt: 'Best fit for Step Functions?', options: ['Coordinating several Lambdas/services in order', 'Storing relational data', 'A single one-line function', 'A CDN'], correct: [0], explain: 'It shines at orchestrating multi-step, multi-service workflows.' },
+    { kind: 'single', prompt: 'A benefit over wiring functions together yourself?', options: ['Visual flow + durable state + built-in error handling', 'It’s always cheaper to run', 'It removes the need for IAM', 'It encrypts at rest'], correct: [0], explain: 'You get managed state tracking, visualization and retries.' },
+  ],
+};
+
+const scaling = {
+  id: 'auto-scaling', title: 'Match Staff to Demand', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'Call in cooks when the tickets pile up, send them home when it’s quiet — pay only for what you need.',
+  scenery: 'open',
+  blocks: [
+    C('rail', 'Demand', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The tickets', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The load, rising and falling through the day.', 'Demand measured by CPU, requests or queue depth.'),
+    C('asg', 'Auto Scaling group', 'compute', { pos: [-1.5, 0.7, -1.6] }, { name: 'Shift manager', prop: 'host', pos: [-1.5, -1.6], yaw: -90 }, 'Adds or removes cooks to match the load.', 'An Auto Scaling group with a scaling policy.'),
+    C('c1', 'Instance', 'compute', { pos: [2, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [2, -1.6], yaw: -90 }, 'A baseline worker.', 'An EC2 instance in the group.'),
+    C('c2', 'Instance (added)', 'compute', { pos: [3.8, 0.7, 0] }, { name: 'Extra cook', prop: 'cook', pos: [3.8, 0], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
+    C('c3', 'Instance (added)', 'compute', { pos: [4.2, 0.7, 1.7] }, { name: 'Extra cook', prop: 'cook', pos: [4.2, 1.7], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
+  ],
+  connections: [
+    { id: 'c_rail_asg', from: 'rail', to: 'asg', flow: 'data' },
+    { id: 'c_asg_c1', from: 'asg', to: 'c1', flow: 'request' },
+    { id: 'c_asg_c2', from: 'asg', to: 'c2', flow: 'request' },
+    { id: 'c_asg_c3', from: 'asg', to: 'c3', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Demand rises and falls', focus: 'rail', anim: 'pulse', animConn: 'c_rail_asg', narration: 'Load changes through the day. Fixed capacity either wastes money at night or falls over at the peak.', storyNarration: 'Some hours the rail is empty; at the dinner rush it’s packed. A fixed crew is wrong most of the time.', concept: 'Demand is variable; fixed capacity fits poorly.', blocks: ['rail', 'asg', 'c1'], conns: ['c_rail_asg', 'c_asg_c1'] },
+    { title: 'Add cooks when busy (scale out)', focus: 'c2', anim: 'spike', narration: 'When a metric (CPU, requests, queue depth) rises, Auto Scaling launches more instances automatically.', storyNarration: 'The rail fills up, so the manager calls in extra cooks — no one has to phone around.', concept: 'Scale out automatically as load rises.', blocks: ['rail', 'asg', 'c1', 'c2', 'c3'], conns: ['c_rail_asg', 'c_asg_c1', 'c_asg_c2', 'c_asg_c3'] },
+    { title: 'Send them home when quiet (scale in)', focus: 'asg', anim: 'pulse', animConn: 'c_rail_asg', narration: 'When load drops, it terminates the extra instances — so you stop paying for idle capacity.', storyNarration: 'The rush passes and the rail clears, so the extra cooks clock out. You’re not paying a full crew at midnight.', concept: 'Scale in to stop paying for idle capacity.', blocks: ['rail', 'asg', 'c1'], conns: ['c_rail_asg', 'c_asg_c1'] },
+    { title: 'Set the target', focus: 'asg', anim: 'pulse', animConn: 'c_rail_asg', narration: 'Target-tracking keeps a metric at a set point (e.g. 60% CPU); min/max bounds keep it safe and predictable.', storyNarration: 'Tell the manager: “keep each cook about 60% busy, never fewer than two, never more than ten.” It handles the rest.', concept: 'Target-tracking policy with min/max bounds.', blocks: ['rail', 'asg', 'c1', 'c2', 'c3'], conns: ['c_rail_asg', 'c_asg_c1', 'c_asg_c2', 'c_asg_c3'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'What does an Auto Scaling group do?', options: ['Adds/removes instances to match demand', 'Stores objects durably', 'Routes DNS', 'Encrypts data'], correct: [0], explain: 'ASGs change instance count based on policies/metrics.' },
+    { kind: 'single', prompt: 'Auto Scaling commonly scales on…', options: ['CPU, request count or queue depth', 'The number of S3 buckets', 'DNS TTL', 'IAM users'], correct: [0], explain: 'Scaling policies track utilization/load metrics.' },
+    { kind: 'single', prompt: 'Keep average CPU at ~60% automatically. Use…', options: ['A target-tracking scaling policy', 'A fixed instance count', 'A NAT gateway', 'Glacier'], correct: [0], explain: 'Target tracking holds a metric near a chosen value.' },
+    { kind: 'single', prompt: 'The main benefit of Auto Scaling?', options: ['Capacity matches demand — performance at peak, savings when quiet', 'Permanent maximum capacity', 'It encrypts traffic', 'It replaces the database'], correct: [0], explain: 'You pay for what you need while meeting peak load.' },
+  ],
+};
+
+const analytics = {
+  id: 'analyse-the-data', title: 'Query the Archives', examDomain: 'Design High-Performing Architectures',
+  summary: 'Search the records where they sit, or load them into a warehouse built for heavy number-crunching.',
+  scenery: 'open',
+  blocks: [
+    C('analyst', 'Analyst', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The analyst', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'Asks questions of the data.', 'A BI / analytics user.'),
+    C('lake', 'Data in S3', 'storage', { pos: [-0.5, 0.7, -1.7] }, { name: 'The archives', prop: 'larder', pos: [-0.5, -1.7], yaw: -90 }, 'Mountains of raw records kept cheaply.', 'A data lake in S3.'),
+    C('athena', 'Athena', 'edge', { pos: [-0.5, 0.7, 1.4] }, { name: 'Search-in-place clerk', prop: 'securitydesk', pos: [-0.5, 1.4], yaw: -90 }, 'Runs SQL directly on the files; pay per query.', 'Amazon Athena; serverless SQL on S3.'),
+    C('redshift', 'Redshift', 'database', { pos: [3.5, 0.7, 0] }, { name: 'The analysis room', prop: 'pantry', pos: [3.5, 0], yaw: -90 }, 'A warehouse built for big, repeated analysis.', 'Amazon Redshift; columnar data warehouse.'),
+  ],
+  connections: [
+    { id: 'c_analyst_athena', from: 'analyst', to: 'athena', flow: 'request' },
+    { id: 'c_athena_lake', from: 'athena', to: 'lake', flow: 'data' },
+    { id: 'c_analyst_redshift', from: 'analyst', to: 'redshift', flow: 'request' },
+    { id: 'c_lake_redshift', from: 'lake', to: 'redshift', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Mountains of records', focus: 'lake', anim: 'pulse', animConn: 'c_athena_lake', narration: 'Logs, clicks and sales pile up cheaply in S3 — a data lake of raw records.', storyNarration: 'Years of dockets and receipts fill the archive room — cheap to keep, but a lot to wade through.', concept: 'S3 is a cheap, scalable data lake.', blocks: ['analyst', 'lake'], conns: ['c_athena_lake'] },
+    { title: 'Search in place (Athena)', focus: 'athena', anim: 'chain', chain: ['c_analyst_athena', 'c_athena_lake'], narration: 'Athena runs SQL directly on the S3 files — no servers, pay per query. Great for ad-hoc questions.', storyNarration: 'Send a clerk into the archive to find exactly the dockets you asked for — you pay only for that search.', concept: 'Athena = serverless SQL over S3, pay per query.', blocks: ['analyst', 'lake', 'athena'], conns: ['c_analyst_athena', 'c_athena_lake'] },
+    { title: 'Load a warehouse (Redshift)', focus: 'redshift', anim: 'chain', chain: ['c_lake_redshift', 'c_analyst_redshift'], narration: 'For big, repeated analytics, load data into Redshift — a columnar warehouse tuned for fast aggregation.', storyNarration: 'For the nightly numbers you always run, move the records into a dedicated analysis room laid out for fast counting.', concept: 'Redshift = managed columnar data warehouse.', blocks: ['analyst', 'lake', 'redshift'], conns: ['c_lake_redshift', 'c_analyst_redshift'] },
+    { title: 'Pick the tool', focus: 'analyst', narration: 'Occasional, ad-hoc queries on raw S3 → Athena. Large-scale, frequent BI and joins → Redshift.', storyNarration: 'A one-off lookup? Send the clerk to the archive. Crunching the same big reports daily? Use the analysis room.', concept: 'Athena for ad-hoc; Redshift for heavy, repeated BI.', blocks: ['analyst', 'lake', 'athena', 'redshift'], conns: ['c_analyst_athena', 'c_athena_lake', 'c_lake_redshift', 'c_analyst_redshift'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Run occasional SQL directly on files in S3, no servers. Use…', options: ['Amazon Athena', 'Amazon Redshift', 'DynamoDB', 'EFS'], correct: [0], explain: 'Athena is serverless SQL over S3, billed per query.' },
+    { kind: 'single', prompt: 'Large-scale, frequent BI with complex joins over structured data. Use…', options: ['Amazon Redshift', 'Athena for everything', 'A single RDS micro instance', 'S3 Glacier'], correct: [0], explain: 'Redshift is a columnar warehouse built for heavy analytics.' },
+    { kind: 'single', prompt: 'A cheap, scalable place to keep raw analytics data?', options: ['A data lake in S3', 'An EBS volume', 'A DynamoDB item', 'A NAT gateway'], correct: [0], explain: 'S3 is the standard low-cost, scalable data lake.' },
+    { kind: 'single', prompt: 'Athena’s cost model is…', options: ['Pay per query (data scanned)', 'A fixed hourly cluster fee', 'Per stored object', 'Per IAM user'], correct: [0], explain: 'Athena charges for the data each query scans.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics],
 };

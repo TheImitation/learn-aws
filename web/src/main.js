@@ -95,6 +95,12 @@ const CARD = {
   'dns-routing-route53': { icon: '🧭', accent: '#5a8fd1' },
   'disaster-recovery': { icon: '🛟', accent: '#cf6b6b' },
   'containers-ecs': { icon: '📦', accent: '#4f9ed1' },
+  'encrypt-with-kms': { icon: '🔐', accent: '#d15656' },
+  'protect-the-edge': { icon: '🛡️', accent: '#cf6b4a' },
+  'api-front-door': { icon: '🪟', accent: '#4f86c6' },
+  'orchestrate-step-functions': { icon: '🔀', accent: '#9a86e6' },
+  'auto-scaling': { icon: '📈', accent: '#e89a3a' },
+  'analyse-the-data': { icon: '🔎', accent: '#4aa6a0' },
 };
 
 function openCourseMap() {
