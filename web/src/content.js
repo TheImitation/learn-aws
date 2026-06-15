@@ -12,6 +12,34 @@ const kitchen = {
   examDomain: 'Design Resilient Architectures',
   summary: 'Run a kitchen that survives the dinner rush, a cook walking off, and a whole kitchen flooding.',
   scenery: 'restaurant',
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-9.0, 0] },
+  scene: {
+    bounds: { w: 22, d: 14, x: -0.75 },
+    zones: [
+      { id: 'foh', label: 'Front of house', rect: { x0: -11.5, z0: -6.8, x1: -3.5, z1: 6.8 }, floorTint: 0x4a3f37, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-6.8, -1.2] }, { kind: 'chair', pos: [-6.8, -0.5], yaw: 180, opts: { occupied: true } }, { kind: 'chair', pos: [-6.8, -1.9], opts: { occupied: true } },
+        { kind: 'diningtable', pos: [-5.8, 2.6] }, { kind: 'chair', pos: [-5.8, 3.3], yaw: 180, opts: { occupied: true } }, { kind: 'chair', pos: [-5.8, 1.9] },
+        { kind: 'pendant', pos: [-6.8, -1.2], y: 1.4 }, { kind: 'pendant', pos: [-5.8, 2.6], y: 1.4 },
+        { kind: 'window', pos: [-11.5, -2.5] }, { kind: 'window', pos: [-11.5, 2.5], opts: { variant: 'night' } },
+        { kind: 'plant', pos: [-10.9, 5.9] }, { kind: 'plant', pos: [-4.0, 6.2] },
+        { kind: 'bar', pos: [-5.2, -6.3] }, { kind: 'barstool', pos: [-6.1, -5.5] }, { kind: 'barstool', pos: [-5.6, -5.5] }, { kind: 'barstool', pos: [-4.8, -5.5] },
+      ] },
+      { id: 'pass', label: 'The pass', rect: { x0: -3.5, z0: -2.6, x1: 0.6, z1: 2.6 }, floorTint: 0x4a4033, accent: 0xf2b25a, dressing: [
+        { kind: 'signage', pos: [-1.6, -2.4], opts: { accent: 0xf2b25a } },
+      ] },
+      { id: 'kitchen', label: 'Kitchen line', rect: { x0: 0.6, z0: -3.6, x1: 5.6, z1: 3.6 }, floorTint: 0x3b3a3f, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [2.6, -3.0], y: 1.45 }, { kind: 'potrack', pos: [3.0, 0.2], y: 1.6 },
+        { kind: 'preptable', pos: [4.3, -3.1] }, { kind: 'shelving', pos: [1.4, -3.3] }, { kind: 'shelving', pos: [5.0, -3.3] }, { kind: 'bin', pos: [5.3, 3.2] },
+      ] },
+      { id: 'cold', label: 'Cold store', rect: { x0: 5.6, z0: -3.6, x1: 9.8, z1: 3.6 }, floorTint: 0x33414a, accent: 0x5a8fd1, dressing: [
+        { kind: 'shelving', pos: [9.4, -2.0], yaw: -90 }, { kind: 'shelving', pos: [9.4, 2.0], yaw: -90 }, { kind: 'bin', pos: [6.3, 3.2] },
+      ] },
+      { id: 'office', label: 'Back office', rect: { x0: -11.5, z0: -6.9, x1: -7.0, z1: -4.6 }, floorTint: 0x3a3630, accent: 0x67ad5b, dressing: [
+        { kind: 'officedesk', pos: [-10.0, -5.9], yaw: 90 }, { kind: 'wallart', pos: [-11.4, -5.6], y: 1.1 }, { kind: 'plant', pos: [-7.4, -6.4] },
+      ] },
+    ],
+  },
   blocks: [
     // ---- containers (architecture only; story is represented by the restaurant shell) ----
     C('region', 'Region (eu-west-1)', 'networking', { pos: [0, 1.4, 0], size: [14, 3.2, 10], container: true }, { name: 'The restaurant', prop: null, pos: [0, 0], yaw: 0 }, 'A geographic area such as eu-west-1.', 'Region eu-west-1; contains multiple isolated Availability Zones.'),
@@ -25,22 +53,22 @@ const kitchen = {
     C('asg', 'Auto Scaling group', 'compute', { pos: [0, 0.7, 2.0], size: [12.6, 1.5, 3.8], container: true }, { name: 'The brigade', prop: null, pos: [0, 0], yaw: 0 }, 'Scales instances to match demand.', 'Auto Scaling group across both private subnets.'),
     // ---- services ----
     C('user', 'Global user', 'generic', { pos: [0, 3.3, -8.6] }, { name: 'Customer', prop: 'customer', pos: [-9.0, 0.0], yaw: 90 }, 'A person opening your app.', 'Client HTTPS request to your domain.'),
-    C('singleServer', 'The one server', 'compute', { pos: [0, 0.7, -1.2] }, { name: 'The one cook', prop: 'cook', pos: [-2.0, 0.0], yaw: -90 }, 'One instance doing everything — a single point of failure.', 'A single public EC2 instance, no redundancy.'),
-    C('igw', 'Internet gateway', 'networking', { pos: [0, 1.9, -4.6] }, { name: 'Service door', prop: 'servicedoor', pos: [-4.0, 0.0], yaw: 90 }, 'The one route between your network and the internet.', 'Internet gateway attached to the VPC.'),
-    C('alb', 'Application Load Balancer', 'networking', { pos: [0, 1.2, -1.6] }, { name: 'The pass', prop: 'pass', pos: [-2.0, 0.0], yaw: -90 }, 'Routes each request to a healthy target.', 'Internet-facing ALB across both public subnets; health-checks targets.'),
-    C('ec2A', 'Web server A', 'compute', { pos: [-3.8, 0.7, 1.7] }, { name: 'Cook A', prop: 'cook', pos: [1.0, -2.2], yaw: -90 }, 'A web server, kept private.', 'EC2 in private subnet A.'),
-    C('ec2A2', 'Web server A2', 'compute', { pos: [-2.4, 0.7, 2.7] }, { name: 'Extra cook', prop: 'cook', pos: [2.6, -2.2], yaw: -90 }, 'An instance launched by Auto Scaling.', 'EC2 added during a scale-out event.'),
-    C('ec2B', 'Web server B', 'compute', { pos: [3.8, 0.7, 1.7] }, { name: 'Cook B', prop: 'cook', pos: [1.0, 2.2], yaw: -90 }, 'A web server in the second AZ.', 'EC2 in private subnet B.'),
-    C('rdsPrimary', 'RDS primary', 'database', { pos: [-3.5, 0.7, 3.5] }, { name: 'Pantry', prop: 'pantry', pos: [4.6, -2.2], yaw: -90 }, 'The database — the source of truth.', 'RDS primary (Multi-AZ) with a synchronous standby.'),
-    C('rdsStandby', 'RDS standby', 'database', { pos: [3.5, 0.7, 3.5] }, { name: 'Backup pantry', prop: 'pantry', pos: [4.6, 2.2], yaw: -90 }, 'A synchronous copy ready to take over.', 'RDS standby in eu-west-1b; promoted on failover.'),
-    C('cloudfront', 'CloudFront', 'edge', { pos: [2.4, 3.0, -6.9] }, { name: 'Grab-and-go', prop: 'grabandgo', pos: [-6.6, 1.1], yaw: -90 }, 'Caches content near each user.', 'CloudFront distribution; origin = the ALB.'),
-    C('route53', 'Route 53', 'edge', { pos: [-2.4, 3.0, -6.9] }, { name: 'Host stand', prop: 'host', pos: [-6.6, -1.1], yaw: -90 }, 'Turns your domain into the right address.', 'Route 53 hosted zone; alias -> CloudFront.'),
+    C('singleServer', 'The one server', 'compute', { pos: [0, 0.7, -1.2] }, { name: 'The one cook', prop: 'cook', pos: [2.0, 0.0], yaw: -90, face: 'alb' }, 'One instance doing everything — a single point of failure.', 'A single public EC2 instance, no redundancy.'),
+    C('igw', 'Internet gateway', 'networking', { pos: [0, 1.9, -4.6] }, { name: 'Service door', prop: 'servicedoor', pos: [-3.5, 0.0], yaw: 90, face: 'alb' }, 'The one route between your network and the internet.', 'Internet gateway attached to the VPC.'),
+    C('alb', 'Application Load Balancer', 'networking', { pos: [0, 1.2, -1.6] }, { name: 'The pass', prop: 'pass', pos: [-1.6, 0.0], face: 'igw' }, 'Routes each request to a healthy target.', 'Internet-facing ALB across both public subnets; health-checks targets.'),
+    C('ec2A', 'Web server A', 'compute', { pos: [-3.8, 0.7, 1.7] }, { name: 'Cook A', prop: 'cook', pos: [2.0, -1.8], face: 'alb' }, 'A web server, kept private.', 'EC2 in private subnet A.'),
+    C('ec2A2', 'Web server A2', 'compute', { pos: [-2.4, 0.7, 2.7] }, { name: 'Extra cook', prop: 'cook', pos: [3.6, 0.0], face: 'alb' }, 'An instance launched by Auto Scaling.', 'EC2 added during a scale-out event.'),
+    C('ec2B', 'Web server B', 'compute', { pos: [3.8, 0.7, 1.7] }, { name: 'Cook B', prop: 'cook', pos: [2.0, 1.8], face: 'alb' }, 'A web server in the second AZ.', 'EC2 in private subnet B.'),
+    C('rdsPrimary', 'RDS primary', 'database', { pos: [-3.5, 0.7, 3.5] }, { name: 'Pantry', prop: 'pantry', pos: [8.0, -1.8], yaw: -90 }, 'The database — the source of truth.', 'RDS primary (Multi-AZ) with a synchronous standby.'),
+    C('rdsStandby', 'RDS standby', 'database', { pos: [3.5, 0.7, 3.5] }, { name: 'Backup pantry', prop: 'pantry', pos: [8.0, 1.8], yaw: -90 }, 'A synchronous copy ready to take over.', 'RDS standby in eu-west-1b; promoted on failover.'),
+    C('cloudfront', 'CloudFront', 'edge', { pos: [2.4, 3.0, -6.9] }, { name: 'Grab-and-go', prop: 'grabandgo', pos: [-9.0, 1.6], yaw: 90 }, 'Caches content near each user.', 'CloudFront distribution; origin = the ALB.'),
+    C('route53', 'Route 53', 'edge', { pos: [-2.4, 3.0, -6.9] }, { name: 'Host stand', prop: 'host', pos: [-9.0, -2.2], face: 'user' }, 'Turns your domain into the right address.', 'Route 53 hosted zone; alias -> CloudFront.'),
   ],
   connections: [
-    { id: 'c_user_server', from: 'user', to: 'singleServer', flow: 'request' },
+    { id: 'c_user_server', from: 'user', to: 'singleServer', flow: 'request', waypoints: [[-3.5, 0]] },
     { id: 'c_user_r53', from: 'user', to: 'route53', flow: 'request' },
     { id: 'c_r53_cf', from: 'route53', to: 'cloudfront', flow: 'request' },
-    { id: 'c_cf_alb', from: 'cloudfront', to: 'alb', flow: 'request' },
+    { id: 'c_cf_alb', from: 'cloudfront', to: 'alb', flow: 'request', waypoints: [[-3.5, 0.4]] },
     { id: 'c_alb_ec2A', from: 'alb', to: 'ec2A', flow: 'request' },
     { id: 'c_alb_ec2A2', from: 'alb', to: 'ec2A2', flow: 'request' },
     { id: 'c_alb_ec2B', from: 'alb', to: 'ec2B', flow: 'request' },
@@ -399,14 +427,30 @@ const blockfile = {
 
 const fanout = {
   id: 'fan-out-sns', title: 'Broadcast with SNS', examDomain: 'Design Resilient Architectures',
-  summary: 'Shout an event once over the kitchen tannoy; every station that cares reacts on its own.',
+  summary: 'Drop an event once at the sorting office; every department that cares gets its own copy to work at its own pace.',
   scenery: 'open',
+  world: 'sortingoffice',
+  anchors: { door: [-4.5, 0], entrance: [-9, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -0.5 },
+    zones: [
+      { id: 'intake', label: 'Intake', rect: { x0: -10, z0: -5.8, x1: -4.5, z1: 5.8 }, floorTint: 0x34363d, accent: 0x5a8fd1, dressing: [
+        { kind: 'dock', pos: [-8, -4.7] }, { kind: 'parcels', pos: [-9, 3.6] }, { kind: 'parcels', pos: [-6.6, -4.4] }, { kind: 'shelving', pos: [-9.4, 0.5], yaw: 90 },
+      ] },
+      { id: 'sort', label: 'Sorting hall', rect: { x0: -4.5, z0: -5.8, x1: 0.6, z1: 5.8 }, floorTint: 0x3d3f47, accent: 0x9a86e6, dressing: [
+        { kind: 'signage', pos: [-2.5, -5.4], opts: { accent: 0x9a86e6 } }, { kind: 'shelving', pos: [-2.5, 5.4] },
+      ] },
+      { id: 'dispatch', label: 'Dispatch', rect: { x0: 0.6, z0: -5.8, x1: 9.5, z1: 5.8 }, floorTint: 0x36403a, accent: 0x67ad5b, dressing: [
+        { kind: 'dock', pos: [7.8, -4.7] }, { kind: 'parcels', pos: [8.6, 3.8] }, { kind: 'shelving', pos: [9.3, 0.5], yaw: -90 }, { kind: 'signage', pos: [3.0, -5.4], opts: { accent: 0x67ad5b } },
+      ] },
+    ],
+  },
   blocks: [
-    C('producer', 'Producer', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Something that happens (an event).', 'A publisher; e.g. “order placed”.'),
-    C('sns', 'SNS topic', 'generic', { pos: [-1.5, 0.7, 0] }, { name: 'The tannoy', prop: 'tannoy', pos: [-1.5, 0], yaw: 0 }, 'Announces the event to everyone subscribed.', 'An SNS topic; push-based pub/sub.'),
-    C('billing', 'Billing queue', 'generic', { pos: [2.2, 0.7, -2.1] }, { name: 'Billing rail', prop: 'ticketrail', pos: [2.2, -2.1], yaw: 0 }, 'One subscriber that bills the order.', 'An SQS queue subscribed to the topic.'),
-    C('analytics', 'Analytics queue', 'generic', { pos: [4, 0.7, -0.3] }, { name: 'Analytics rail', prop: 'ticketrail', pos: [4, -0.3], yaw: 0 }, 'Another subscriber that records stats.', 'Another SQS queue subscriber.'),
-    C('notify', 'Lambda', 'compute', { pos: [2.6, 0.7, 2.1] }, { name: 'Notify cook', prop: 'cook', pos: [2.6, 2.1], yaw: -90 }, 'A subscriber that sends a notification.', 'A Lambda subscribed to the topic.'),
+    C('producer', 'Producer', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'Dispatch desk', prop: 'intake', pos: [-8, 0], face: 'sns' }, 'Something that happens (an event).', 'A publisher; e.g. “order placed”.'),
+    C('sns', 'SNS topic', 'generic', { pos: [-1.5, 0.7, 0] }, { name: 'Sorting machine', prop: 'sorter', pos: [-2.5, 0], yaw: 0 }, 'Announces the event to everyone subscribed.', 'An SNS topic; push-based pub/sub.'),
+    C('billing', 'Billing queue', 'generic', { pos: [2.2, 0.7, -2.1] }, { name: 'Billing bin', prop: 'mailbin', pos: [3.0, -2.6], yaw: -90 }, 'One subscriber that bills the order.', 'An SQS queue subscribed to the topic.'),
+    C('analytics', 'Analytics queue', 'generic', { pos: [4, 0.7, -0.3] }, { name: 'Analytics bin', prop: 'mailbin', pos: [4.4, -0.2], yaw: -90 }, 'Another subscriber that records stats.', 'Another SQS queue subscriber.'),
+    C('notify', 'Lambda', 'compute', { pos: [2.6, 0.7, 2.1] }, { name: 'Notifications clerk', prop: 'clerk', pos: [3.0, 2.6], face: 'sns' }, 'A subscriber that sends a notification.', 'A Lambda subscribed to the topic.'),
   ],
   connections: [
     { id: 'c_prod_sns', from: 'producer', to: 'sns', flow: 'request' },
@@ -415,10 +459,10 @@ const fanout = {
     { id: 'c_sns_notify', from: 'sns', to: 'notify', flow: 'data' },
   ],
   stages: [
-    { title: 'One event, many care', focus: 'producer', anim: 'pulse', animConn: 'c_prod_sns', narration: 'When one thing happens, several systems need to know — billing, analytics, notifications.', storyNarration: 'An order is placed. The kitchen, the till, and the front desk all need to hear about it.', concept: 'One event often has many interested consumers.', blocks: ['producer', 'sns'], conns: ['c_prod_sns'] },
-    { title: 'Shout it once (SNS)', focus: 'sns', anim: 'spike', narration: 'Publish to an SNS topic and it pushes a copy to every subscriber — fan-out, no point-to-point wiring.', storyNarration: 'Call it once over the tannoy. Everyone who’s listening hears it at the same moment.', concept: 'SNS = pub/sub topic that fans out to all subscribers.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
-    { title: 'Each reacts on its own', focus: 'analytics', anim: 'pulse', animConn: 'c_sns_analytics', narration: 'Each subscriber gets its own copy and processes independently — add or remove subscribers without touching the producer.', storyNarration: 'The till rings it up, the log writes it down, the front desk pings the guest — each does its own job.', concept: 'Subscribers are decoupled and independent.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
-    { title: 'SNS + SQS together', focus: 'billing', anim: 'pulse', animConn: 'c_sns_billing', narration: 'Subscribe SQS queues to the topic so each consumer also gets buffering and retries — the classic fan-out pattern.', storyNarration: 'Give each listener its own ticket rail off the tannoy, so a busy one can work through the backlog at its pace.', concept: 'SNS fan-out into SQS queues = decoupled + buffered.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
+    { title: 'One event, many care', focus: 'producer', anim: 'pulse', animConn: 'c_prod_sns', narration: 'When one thing happens, several systems need to know — billing, analytics, notifications.', storyNarration: 'A parcel arrives at the dispatch desk. Billing, analytics and notifications all need a copy of it.', concept: 'One event often has many interested consumers.', blocks: ['producer', 'sns'], conns: ['c_prod_sns'] },
+    { title: 'Drop it once (SNS)', focus: 'sns', anim: 'spike', narration: 'Publish to an SNS topic and it pushes a copy to every subscriber — fan-out, no point-to-point wiring.', storyNarration: 'Drop it once into the sorting machine; it stamps a copy into every pigeonhole at the same moment.', concept: 'SNS = pub/sub topic that fans out to all subscribers.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
+    { title: 'Each reacts on its own', focus: 'analytics', anim: 'pulse', animConn: 'c_sns_analytics', narration: 'Each subscriber gets its own copy and processes independently — add or remove subscribers without touching the producer.', storyNarration: 'Each department empties its own pigeonhole at its own pace — billing bills, analytics logs, notifications ping the guest.', concept: 'Subscribers are decoupled and independent.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
+    { title: 'SNS + SQS together', focus: 'billing', anim: 'pulse', animConn: 'c_sns_billing', narration: 'Subscribe SQS queues to the topic so each consumer also gets buffering and retries — the classic fan-out pattern.', storyNarration: 'Give each department a bin (an SQS queue) under its slot, so a backed-up team works through its stack without holding up the others.', concept: 'SNS fan-out into SQS queues = decoupled + buffered.', blocks: ['producer', 'sns', 'billing', 'analytics', 'notify'], conns: ['c_prod_sns', 'c_sns_billing', 'c_sns_analytics', 'c_sns_notify'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'One event must reach several independent systems at once. Use…', options: ['SNS (pub/sub fan-out)', 'A single SQS queue', 'An EBS volume', 'Route 53'], correct: [0], explain: 'SNS pushes each message to all subscribers.' },
