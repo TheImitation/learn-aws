@@ -305,22 +305,35 @@ const lambda = {
 
 const datastore = {
   id: 'pick-the-pantry', title: 'Pick the Right Database', examDomain: 'Design High-Performing Architectures',
-  summary: 'A relational pantry with a ledger, or a giant wall of numbered cubbies — match the store to the job.',
+  summary: 'A relational card catalogue with cross-references, or a giant wall of numbered lockers — match the store to the job.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-5, 0] },
+  scene: {
+    bounds: { w: 16, d: 10, x: -1 },
+    zones: [
+      { id: 'reading', label: 'Reading room', rect: { x0: -8, z0: -4.8, x1: -1, z1: 4.8 }, floorTint: 0x40362a, accent: 0x33b38c, dressing: [
+        { kind: 'diningtable', pos: [-5, -3.0] }, { kind: 'chair', pos: [-5, -2.3], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-5, -3.0], y: 1.4 }, { kind: 'plant', pos: [-7.4, 3.8] },
+      ] },
+      { id: 'catalogue', label: 'The catalogue', rect: { x0: -1, z0: -4.8, x1: 7, z1: 4.8 }, floorTint: 0x39302a, accent: 0x7d66d1, dressing: [
+        { kind: 'shelving', pos: [6, -3.8] }, { kind: 'signage', pos: [-0.6, -4.4], opts: { accent: 0x7d66d1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('app', 'Your app', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The line cook', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The app that needs to read and write data.', 'Your application tier.'),
-    C('rds', 'Amazon RDS', 'database', { pos: [1.5, 0.7, -1.7] }, { name: 'Relational pantry', prop: 'pantry', pos: [1.5, -1.7], yaw: -90 }, 'Labelled shelves + a ledger: relationships, joins, transactions.', 'Amazon RDS; relational (SQL), ACID, scales up + read replicas.'),
-    C('dynamo', 'DynamoDB', 'nosql', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered cubbies', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless cubbies.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.', 'Keys: PK (partition) + SK (sort)\nBilling PAY_PER_REQUEST (on-demand)\nGetItem {PK: USER#42} → single-digit ms'),
+    C('app', 'Your app', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Researcher', prop: 'customer', pos: [-5, 0], yaw: 90 }, 'The app that needs to read and write data.', 'Your application tier.'),
+    C('rds', 'Amazon RDS', 'database', { pos: [1.5, 0.7, -1.7] }, { name: 'Card catalogue', prop: 'cardcatalog', pos: [1.5, -1.7], yaw: -90 }, 'Labelled drawers + cross-references: relationships, joins, transactions.', 'Amazon RDS; relational (SQL), ACID, scales up + read replicas.'),
+    C('dynamo', 'DynamoDB', 'nosql', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered lockers', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless lockers.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.', 'Keys: PK (partition) + SK (sort)\nBilling PAY_PER_REQUEST (on-demand)\nGetItem {PK: USER#42} → single-digit ms'),
   ],
   connections: [
     { id: 'c_app_rds', from: 'app', to: 'rds', flow: 'data' },
     { id: 'c_app_dynamo', from: 'app', to: 'dynamo', flow: 'data' },
   ],
   stages: [
-    { title: 'The organised pantry (RDS)', focus: 'rds', anim: 'pulse', animConn: 'c_app_rds', narration: 'A relational database stores structured rows you can join and update in transactions — great when data is interrelated.', storyNarration: 'Stock sits on labelled shelves with a ledger: ask complex questions across it, and keep everything consistent.', concept: 'RDS = relational data with joins and transactions.', blocks: ['app', 'rds'], conns: ['c_app_rds'] },
-    { title: 'A wall of cubbies (DynamoDB)', focus: 'dynamo', anim: 'pulse', animConn: 'c_app_dynamo', narration: 'DynamoDB stores items you fetch by key in single-digit milliseconds, and scales horizontally to any size.', storyNarration: 'Grab item #4839 from its cubby in an instant. Add endless cubbies — but you fetch by the number, not by cross-referencing.', concept: 'DynamoDB = key-value NoSQL, huge scale, constant speed.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_dynamo'] },
-    { title: 'The trade-off', focus: 'app', narration: 'RDS gives relationships and transactions but scales mostly vertically; DynamoDB gives limitless scale and speed but key-based access, no joins.', storyNarration: 'The pantry lets you reason across all the stock; the cubby wall is faster and endless but you must know the number.', concept: 'Relationships/transactions vs limitless scale/speed.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_rds', 'c_app_dynamo'] },
-    { title: 'Pick the right store', focus: 'app', narration: 'Interrelated data, joins, transactions → RDS. Massive scale with simple key lookups and predictable latency → DynamoDB.', storyNarration: 'Recipes that reference each other → the pantry. A million quick grab-by-number pickups → the cubby wall.', concept: 'Match the data store to the access pattern.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_rds', 'c_app_dynamo'] },
+    { title: 'The card catalogue (RDS)', focus: 'rds', anim: 'pulse', animConn: 'c_app_rds', narration: 'A relational database stores structured rows you can join and update in transactions — great when data is interrelated.', storyNarration: 'Records sit in an indexed catalogue with cross-references: ask complex questions across them, and keep everything consistent.', concept: 'RDS = relational data with joins and transactions.', blocks: ['app', 'rds'], conns: ['c_app_rds'] },
+    { title: 'A wall of lockers (DynamoDB)', focus: 'dynamo', anim: 'pulse', animConn: 'c_app_dynamo', narration: 'DynamoDB stores items you fetch by key in single-digit milliseconds, and scales horizontally to any size.', storyNarration: 'Grab item #4839 from its locker in an instant. Add endless lockers — but you fetch by the number, not by cross-referencing.', concept: 'DynamoDB = key-value NoSQL, huge scale, constant speed.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_dynamo'] },
+    { title: 'The trade-off', focus: 'app', narration: 'RDS gives relationships and transactions but scales mostly vertically; DynamoDB gives limitless scale and speed but key-based access, no joins.', storyNarration: 'The catalogue lets you reason across all the records; the locker wall is faster and endless but you must know the number.', concept: 'Relationships/transactions vs limitless scale/speed.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_rds', 'c_app_dynamo'] },
+    { title: 'Pick the right store', focus: 'app', narration: 'Interrelated data, joins, transactions → RDS. Massive scale with simple key lookups and predictable latency → DynamoDB.', storyNarration: 'Records that reference each other → the catalogue. A million quick grab-by-number pickups → the locker wall.', concept: 'Match the data store to the access pattern.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_rds', 'c_app_dynamo'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Highly interrelated data with joins and transactions?', options: ['Amazon RDS (relational)', 'DynamoDB', 'S3', 'CloudFront'], correct: [0], explain: 'Relational databases handle relationships, joins and ACID transactions.' },
@@ -738,13 +751,29 @@ const scaling = {
 
 const analytics = {
   id: 'analyse-the-data', title: 'Query the Archives', examDomain: 'Design High-Performing Architectures',
-  summary: 'Search the records where they sit, or load them into a warehouse built for heavy number-crunching.',
+  summary: 'Send a librarian to search the stacks where they sit, or lay the records out on a reading-room table built for heavy number-crunching.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 17, d: 11, x: -1 },
+    zones: [
+      { id: 'reading', label: 'Reading room', rect: { x0: -8.5, z0: -5.4, x1: -2.5, z1: 5.4 }, floorTint: 0x40362a, accent: 0x33b38c, dressing: [
+        { kind: 'diningtable', pos: [-5.5, -3.6] }, { kind: 'chair', pos: [-5.5, -2.9], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-5.5, -3.6], y: 1.4 }, { kind: 'plant', pos: [-8, 4.4] },
+      ] },
+      { id: 'stacks', label: 'The stacks', rect: { x0: -2.5, z0: -5.4, x1: 2, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [-2, -4.4] }, { kind: 'signage', pos: [-2.2, -5.0], opts: { accent: 0xd9842e } },
+      ] },
+      { id: 'warehouse', label: 'Analysis room', rect: { x0: 2, z0: -5.4, x1: 7.5, z1: 5.4 }, floorTint: 0x342f3d, accent: 0x7d66d1, dressing: [
+        { kind: 'shelving', pos: [6.6, -4.4] }, { kind: 'signage', pos: [2.4, -5.0], opts: { accent: 0x7d66d1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('analyst', 'Analyst', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The analyst', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'Asks questions of the data.', 'A BI / analytics user.'),
-    C('lake', 'Data in S3', 'storage', { pos: [-0.5, 0.7, -1.7] }, { name: 'The archives', prop: 'larder', pos: [-0.5, -1.7], yaw: -90 }, 'Mountains of raw records kept cheaply.', 'A data lake in S3.'),
-    C('athena', 'Athena', 'edge', { pos: [-0.5, 0.7, 1.4] }, { name: 'Search-in-place clerk', prop: 'securitydesk', pos: [-0.5, 1.4], yaw: -90 }, 'Runs SQL directly on the files; pay per query.', 'Amazon Athena; serverless SQL on S3.'),
-    C('redshift', 'Redshift', 'database', { pos: [3.5, 0.7, 0] }, { name: 'The analysis room', prop: 'pantry', pos: [3.5, 0], yaw: -90 }, 'A warehouse built for big, repeated analysis.', 'Amazon Redshift; columnar data warehouse.'),
+    C('analyst', 'Analyst', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The analyst', prop: 'customer', pos: [-6.5, 0], yaw: 90, face: 'athena' }, 'Asks questions of the data.', 'A BI / analytics user.'),
+    C('lake', 'Data in S3', 'storage', { pos: [-0.5, 0.7, -1.7] }, { name: 'The stacks', prop: 'stacks', pos: [-0.5, -1.7], yaw: -90 }, 'Mountains of raw records kept cheaply.', 'A data lake in S3.'),
+    C('athena', 'Athena', 'edge', { pos: [-0.5, 0.7, 1.4] }, { name: 'The librarian', prop: 'librarian', pos: [-0.5, 1.4], yaw: -90 }, 'Runs SQL directly on the files; pay per query.', 'Amazon Athena; serverless SQL on S3.'),
+    C('redshift', 'Redshift', 'database', { pos: [3.5, 0.7, 0] }, { name: 'Reading-room table', prop: 'readingtable', pos: [3.5, 0], yaw: -90 }, 'A warehouse built for big, repeated analysis.', 'Amazon Redshift; columnar data warehouse.'),
   ],
   connections: [
     { id: 'c_analyst_athena', from: 'analyst', to: 'athena', flow: 'request' },
@@ -753,10 +782,10 @@ const analytics = {
     { id: 'c_lake_redshift', from: 'lake', to: 'redshift', flow: 'data' },
   ],
   stages: [
-    { title: 'Mountains of records', focus: 'lake', anim: 'pulse', animConn: 'c_athena_lake', narration: 'Logs, clicks and sales pile up cheaply in S3 — a data lake of raw records.', storyNarration: 'Years of dockets and receipts fill the archive room — cheap to keep, but a lot to wade through.', concept: 'S3 is a cheap, scalable data lake.', blocks: ['analyst', 'lake'], conns: ['c_athena_lake'] },
-    { title: 'Search in place (Athena)', focus: 'athena', anim: 'chain', chain: ['c_analyst_athena', 'c_athena_lake'], narration: 'Athena runs SQL directly on the S3 files — no servers, pay per query. Great for ad-hoc questions.', storyNarration: 'Send a clerk into the archive to find exactly the dockets you asked for — you pay only for that search.', concept: 'Athena = serverless SQL over S3, pay per query.', blocks: ['analyst', 'lake', 'athena'], conns: ['c_analyst_athena', 'c_athena_lake'] },
-    { title: 'Load a warehouse (Redshift)', focus: 'redshift', anim: 'chain', chain: ['c_lake_redshift', 'c_analyst_redshift'], narration: 'For big, repeated analytics, load data into Redshift — a columnar warehouse tuned for fast aggregation.', storyNarration: 'For the nightly numbers you always run, move the records into a dedicated analysis room laid out for fast counting.', concept: 'Redshift = managed columnar data warehouse.', blocks: ['analyst', 'lake', 'redshift'], conns: ['c_lake_redshift', 'c_analyst_redshift'] },
-    { title: 'Pick the tool', focus: 'analyst', narration: 'Occasional, ad-hoc queries on raw S3 → Athena. Large-scale, frequent BI and joins → Redshift.', storyNarration: 'A one-off lookup? Send the clerk to the archive. Crunching the same big reports daily? Use the analysis room.', concept: 'Athena for ad-hoc; Redshift for heavy, repeated BI.', blocks: ['analyst', 'lake', 'athena', 'redshift'], conns: ['c_analyst_athena', 'c_athena_lake', 'c_lake_redshift', 'c_analyst_redshift'] },
+    { title: 'Mountains of records', focus: 'lake', anim: 'pulse', animConn: 'c_athena_lake', narration: 'Logs, clicks and sales pile up cheaply in S3 — a data lake of raw records.', storyNarration: 'Years of records fill the stacks — cheap to keep, but a lot to wade through.', concept: 'S3 is a cheap, scalable data lake.', blocks: ['analyst', 'lake'], conns: ['c_athena_lake'] },
+    { title: 'Search in place (Athena)', focus: 'athena', anim: 'chain', chain: ['c_analyst_athena', 'c_athena_lake'], narration: 'Athena runs SQL directly on the S3 files — no servers, pay per query. Great for ad-hoc questions.', storyNarration: 'Send the librarian into the stacks to find exactly the records you asked for — you pay only for that search.', concept: 'Athena = serverless SQL over S3, pay per query.', blocks: ['analyst', 'lake', 'athena'], conns: ['c_analyst_athena', 'c_athena_lake'] },
+    { title: 'Load a warehouse (Redshift)', focus: 'redshift', anim: 'chain', chain: ['c_lake_redshift', 'c_analyst_redshift'], narration: 'For big, repeated analytics, load data into Redshift — a columnar warehouse tuned for fast aggregation.', storyNarration: 'For the reports you always run, move the records onto a dedicated reading-room table laid out for fast counting.', concept: 'Redshift = managed columnar data warehouse.', blocks: ['analyst', 'lake', 'redshift'], conns: ['c_lake_redshift', 'c_analyst_redshift'] },
+    { title: 'Pick the tool', focus: 'analyst', narration: 'Occasional, ad-hoc queries on raw S3 → Athena. Large-scale, frequent BI and joins → Redshift.', storyNarration: 'A one-off lookup? Send the librarian to the stacks. Crunching the same big reports daily? Use the reading-room table.', concept: 'Athena for ad-hoc; Redshift for heavy, repeated BI.', blocks: ['analyst', 'lake', 'athena', 'redshift'], conns: ['c_analyst_athena', 'c_athena_lake', 'c_lake_redshift', 'c_analyst_redshift'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Run occasional SQL directly on files in S3, no servers. Use…', options: ['Amazon Athena', 'Amazon Redshift', 'DynamoDB', 'EFS'], correct: [0], explain: 'Athena is serverless SQL over S3, billed per query.' },
@@ -825,13 +854,29 @@ const bill = {
 
 const aurora = {
   id: 'aurora-database', title: 'A Self-Healing Database', examDomain: 'Design High-Performing Architectures',
-  summary: 'A cloud-native pantry that keeps six copies across three rooms, grows itself, and adds read counters on demand.',
+  summary: 'A cloud-native catalogue that keeps six copies across three rooms, grows itself, and adds reading desks on demand.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 17, d: 11, x: -1 },
+    zones: [
+      { id: 'reading', label: 'Reading room', rect: { x0: -8, z0: -5.4, x1: -2.5, z1: 5.4 }, floorTint: 0x40362a, accent: 0x33b38c, dressing: [
+        { kind: 'diningtable', pos: [-5.5, -3.8] }, { kind: 'chair', pos: [-5.5, -3.1], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-5.5, -3.8], y: 1.4 }, { kind: 'plant', pos: [-7.6, 4.4] },
+      ] },
+      { id: 'catalogue', label: 'Master catalogue', rect: { x0: -2.5, z0: -5.4, x1: 1.5, z1: 5.4 }, floorTint: 0x342f3d, accent: 0x7d66d1, dressing: [
+        { kind: 'shelving', pos: [-2, -4.4] }, { kind: 'signage', pos: [-2.2, -5.0], opts: { accent: 0x7d66d1 } },
+      ] },
+      { id: 'copies', label: 'Reading copies', rect: { x0: 1.5, z0: -5.4, x1: 7.5, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [6.8, -4.4] }, { kind: 'signage', pos: [2, -5.0], opts: { accent: 0xd9842e } },
+      ] },
+    ],
+  },
   blocks: [
-    C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes data.', 'Your application tier.'),
-    C('primary', 'Aurora (writer)', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main pantry', prop: 'pantry', pos: [-0.5, 0], yaw: -90 }, 'Handles writes; storage self-heals across AZs.', 'Aurora writer; MySQL/PostgreSQL-compatible, managed.', 'Cluster endpoint → writer (all writes)\nReader endpoint → replicas (reads)\nStorage self-heals: 6 copies / 3 AZs'),
-    C('r1', 'Read replica', 'database', { pos: [3.2, 0.7, -1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.2, -1.7], yaw: -90 }, 'Serves reads; can be promoted on failover.', 'An Aurora read replica.'),
-    C('r2', 'Read replica', 'database', { pos: [3.6, 0.7, 1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.6, 1.7], yaw: -90 }, 'Another reader for scale.', 'Another Aurora replica (up to 15).'),
+    C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'App', prop: 'customer', pos: [-6, 0], yaw: 90, face: 'primary' }, 'Reads and writes data.', 'Your application tier.'),
+    C('primary', 'Aurora (writer)', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Master catalogue', prop: 'cardcatalog', pos: [-0.5, 0], yaw: -90 }, 'Handles writes; storage self-heals across AZs.', 'Aurora writer; MySQL/PostgreSQL-compatible, managed.', 'Cluster endpoint → writer (all writes)\nReader endpoint → replicas (reads)\nStorage self-heals: 6 copies / 3 AZs'),
+    C('r1', 'Read replica', 'database', { pos: [3.2, 0.7, -1.7] }, { name: 'Reading desk', prop: 'readingtable', pos: [3.2, -1.7], yaw: -90 }, 'Serves reads; can be promoted on failover.', 'An Aurora read replica.'),
+    C('r2', 'Read replica', 'database', { pos: [3.6, 0.7, 1.7] }, { name: 'Reading desk', prop: 'readingtable', pos: [4.4, 1.9], yaw: -90 }, 'Another reader for scale.', 'Another Aurora replica (up to 15).'),
   ],
   connections: [
     { id: 'c_app_primary', from: 'app', to: 'primary', flow: 'data' },
@@ -840,10 +885,10 @@ const aurora = {
     { id: 'c_app_r1', from: 'app', to: 'r1', flow: 'data' },
   ],
   stages: [
-    { title: 'A managed cloud database', focus: 'primary', anim: 'pulse', animConn: 'c_app_primary', narration: 'Aurora is a managed, MySQL/PostgreSQL-compatible database — you get the engine without running servers.', storyNarration: 'A pantry run for you: same familiar shelves as before, but someone else stocks, cleans and fixes it.', concept: 'Aurora = managed, compatible relational DB.', blocks: ['app', 'primary'], conns: ['c_app_primary'] },
-    { title: 'Storage that heals itself', focus: 'primary', narration: 'Aurora keeps six copies of your data across three AZs and auto-grows storage — it survives disk and AZ failures transparently.', storyNarration: 'Every item is duplicated across three rooms, six copies in all; lose a room and nothing’s missing, and the shelves grow on their own.', concept: 'Durable, self-healing, auto-scaling storage.', blocks: ['app', 'primary'], conns: ['c_app_primary'] },
-    { title: 'Scale reads with replicas', focus: 'r1', anim: 'chain', chain: ['c_primary_r1', 'c_app_r1'], narration: 'Add up to 15 low-latency read replicas to spread read load; one is promoted automatically if the writer fails.', storyNarration: 'Open extra reading counters off the same stock for the queue of lookups — and if the main pantry falls over, a counter takes over.', concept: 'Read replicas scale reads and provide failover.', blocks: ['app', 'primary', 'r1', 'r2'], conns: ['c_app_primary', 'c_primary_r1', 'c_primary_r2', 'c_app_r1'] },
-    { title: 'Go serverless if spiky', focus: 'primary', anim: 'spike', narration: 'Aurora Serverless auto-scales database capacity up and down with demand — good for variable or unpredictable load.', storyNarration: 'On an unpredictable night, the pantry quietly grows and shrinks its staff to match the rush, then stands down.', concept: 'Aurora Serverless scales capacity to load.', blocks: ['app', 'primary', 'r1', 'r2'], conns: ['c_app_primary', 'c_primary_r1', 'c_primary_r2', 'c_app_r1'] },
+    { title: 'A managed cloud database', focus: 'primary', anim: 'pulse', animConn: 'c_app_primary', narration: 'Aurora is a managed, MySQL/PostgreSQL-compatible database — you get the engine without running servers.', storyNarration: 'A catalogue run for you: the same familiar drawers as before, but someone else stocks, indexes and repairs it.', concept: 'Aurora = managed, compatible relational DB.', blocks: ['app', 'primary'], conns: ['c_app_primary'] },
+    { title: 'Storage that heals itself', focus: 'primary', narration: 'Aurora keeps six copies of your data across three AZs and auto-grows storage — it survives disk and AZ failures transparently.', storyNarration: 'Every record is duplicated across three rooms, six copies in all; lose a room and nothing’s missing, and the catalogue grows on its own.', concept: 'Durable, self-healing, auto-scaling storage.', blocks: ['app', 'primary'], conns: ['c_app_primary'] },
+    { title: 'Scale reads with replicas', focus: 'r1', anim: 'chain', chain: ['c_primary_r1', 'c_app_r1'], narration: 'Add up to 15 low-latency read replicas to spread read load; one is promoted automatically if the writer fails.', storyNarration: 'Open extra reading desks off the same index for the queue of lookups — and if the master catalogue falls over, a desk takes over.', concept: 'Read replicas scale reads and provide failover.', blocks: ['app', 'primary', 'r1', 'r2'], conns: ['c_app_primary', 'c_primary_r1', 'c_primary_r2', 'c_app_r1'] },
+    { title: 'Go serverless if spiky', focus: 'primary', anim: 'spike', narration: 'Aurora Serverless auto-scales database capacity up and down with demand — good for variable or unpredictable load.', storyNarration: 'On an unpredictable day, the catalogue quietly grows and shrinks its staff to match demand, then stands down.', concept: 'Aurora Serverless scales capacity to load.', blocks: ['app', 'primary', 'r1', 'r2'], conns: ['c_app_primary', 'c_primary_r1', 'c_primary_r2', 'c_app_r1'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Amazon Aurora is compatible with…', options: ['MySQL and PostgreSQL', 'Only DynamoDB', 'Redis', 'S3'], correct: [0], explain: 'Aurora offers MySQL- and PostgreSQL-compatible editions.' },
@@ -1020,13 +1065,29 @@ const kinesis = {
 
 const storageclass = {
   id: 'right-storage-class', title: 'Right Storage Class', examDomain: 'Design Cost-Optimized Architectures',
-  summary: 'Hot stock on the front shelf, cold stock in the deep freeze, and a rule that moves it as it ages.',
+  summary: 'Hot volumes on the open shelf, cold volumes in the deep archive, and a rule that moves them as they age.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 16, d: 11, x: -1 },
+    zones: [
+      { id: 'access', label: 'Front desk', rect: { x0: -8, z0: -5.4, x1: -3, z1: 5.4 }, floorTint: 0x40362a, accent: 0x67ad5b, dressing: [
+        { kind: 'diningtable', pos: [-5.5, 3.4] }, { kind: 'chair', pos: [-5.5, 4.1], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-5.5, 3.4], y: 1.4 }, { kind: 'plant', pos: [-7.6, -4.4] },
+      ] },
+      { id: 'shelves', label: 'Open shelves', rect: { x0: -3, z0: -5.4, x1: 1.4, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [-2.6, -4.4] }, { kind: 'signage', pos: [-2.8, -5.0], opts: { accent: 0xd9842e } },
+      ] },
+      { id: 'archive', label: 'Deep archive', rect: { x0: 1.4, z0: -5.4, x1: 7, z1: 5.4 }, floorTint: 0x33373f, accent: 0x5a8fd1, dressing: [
+        { kind: 'shelving', pos: [6.2, -4.4] }, { kind: 'signage', pos: [1.8, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('user', 'Access', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'How often the data is read.', 'Object access pattern.'),
-    C('standard', 'S3 Standard', 'storage', { pos: [-1.5, 0.7, -1.4] }, { name: 'Front shelf', prop: 'larder', pos: [-1.5, -1.4], yaw: -90 }, 'Frequently-accessed data; instant, priciest per GB.', 'S3 Standard (or Standard-IA for less-frequent).'),
-    C('glacier', 'S3 Glacier', 'storage', { pos: [2.5, 0.7, -1.4] }, { name: 'Deep freeze', prop: 'coldroom', pos: [2.5, -1.4], yaw: -90 }, 'Rarely-accessed archives; very cheap, slower to fetch.', 'S3 Glacier / Deep Archive.', 'Lifecycle: STANDARD →30d→ GLACIER\n→90d→ DEEP_ARCHIVE\nRetrieval: minutes to 12h'),
-    C('smart', 'Intelligent-Tiering', 'edge', { pos: [0.5, 0.7, 1.6] }, { name: 'Auto-sorter', prop: 'grabandgo', pos: [0.5, 1.6], yaw: -90 }, 'Moves objects between tiers by actual access.', 'S3 Intelligent-Tiering.'),
+    C('user', 'Access', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Reader', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'How often the data is read.', 'Object access pattern.'),
+    C('standard', 'S3 Standard', 'storage', { pos: [-1.5, 0.7, -1.4] }, { name: 'Open shelf', prop: 'stacks', pos: [-1.5, -1.4], yaw: -90 }, 'Frequently-accessed data; instant, priciest per GB.', 'S3 Standard (or Standard-IA for less-frequent).'),
+    C('glacier', 'S3 Glacier', 'storage', { pos: [2.5, 0.7, -1.4] }, { name: 'Deep archive', prop: 'archive', pos: [3.0, -1.4], yaw: -90 }, 'Rarely-accessed archives; very cheap, slower to fetch.', 'S3 Glacier / Deep Archive.', 'Lifecycle: STANDARD →30d→ GLACIER\n→90d→ DEEP_ARCHIVE\nRetrieval: minutes to 12h'),
+    C('smart', 'Intelligent-Tiering', 'edge', { pos: [0.5, 0.7, 1.6] }, { name: 'Auto-shelver', prop: 'librarian', pos: [-0.5, 1.6], face: 'standard' }, 'Moves objects between tiers by actual access.', 'S3 Intelligent-Tiering.'),
   ],
   connections: [
     { id: 'c_user_standard', from: 'user', to: 'standard', flow: 'request' },
@@ -1034,10 +1095,10 @@ const storageclass = {
     { id: 'c_user_smart', from: 'user', to: 'smart', flow: 'request' },
   ],
   stages: [
-    { title: 'Hot data, front shelf', focus: 'standard', anim: 'pulse', animConn: 'c_user_standard', narration: 'Frequently-read objects belong in S3 Standard — instant access, but the priciest per GB.', storyNarration: 'The dishes you serve all night sit on the front shelf, within arm’s reach.', concept: 'Standard for frequently-accessed data.', blocks: ['user', 'standard'], conns: ['c_user_standard'] },
-    { title: 'Cold data, deep freeze', focus: 'glacier', anim: 'pulse', animConn: 'c_standard_glacier', narration: 'Rarely-accessed archives go to Glacier / Deep Archive — a fraction of the cost, retrieved in minutes to hours.', storyNarration: 'Stock you almost never touch goes to the deep freeze in the back — pennies to keep, just slower to fetch.', concept: 'Glacier for cold/archival data.', blocks: ['user', 'standard', 'glacier'], conns: ['c_user_standard', 'c_standard_glacier'] },
-    { title: 'Let a rule move it', focus: 'glacier', anim: 'pulse', animConn: 'c_standard_glacier', narration: 'A lifecycle rule automatically transitions objects to colder, cheaper classes as they age.', storyNarration: 'Set a standing rule: anything untouched for a month gets carried to the freeze without anyone deciding.', concept: 'Lifecycle rules automate transitions.', blocks: ['user', 'standard', 'glacier'], conns: ['c_user_standard', 'c_standard_glacier'] },
-    { title: 'Unsure? Intelligent-Tiering', focus: 'smart', anim: 'pulse', animConn: 'c_user_smart', narration: 'If access is unpredictable, S3 Intelligent-Tiering moves each object between tiers automatically — no guessing.', storyNarration: 'Can’t predict what’ll be popular? An auto-sorter quietly shelves each item where it belongs by how often it’s grabbed.', concept: 'Intelligent-Tiering auto-optimizes cost.', blocks: ['user', 'standard', 'glacier', 'smart'], conns: ['c_user_standard', 'c_standard_glacier', 'c_user_smart'] },
+    { title: 'Hot data, open shelf', focus: 'standard', anim: 'pulse', animConn: 'c_user_standard', narration: 'Frequently-read objects belong in S3 Standard — instant access, but the priciest per GB.', storyNarration: 'The volumes you lend all day sit on the open shelf, within arm’s reach.', concept: 'Standard for frequently-accessed data.', blocks: ['user', 'standard'], conns: ['c_user_standard'] },
+    { title: 'Cold data, deep archive', focus: 'glacier', anim: 'pulse', animConn: 'c_standard_glacier', narration: 'Rarely-accessed archives go to Glacier / Deep Archive — a fraction of the cost, retrieved in minutes to hours.', storyNarration: 'Volumes you almost never open go to the deep archive in the back — pennies to keep, just slower to fetch.', concept: 'Glacier for cold/archival data.', blocks: ['user', 'standard', 'glacier'], conns: ['c_user_standard', 'c_standard_glacier'] },
+    { title: 'Let a rule move it', focus: 'glacier', anim: 'pulse', animConn: 'c_standard_glacier', narration: 'A lifecycle rule automatically transitions objects to colder, cheaper classes as they age.', storyNarration: 'Set a standing rule: anything untouched for a month is carried to the archive without anyone deciding.', concept: 'Lifecycle rules automate transitions.', blocks: ['user', 'standard', 'glacier'], conns: ['c_user_standard', 'c_standard_glacier'] },
+    { title: 'Unsure? Intelligent-Tiering', focus: 'smart', anim: 'pulse', animConn: 'c_user_smart', narration: 'If access is unpredictable, S3 Intelligent-Tiering moves each object between tiers automatically — no guessing.', storyNarration: 'Can’t predict what’ll be popular? An auto-shelver quietly moves each volume to where it belongs by how often it’s borrowed.', concept: 'Intelligent-Tiering auto-optimizes cost.', blocks: ['user', 'standard', 'glacier', 'smart'], conns: ['c_user_standard', 'c_standard_glacier', 'c_user_smart'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Frequently-accessed objects should use…', options: ['S3 Standard', 'Glacier Deep Archive', 'An EBS volume', 'EFS'], correct: [0], explain: 'Standard gives instant access for hot data.' },
@@ -1307,13 +1368,29 @@ const sgnacl = {
 
 const multiaz = {
   id: 'multiaz-vs-replicas', title: 'Multi-AZ vs Read Replicas', examDomain: 'Design Resilient Architectures',
-  summary: 'A standby pantry that takes over if the main one fails — versus extra reading counters that share the load.',
+  summary: 'A standby catalogue that takes over if the main one fails — versus extra reading desks that share the load.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 17, d: 11, x: -1 },
+    zones: [
+      { id: 'reading', label: 'Reading room', rect: { x0: -8, z0: -5.4, x1: -2.5, z1: 5.4 }, floorTint: 0x40362a, accent: 0x33b38c, dressing: [
+        { kind: 'diningtable', pos: [-5.5, 3.6] }, { kind: 'chair', pos: [-5.5, 4.3], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-5.5, 3.6], y: 1.4 }, { kind: 'plant', pos: [-7.6, -4.4] },
+      ] },
+      { id: 'catalogue', label: 'Main catalogue', rect: { x0: -2.5, z0: -5.4, x1: 1.5, z1: 5.4 }, floorTint: 0x342f3d, accent: 0x7d66d1, dressing: [
+        { kind: 'signage', pos: [-2.2, -5.0], opts: { accent: 0x7d66d1 } },
+      ] },
+      { id: 'copies', label: 'Copies', rect: { x0: 1.5, z0: -5.4, x1: 7.5, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [6.8, -4.4] }, { kind: 'signage', pos: [2, -5.0], opts: { accent: 0xd9842e } },
+      ] },
+    ],
+  },
   blocks: [
-    C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes the database.', 'Your application tier.'),
-    C('primary', 'Primary DB', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main pantry', prop: 'pantry', pos: [-0.5, 0], yaw: -90 }, 'Handles all writes.', 'The RDS primary (writer).'),
-    C('standby', 'Multi-AZ standby', 'database', { pos: [3, 0.7, -1.7] }, { name: 'Standby pantry', prop: 'pantry', pos: [3, -1.7], yaw: -90 }, 'Synchronous copy in another AZ; fails over automatically. Not readable.', 'RDS Multi-AZ standby; synchronous, automatic failover.'),
-    C('replica', 'Read replica', 'database', { pos: [3.5, 0.7, 1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.5, 1.7], yaw: -90 }, 'Asynchronous copy you read from to offload the primary.', 'An RDS read replica; asynchronous, read scaling.'),
+    C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'App', prop: 'customer', pos: [-6, 0], yaw: 90, face: 'primary' }, 'Reads and writes the database.', 'Your application tier.'),
+    C('primary', 'Primary DB', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main catalogue', prop: 'cardcatalog', pos: [-0.5, 0], yaw: -90 }, 'Handles all writes.', 'The RDS primary (writer).'),
+    C('standby', 'Multi-AZ standby', 'database', { pos: [3, 0.7, -1.7] }, { name: 'Standby catalogue', prop: 'cardcatalog', pos: [3, -1.7], yaw: -90 }, 'Synchronous copy in another AZ; fails over automatically. Not readable.', 'RDS Multi-AZ standby; synchronous, automatic failover.'),
+    C('replica', 'Read replica', 'database', { pos: [3.5, 0.7, 1.7] }, { name: 'Reading desk', prop: 'readingtable', pos: [4, 1.9], yaw: -90 }, 'Asynchronous copy you read from to offload the primary.', 'An RDS read replica; asynchronous, read scaling.'),
   ],
   connections: [
     { id: 'c_app_primary', from: 'app', to: 'primary', flow: 'data' },
@@ -1322,10 +1399,10 @@ const multiaz = {
     { id: 'c_app_replica', from: 'app', to: 'replica', flow: 'data' },
   ],
   stages: [
-    { title: 'Survive an AZ failure (Multi-AZ)', focus: 'standby', anim: 'pulse', animConn: 'c_primary_standby', narration: 'Multi-AZ keeps a synchronous standby in another AZ and fails over automatically. It’s for availability — you can’t read from it.', storyNarration: 'A standby pantry in the next room mirrors the main one exactly; if the main floods, it takes over instantly. Nobody serves from it meanwhile.', concept: 'Multi-AZ = synchronous standby + auto-failover (HA).', blocks: ['app', 'primary', 'standby'], conns: ['c_app_primary', 'c_primary_standby'] },
-    { title: 'Scale reads (read replicas)', focus: 'replica', anim: 'chain', chain: ['c_primary_replica', 'c_app_replica'], narration: 'Read replicas are asynchronous copies you CAN read from — they offload read traffic from the primary.', storyNarration: 'Open extra reading counters off the same stock; the queue of lookups spreads across them, easing the main pantry.', concept: 'Read replicas = async copies that scale reads.', blocks: ['app', 'primary', 'replica'], conns: ['c_app_primary', 'c_primary_replica', 'c_app_replica'] },
-    { title: 'Don’t confuse them', focus: 'primary', narration: 'A Multi-AZ standby is NOT readable and exists for failover; read replicas scale reads but don’t auto-fail-over (one can be promoted).', storyNarration: 'The standby just waits to step in; the reading counters serve customers but won’t automatically run the kitchen if the main pantry dies.', concept: 'HA (Multi-AZ) ≠ read scaling (replicas).', blocks: ['app', 'primary', 'standby', 'replica'], conns: ['c_app_primary', 'c_primary_standby', 'c_primary_replica', 'c_app_replica'] },
-    { title: 'Use both together', focus: 'app', narration: 'Combine them: Multi-AZ for resilience, read replicas for read scale — they solve different problems.', storyNarration: 'Keep the standby ready for disaster AND run extra counters for the rush; you need both.', concept: 'Multi-AZ + replicas cover HA and read scale.', blocks: ['app', 'primary', 'standby', 'replica'], conns: ['c_app_primary', 'c_primary_standby', 'c_primary_replica', 'c_app_replica'] },
+    { title: 'Survive an AZ failure (Multi-AZ)', focus: 'standby', anim: 'pulse', animConn: 'c_primary_standby', narration: 'Multi-AZ keeps a synchronous standby in another AZ and fails over automatically. It’s for availability — you can’t read from it.', storyNarration: 'A standby catalogue in the next room mirrors the main one exactly; if the main is lost, it takes over instantly. Nobody reads from it meanwhile.', concept: 'Multi-AZ = synchronous standby + auto-failover (HA).', blocks: ['app', 'primary', 'standby'], conns: ['c_app_primary', 'c_primary_standby'] },
+    { title: 'Scale reads (read replicas)', focus: 'replica', anim: 'chain', chain: ['c_primary_replica', 'c_app_replica'], narration: 'Read replicas are asynchronous copies you CAN read from — they offload read traffic from the primary.', storyNarration: 'Open extra reading desks off the same index; the queue of lookups spreads across them, easing the main catalogue.', concept: 'Read replicas = async copies that scale reads.', blocks: ['app', 'primary', 'replica'], conns: ['c_app_primary', 'c_primary_replica', 'c_app_replica'] },
+    { title: 'Don’t confuse them', focus: 'primary', narration: 'A Multi-AZ standby is NOT readable and exists for failover; read replicas scale reads but don’t auto-fail-over (one can be promoted).', storyNarration: 'The standby just waits to step in; the reading desks serve readers but won’t automatically run the catalogue if the main one dies.', concept: 'HA (Multi-AZ) ≠ read scaling (replicas).', blocks: ['app', 'primary', 'standby', 'replica'], conns: ['c_app_primary', 'c_primary_standby', 'c_primary_replica', 'c_app_replica'] },
+    { title: 'Use both together', focus: 'app', narration: 'Combine them: Multi-AZ for resilience, read replicas for read scale — they solve different problems.', storyNarration: 'Keep the standby ready for disaster AND run extra reading desks for the rush; you need both.', concept: 'Multi-AZ + replicas cover HA and read scale.', blocks: ['app', 'primary', 'standby', 'replica'], conns: ['c_app_primary', 'c_primary_standby', 'c_primary_replica', 'c_app_replica'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'RDS Multi-AZ primarily gives you…', options: ['Automatic failover to a synchronous standby (HA)', 'More read throughput', 'A global CDN', 'Cheaper storage'], correct: [0], explain: 'Multi-AZ is about availability, not read scaling.' },
@@ -1439,13 +1516,29 @@ const egress = {
 
 const s3protect = {
   id: 's3-protection', title: 'S3 Durability & Protection', examDomain: 'Design High-Performing Architectures',
-  summary: 'Built to never lose data: redundant copies, every version kept, a tamper lock, and copies in another region.',
+  summary: 'Built to never lose data: redundant copies, every edition kept, a tamper lock, and copies in another region.',
   scenery: 'open',
+  world: 'library',
+  anchors: { entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 17, d: 11, x: -1 },
+    zones: [
+      { id: 'writer', label: 'Returns desk', rect: { x0: -8, z0: -5.4, x1: -2.5, z1: 5.4 }, floorTint: 0x40362a, accent: 0xd9842e, dressing: [
+        { kind: 'diningtable', pos: [-5.5, 3.6] }, { kind: 'chair', pos: [-5.5, 4.3], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-5.5, 3.6], y: 1.4 }, { kind: 'plant', pos: [-7.6, -4.4] },
+      ] },
+      { id: 'stacks', label: 'The stacks', rect: { x0: -2.5, z0: -5.4, x1: 1.5, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [-2, -4.4] }, { kind: 'signage', pos: [-2.2, -5.0], opts: { accent: 0xd9842e } },
+      ] },
+      { id: 'protection', label: 'Protection', rect: { x0: 1.5, z0: -5.4, x1: 7.5, z1: 5.4 }, floorTint: 0x33373f, accent: 0xd15656, dressing: [
+        { kind: 'shelving', pos: [6.8, -4.4] }, { kind: 'signage', pos: [2, -5.0], opts: { accent: 0xd15656 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('user', 'Writer', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'Writes and overwrites objects.', 'A client writing objects.'),
-    C('bucket', 'S3 bucket', 'storage', { pos: [-1, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [-1, 0], yaw: -90 }, 'Stores objects redundantly across AZs.', 'An S3 bucket (~11 nines durability).', 'Block Public Access: ON\nVersioning + MFA Delete\nDefault encryption: SSE-KMS'),
-    C('versions', 'Versioning', 'storage', { pos: [3, 0.7, -1.6] }, { name: 'Old copies', prop: 'coldroom', pos: [3, -1.6], yaw: -90 }, 'Keeps every past version of an object.', 'S3 Versioning; recover overwrites/deletes.'),
-    C('lock', 'Object Lock', 'security', { pos: [3.5, 0.7, 1.6] }, { name: 'The lock', prop: 'safe', pos: [3.5, 1.6], yaw: -90 }, 'Prevents objects being changed or deleted.', 'S3 Object Lock (WORM) / MFA-delete.'),
+    C('user', 'Writer', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Writer', prop: 'customer', pos: [-6.5, 0], yaw: 90, face: 'bucket' }, 'Writes and overwrites objects.', 'A client writing objects.'),
+    C('bucket', 'S3 bucket', 'storage', { pos: [-1, 0.7, 0] }, { name: 'The stacks', prop: 'stacks', pos: [-1, 0], yaw: -90 }, 'Stores objects redundantly across AZs.', 'An S3 bucket (~11 nines durability).', 'Block Public Access: ON\nVersioning + MFA Delete\nDefault encryption: SSE-KMS'),
+    C('versions', 'Versioning', 'storage', { pos: [3, 0.7, -1.6] }, { name: 'Past editions', prop: 'archive', pos: [3, -1.6], yaw: -90 }, 'Keeps every past version of an object.', 'S3 Versioning; recover overwrites/deletes.'),
+    C('lock', 'Object Lock', 'security', { pos: [3.5, 0.7, 1.6] }, { name: 'The lock', prop: 'safe', pos: [3.7, 1.7], yaw: -90 }, 'Prevents objects being changed or deleted.', 'S3 Object Lock (WORM) / MFA-delete.'),
   ],
   connections: [
     { id: 'c_user_bucket', from: 'user', to: 'bucket', flow: 'data' },
@@ -1453,10 +1546,10 @@ const s3protect = {
     { id: 'c_bucket_lock', from: 'bucket', to: 'lock', flow: 'network' },
   ],
   stages: [
-    { title: 'Built not to lose data', focus: 'bucket', anim: 'pulse', animConn: 'c_user_bucket', narration: 'S3 stores each object redundantly across multiple AZs, giving roughly eleven nines of durability.', storyNarration: 'Every item in the larder is copied to several shelves across rooms — losing one shelf loses nothing.', concept: 'S3 ≈ 11 nines durability (redundant across AZs).', blocks: ['user', 'bucket'], conns: ['c_user_bucket'] },
-    { title: 'Undo with versioning', focus: 'versions', anim: 'pulse', animConn: 'c_bucket_versions', narration: 'With versioning on, every overwrite and delete keeps the old version — so mistakes are recoverable.', storyNarration: 'Each time stock is replaced, the previous one is kept in the back; nothing is truly thrown away.', concept: 'Versioning recovers overwrites and deletes.', blocks: ['user', 'bucket', 'versions'], conns: ['c_user_bucket', 'c_bucket_versions'] },
-    { title: 'Lock against tampering', focus: 'lock', anim: 'pulse', animConn: 'c_bucket_lock', narration: 'Object Lock (write-once-read-many) and MFA-delete stop objects being altered or deleted — for compliance.', storyNarration: 'Seal the important stock so it can’t be swapped or binned, even by staff — only opened with the manager’s key.', concept: 'Object Lock / MFA-delete = immutability.', blocks: ['user', 'bucket', 'lock'], conns: ['c_user_bucket', 'c_bucket_lock'] },
-    { title: 'Copy to another region', focus: 'bucket', narration: 'Cross-Region Replication copies objects to a bucket in another region — for disaster recovery or low-latency local reads.', storyNarration: 'Mirror the whole larder to a second city, so a regional disaster can’t wipe you out.', concept: 'Cross-Region Replication for DR / locality.', blocks: ['user', 'bucket', 'versions', 'lock'], conns: ['c_user_bucket', 'c_bucket_versions', 'c_bucket_lock'] },
+    { title: 'Built not to lose data', focus: 'bucket', anim: 'pulse', animConn: 'c_user_bucket', narration: 'S3 stores each object redundantly across multiple AZs, giving roughly eleven nines of durability.', storyNarration: 'Every volume in the stacks is copied to several shelves across rooms — losing one shelf loses nothing.', concept: 'S3 ≈ 11 nines durability (redundant across AZs).', blocks: ['user', 'bucket'], conns: ['c_user_bucket'] },
+    { title: 'Undo with versioning', focus: 'versions', anim: 'pulse', animConn: 'c_bucket_versions', narration: 'With versioning on, every overwrite and delete keeps the old version — so mistakes are recoverable.', storyNarration: 'Each time a volume is replaced, the previous edition is kept in the back; nothing is truly thrown away.', concept: 'Versioning recovers overwrites and deletes.', blocks: ['user', 'bucket', 'versions'], conns: ['c_user_bucket', 'c_bucket_versions'] },
+    { title: 'Lock against tampering', focus: 'lock', anim: 'pulse', animConn: 'c_bucket_lock', narration: 'Object Lock (write-once-read-many) and MFA-delete stop objects being altered or deleted — for compliance.', storyNarration: 'Seal the important volumes so they can’t be swapped or binned, even by staff — only opened with the head’s key.', concept: 'Object Lock / MFA-delete = immutability.', blocks: ['user', 'bucket', 'lock'], conns: ['c_user_bucket', 'c_bucket_lock'] },
+    { title: 'Copy to another region', focus: 'bucket', narration: 'Cross-Region Replication copies objects to a bucket in another region — for disaster recovery or low-latency local reads.', storyNarration: 'Mirror the whole archive to a second city, so a regional disaster can’t wipe you out.', concept: 'Cross-Region Replication for DR / locality.', blocks: ['user', 'bucket', 'versions', 'lock'], conns: ['c_user_bucket', 'c_bucket_versions', 'c_bucket_lock'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'S3’s durability comes from…', options: ['Redundant copies across multiple AZs (~11 nines)', 'A single disk', 'One AZ only', 'Your backups alone'], correct: [0], explain: 'S3 replicates objects across AZs for very high durability.' },
@@ -1524,11 +1617,23 @@ const endpoints = {
 
 const backups = {
   id: 'centralize-backups', title: 'Centralize Backups', examDomain: 'Design Resilient Architectures',
-  summary: 'One vault that automatically copies every fridge and pantry on a schedule, locks them, and restores on demand.',
+  summary: 'One vault that automatically copies every collection on a schedule, locks them, and restores on demand.',
   scenery: 'open',
+  world: 'library',
+  scene: {
+    bounds: { w: 15, d: 11, x: -1 },
+    zones: [
+      { id: 'collections', label: 'Collections', rect: { x0: -7.5, z0: -5.4, x1: -2.5, z1: 5.4 }, floorTint: 0x39302a, accent: 0xd9842e, dressing: [
+        { kind: 'shelving', pos: [-7, -4.4] }, { kind: 'signage', pos: [-7, -5.0], opts: { accent: 0xd9842e } }, { kind: 'plant', pos: [-7, 4.6] },
+      ] },
+      { id: 'vault', label: 'Backup vault', rect: { x0: -2.5, z0: -5.4, x1: 6.5, z1: 5.4 }, floorTint: 0x33373f, accent: 0x5a8fd1, dressing: [
+        { kind: 'shelving', pos: [5.6, -4.4] }, { kind: 'signage', pos: [-2.1, -5.0], opts: { accent: 0x5a8fd1 } },
+      ] },
+    ],
+  },
   blocks: [
-    C('ebs', 'EBS / EFS', 'storage', { pos: [-5, 0.7, -1.6] }, { name: 'Cooler', prop: 'coldroom', pos: [-5, -1.6], yaw: -90 }, 'One resource to protect.', 'EBS volumes / EFS file systems.'),
-    C('rds', 'RDS / DynamoDB', 'database', { pos: [-5, 0.7, 1.6] }, { name: 'Pantry', prop: 'pantry', pos: [-5, 1.6], yaw: -90 }, 'Another resource to protect.', 'Databases to back up.'),
+    C('ebs', 'EBS / EFS', 'storage', { pos: [-5, 0.7, -1.6] }, { name: 'File store', prop: 'stacks', pos: [-5, -1.6], yaw: -90 }, 'One resource to protect.', 'EBS volumes / EFS file systems.'),
+    C('rds', 'RDS / DynamoDB', 'database', { pos: [-5, 0.7, 1.6] }, { name: 'Records', prop: 'cardcatalog', pos: [-5, 1.6], yaw: -90 }, 'Another resource to protect.', 'Databases to back up.'),
     C('backup', 'AWS Backup', 'security', { pos: [1, 0.7, 0] }, { name: 'Backup vault', prop: 'safe', pos: [1, 0], yaw: -90 }, 'Central, scheduled backups with retention.', 'AWS Backup; policy-based backups across services.', 'Backup plan: daily 05:00 UTC\nRetain 35 days · copy to us-east-1\nSelection: tag backup=true'),
   ],
   connections: [
@@ -1536,10 +1641,10 @@ const backups = {
     { id: 'c_rds_backup', from: 'rds', to: 'backup', flow: 'data' },
   ],
   stages: [
-    { title: 'Backups scattered everywhere', focus: 'backup', narration: 'Each service has its own snapshots and scripts — it’s easy to miss one or let a schedule drift.', storyNarration: 'Every fridge gets backed up by a different person on a different day — until one quietly doesn’t.', concept: 'Ad-hoc, per-service backups are inconsistent.', blocks: ['ebs', 'rds', 'backup'], conns: [] },
-    { title: 'One place, one policy', focus: 'backup', anim: 'flow', narration: 'AWS Backup centrally schedules and stores backups across EBS, EFS, RDS, DynamoDB and more, by policy.', storyNarration: 'One vault automatically takes a copy of every fridge and pantry on the same schedule — nothing forgotten.', concept: 'AWS Backup = central, policy-based backups.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
+    { title: 'Backups scattered everywhere', focus: 'backup', narration: 'Each service has its own snapshots and scripts — it’s easy to miss one or let a schedule drift.', storyNarration: 'Every collection gets backed up by a different clerk on a different day — until one quietly doesn’t.', concept: 'Ad-hoc, per-service backups are inconsistent.', blocks: ['ebs', 'rds', 'backup'], conns: [] },
+    { title: 'One place, one policy', focus: 'backup', anim: 'flow', narration: 'AWS Backup centrally schedules and stores backups across EBS, EFS, RDS, DynamoDB and more, by policy.', storyNarration: 'One vault automatically takes a copy of every collection on the same schedule — nothing forgotten.', concept: 'AWS Backup = central, policy-based backups.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
     { title: 'Retention & vault lock', focus: 'backup', anim: 'pulse', animConn: 'c_rds_backup', narration: 'Set retention rules, lock the vault so backups can’t be deleted (immutable), and copy cross-region/account for DR.', storyNarration: 'Keep copies for a set time in a sealed vault nobody can empty, and mirror it to another city.', concept: 'Retention + vault lock + cross-region copies.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
-    { title: 'Restore on demand', focus: 'backup', narration: 'When something’s lost or corrupted, restore the resource from the vault to a known good point.', storyNarration: 'Lost a tray of stock? Pull the exact copy from the vault and you’re back.', concept: 'Centralized, point-in-time restore.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
+    { title: 'Restore on demand', focus: 'backup', narration: 'When something’s lost or corrupted, restore the resource from the vault to a known good point.', storyNarration: 'Lost a record? Pull the exact copy from the vault and you’re back.', concept: 'Centralized, point-in-time restore.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
   ],
   quiz: [
     { kind: 'single', prompt: 'Centrally schedule and manage backups across EBS, RDS, DynamoDB, EFS…?', options: ['AWS Backup', 'Per-service scripts only', 'A NAT gateway', 'Route 53'], correct: [0], explain: 'AWS Backup centralizes backup policy across services.' },
