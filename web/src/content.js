@@ -200,7 +200,7 @@ const sqs = {
   scenery: 'open',
   blocks: [
     C('waiter', 'Producer', 'compute', { pos: [-6, 0.7, 0] }, { name: 'Waiter', prop: 'customer', pos: [-6, 0], yaw: 90 }, 'Creates work (sends messages).', 'A producer app sending messages.'),
-    C('queue', 'SQS queue', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Ticket rail', prop: 'ticketrail', pos: [-1, 0], yaw: 0 }, 'Holds messages until a consumer is ready.', 'An SQS queue; messages wait, processed at-least-once.'),
+    C('queue', 'SQS queue', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Ticket rail', prop: 'ticketrail', pos: [-1, 0], yaw: 0 }, 'Holds messages until a consumer is ready.', 'An SQS queue; messages wait, processed at-least-once.', 'VisibilityTimeout 30s · Retention 4d\nReceive → handle → DeleteMessage\nFailures → DLQ after 5 receives'),
     C('cookA', 'Consumer', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Processes messages.', 'A consumer polling the queue.'),
     C('cookB', 'Consumer (scaled)', 'compute', { pos: [4.4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4.4, 1.6], yaw: -90 }, 'An extra consumer to clear a backlog.', 'Added by scaling on queue depth.'),
     C('dlq', 'Dead-letter queue', 'generic', { pos: [3, 0.7, 3.2] }, { name: 'Lost-tickets bin', prop: 'ticketrail', pos: [3, 3.2], yaw: 0 }, 'Holds messages that keep failing.', 'Dead-letter queue after N failed receives.'),
@@ -233,7 +233,7 @@ const lambda = {
   blocks: [
     C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person making a request.', 'A client request / event.'),
     C('server', 'Always-on server', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Always-on cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90 }, 'A server that runs (and bills) 24/7, even when idle.', 'An EC2 instance you pay for per hour, always on.'),
-    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-demand cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Appears only when there is work; you manage no servers.', 'AWS Lambda; runs your code per event, auto-scaled.'),
+    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-demand cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Appears only when there is work; you manage no servers.', 'AWS Lambda; runs your code per event, auto-scaled.', 'handler index.handler · runtime nodejs20.x\nMemorySize 512MB · Timeout 30s\nScales out one instance per concurrent event'),
     C('lambda2', 'Lambda #2', 'compute', { pos: [4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4, 1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
     C('lambda3', 'Lambda #3', 'compute', { pos: [4.3, 0.7, -1.6] }, { name: 'Another cook', prop: 'cook', pos: [4.3, -1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
   ],
@@ -264,7 +264,7 @@ const datastore = {
   blocks: [
     C('app', 'Your app', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The line cook', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The app that needs to read and write data.', 'Your application tier.'),
     C('rds', 'Amazon RDS', 'database', { pos: [1.5, 0.7, -1.7] }, { name: 'Relational pantry', prop: 'pantry', pos: [1.5, -1.7], yaw: -90 }, 'Labelled shelves + a ledger: relationships, joins, transactions.', 'Amazon RDS; relational (SQL), ACID, scales up + read replicas.'),
-    C('dynamo', 'DynamoDB', 'nosql', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered cubbies', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless cubbies.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.'),
+    C('dynamo', 'DynamoDB', 'nosql', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered cubbies', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless cubbies.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.', 'Keys: PK (partition) + SK (sort)\nBilling PAY_PER_REQUEST (on-demand)\nGetItem {PK: USER#42} → single-digit ms'),
   ],
   connections: [
     { id: 'c_app_rds', from: 'app', to: 'rds', flow: 'data' },
@@ -348,7 +348,7 @@ const monitor = {
   blocks: [
     C('kitchen', 'Your workload', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The stations', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The running system being watched.', 'Your EC2 / app emitting metrics.'),
     C('cw', 'CloudWatch', 'edge', { pos: [0.5, 0.7, -1.6] }, { name: 'The board', prop: 'dashboard', pos: [0.5, -1.6], yaw: -90 }, 'Live gauges for every station: load, latency, errors.', 'CloudWatch metrics + dashboards + Logs.'),
-    C('alarm', 'CloudWatch Alarm', 'security', { pos: [3.5, 0.7, 1], }, { name: 'The alarm', prop: 'tannoy', pos: [3.5, 1], yaw: -90 }, 'Goes off when a gauge crosses a line.', 'A CloudWatch Alarm on a metric threshold.'),
+    C('alarm', 'CloudWatch Alarm', 'security', { pos: [3.5, 0.7, 1], }, { name: 'The alarm', prop: 'tannoy', pos: [3.5, 1], yaw: -90 }, 'Goes off when a gauge crosses a line.', 'A CloudWatch Alarm on a metric threshold.', 'ALARM when CPUUtilization > 70%\nfor 3 of 3 datapoints (5 min)\n→ notify SNS / trigger scaling policy'),
   ],
   connections: [
     { id: 'c_kitchen_cw', from: 'kitchen', to: 'cw', flow: 'data' },
@@ -434,7 +434,7 @@ const dns = {
   scenery: 'open',
   blocks: [
     C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person looking up your domain.', 'A client DNS resolution.'),
-    C('r53', 'Route 53', 'networking', { pos: [-2, 0.7, 0] }, { name: 'Host stand', prop: 'host', pos: [-2, 0], yaw: -90 }, 'Turns your name into the best address by policy.', 'Route 53; DNS with routing policies + health checks.'),
+    C('r53', 'Route 53', 'networking', { pos: [-2, 0.7, 0] }, { name: 'Host stand', prop: 'host', pos: [-2, 0], yaw: -90 }, 'Turns your name into the best address by policy.', 'Route 53; DNS with routing policies + health checks.', 'app.example.com  A  ALIAS → ALB\nPolicies: simple · latency · weighted · failover\nHealth check fails → fail over to DR'),
     C('kA', 'Region: London', 'compute', { pos: [2.5, 0.7, -1.7] }, { name: 'London kitchen', prop: 'cook', pos: [2.5, -1.7], yaw: -90 }, 'One regional endpoint.', 'An endpoint in eu-west-2.'),
     C('kB', 'Region: New York', 'compute', { pos: [2.5, 0.7, 1.7] }, { name: 'New York kitchen', prop: 'cook', pos: [2.5, 1.7], yaw: -90 }, 'Another regional endpoint.', 'An endpoint in us-east-1.'),
   ],
@@ -577,7 +577,7 @@ const apigw = {
   scenery: 'open',
   blocks: [
     C('client', 'API client', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'An app calling your API.', 'A client calling your HTTP API.'),
-    C('api', 'API Gateway', 'networking', { pos: [-1.5, 0.7, 0] }, { name: 'The order window', prop: 'pass', pos: [-1.5, 0], yaw: -90 }, 'Takes, checks, throttles and routes every request.', 'Amazon API Gateway; managed API front door.'),
+    C('api', 'API Gateway', 'networking', { pos: [-1.5, 0.7, 0] }, { name: 'The order window', prop: 'pass', pos: [-1.5, 0], yaw: -90 }, 'Takes, checks, throttles and routes every request.', 'Amazon API Gateway; managed API front door.', 'GET /orders → Lambda integration\nThrottle 10k rps · burst 5k\nStages: prod · dev (usage plans + keys)'),
     C('lambda', 'Lambda', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'On-demand cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One backend the gateway can route to.', 'A Lambda backend.'),
     C('svc', 'Service', 'compute', { pos: [3.3, 0.7, 1.6] }, { name: 'Line cook', prop: 'cook', pos: [3.3, 1.6], yaw: -90 }, 'Another backend.', 'An HTTP/container backend.'),
   ],
@@ -605,7 +605,7 @@ const orchestrate = {
   summary: 'A head chef with a recipe card who calls each step in order, waits, and handles a step that fails.',
   scenery: 'open',
   blocks: [
-    C('sf', 'Step Functions', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Head chef', prop: 'host', pos: [-5, 0], yaw: 90 }, 'Coordinates the whole multi-step job.', 'AWS Step Functions; a managed state machine.'),
+    C('sf', 'Step Functions', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Head chef', prop: 'host', pos: [-5, 0], yaw: 90 }, 'Coordinates the whole multi-step job.', 'AWS Step Functions; a managed state machine.', '"States": {\n  "Prep": { "Type":"Task", "Next":"Cook" },\n  "Cook": { "Type":"Task", "End":true } }'),
     C('s1', 'Step 1: Prep', 'compute', { pos: [0, 0.7, -1.7] }, { name: 'Prep cook', prop: 'cook', pos: [0, -1.7], yaw: -90 }, 'The first step.', 'A task (e.g. a Lambda).'),
     C('s2', 'Step 2: Cook', 'compute', { pos: [1.8, 0.7, 0] }, { name: 'Line cook', prop: 'cook', pos: [1.8, 0], yaw: -90 }, 'The second step, after the first.', 'The next task in the workflow.'),
     C('s3', 'Step 3: Plate', 'compute', { pos: [3.6, 0.7, 1.7] }, { name: 'Plating cook', prop: 'cook', pos: [3.6, 1.7], yaw: -90 }, 'The final step.', 'The final task.'),
@@ -635,7 +635,7 @@ const scaling = {
   scenery: 'open',
   blocks: [
     C('rail', 'Demand', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The tickets', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The load, rising and falling through the day.', 'Demand measured by CPU, requests or queue depth.'),
-    C('asg', 'Auto Scaling group', 'compute', { pos: [-1.5, 0.7, -1.6] }, { name: 'Shift manager', prop: 'host', pos: [-1.5, -1.6], yaw: -90 }, 'Adds or removes cooks to match the load.', 'An Auto Scaling group with a scaling policy.'),
+    C('asg', 'Auto Scaling group', 'compute', { pos: [-1.5, 0.7, -1.6] }, { name: 'Shift manager', prop: 'host', pos: [-1.5, -1.6], yaw: -90 }, 'Adds or removes cooks to match the load.', 'An Auto Scaling group with a scaling policy.', 'min 2 · desired 2 · max 10\nTarget tracking: avg CPU = 50%\nadd capacity when > 50% for 3 min'),
     C('c1', 'Instance', 'compute', { pos: [2, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [2, -1.6], yaw: -90 }, 'A baseline worker.', 'An EC2 instance in the group.'),
     C('c2', 'Instance #2', 'compute', { pos: [3.8, 0.7, -0.2] }, { name: 'Extra cook', prop: 'cook', pos: [3.8, -0.2], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
     C('c3', 'Instance #3', 'compute', { pos: [4.6, 0.7, 1.8] }, { name: 'Another cook', prop: 'cook', pos: [4.6, 1.8], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
@@ -696,7 +696,7 @@ const secrets = {
   scenery: 'open',
   blocks: [
     C('app', 'App / service', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Needs a database password to work.', 'Your application needing credentials.'),
-    C('secrets', 'Secrets Manager', 'security', { pos: [0, 0.7, -1.6] }, { name: 'The lockbox', prop: 'safe', pos: [0, -1.6], yaw: -90 }, 'Stores credentials and hands them out at runtime.', 'AWS Secrets Manager; central, rotated, IAM-gated secrets.'),
+    C('secrets', 'Secrets Manager', 'security', { pos: [0, 0.7, -1.6] }, { name: 'The lockbox', prop: 'safe', pos: [0, -1.6], yaw: -90 }, 'Stores credentials and hands them out at runtime.', 'AWS Secrets Manager; central, rotated, IAM-gated secrets.', 'GetSecretValue(SecretId: prod/db/creds)\n→ { "username": ..., "password": ... }\nRotation: every 30 days via Lambda'),
     C('db', 'Database', 'database', { pos: [3.2, 0.7, 1.2] }, { name: 'The pantry', prop: 'pantry', pos: [3.2, 1.2], yaw: -90 }, 'The resource the password unlocks.', 'The database the credential authenticates to.'),
   ],
   connections: [
@@ -753,7 +753,7 @@ const aurora = {
   scenery: 'open',
   blocks: [
     C('app', 'App', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes data.', 'Your application tier.'),
-    C('primary', 'Aurora (writer)', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main pantry', prop: 'pantry', pos: [-0.5, 0], yaw: -90 }, 'Handles writes; storage self-heals across AZs.', 'Aurora writer; MySQL/PostgreSQL-compatible, managed.'),
+    C('primary', 'Aurora (writer)', 'database', { pos: [-0.5, 0.7, 0] }, { name: 'Main pantry', prop: 'pantry', pos: [-0.5, 0], yaw: -90 }, 'Handles writes; storage self-heals across AZs.', 'Aurora writer; MySQL/PostgreSQL-compatible, managed.', 'Cluster endpoint → writer (all writes)\nReader endpoint → replicas (reads)\nStorage self-heals: 6 copies / 3 AZs'),
     C('r1', 'Read replica', 'database', { pos: [3.2, 0.7, -1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.2, -1.7], yaw: -90 }, 'Serves reads; can be promoted on failover.', 'An Aurora read replica.'),
     C('r2', 'Read replica', 'database', { pos: [3.6, 0.7, 1.7] }, { name: 'Reading counter', prop: 'pantry', pos: [3.6, 1.7], yaw: -90 }, 'Another reader for scale.', 'Another Aurora replica (up to 15).'),
   ],
@@ -845,7 +845,7 @@ const events = {
   scenery: 'open',
   blocks: [
     C('source', 'Event source', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The line', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Emits events (“order placed”, “refund”).', 'A producer / AWS service event.'),
-    C('bus', 'EventBridge', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The router', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Matches each event to a rule and routes it.', 'Amazon EventBridge; content-based event bus.'),
+    C('bus', 'EventBridge', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The router', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Matches each event to a rule and routes it.', 'Amazon EventBridge; content-based event bus.', '{ "source": ["orders"],\n  "detail-type": ["OrderPlaced"] }\nmatches → Lambda · SQS · Step Functions'),
     C('h1', 'Orders handler', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Orders cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Handles order events.', 'A target (Lambda/queue) for one rule.'),
     C('h2', 'Audit handler', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Audit cook', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Handles audit/other events.', 'A target for a different rule.'),
   ],
@@ -874,7 +874,7 @@ const kinesis = {
   scenery: 'open',
   blocks: [
     C('producers', 'Producers', 'generic', { pos: [-7, 0.7, 0] }, { name: 'The sources', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'Devices/apps emitting a high-volume feed.', 'Producers writing records (clicks, logs, telemetry).'),
-    C('stream', 'Kinesis stream', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The conveyor', prop: 'ticketrail', pos: [-1.5, 0], yaw: 0 }, 'An ordered, real-time stream of records.', 'A Kinesis Data Stream; ordered, replayable.'),
+    C('stream', 'Kinesis stream', 'edge', { pos: [-1.5, 0.7, 0] }, { name: 'The conveyor', prop: 'ticketrail', pos: [-1.5, 0], yaw: 0 }, 'An ordered, real-time stream of records.', 'A Kinesis Data Stream; ordered, replayable.', 'PutRecord(partitionKey, data)\nShard = 1MB/s in · 2MB/s out\nRetention 24h–365d → replayable'),
     C('rt', 'Real-time app', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Live cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Processes records as they arrive.', 'A real-time consumer.'),
     C('an', 'Analytics', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Analytics cook', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'Reads the same stream for analysis.', 'A second, independent consumer.'),
   ],
@@ -904,7 +904,7 @@ const storageclass = {
   blocks: [
     C('user', 'Access', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'How often the data is read.', 'Object access pattern.'),
     C('standard', 'S3 Standard', 'storage', { pos: [-1.5, 0.7, -1.4] }, { name: 'Front shelf', prop: 'larder', pos: [-1.5, -1.4], yaw: -90 }, 'Frequently-accessed data; instant, priciest per GB.', 'S3 Standard (or Standard-IA for less-frequent).'),
-    C('glacier', 'S3 Glacier', 'storage', { pos: [2.5, 0.7, -1.4] }, { name: 'Deep freeze', prop: 'coldroom', pos: [2.5, -1.4], yaw: -90 }, 'Rarely-accessed archives; very cheap, slower to fetch.', 'S3 Glacier / Deep Archive.'),
+    C('glacier', 'S3 Glacier', 'storage', { pos: [2.5, 0.7, -1.4] }, { name: 'Deep freeze', prop: 'coldroom', pos: [2.5, -1.4], yaw: -90 }, 'Rarely-accessed archives; very cheap, slower to fetch.', 'S3 Glacier / Deep Archive.', 'Lifecycle: STANDARD →30d→ GLACIER\n→90d→ DEEP_ARCHIVE\nRetrieval: minutes to 12h'),
     C('smart', 'Intelligent-Tiering', 'edge', { pos: [0.5, 0.7, 1.6] }, { name: 'Auto-sorter', prop: 'grabandgo', pos: [0.5, 1.6], yaw: -90 }, 'Moves objects between tiers by actual access.', 'S3 Intelligent-Tiering.'),
   ],
   connections: [
@@ -932,7 +932,7 @@ const compute = {
   scenery: 'open',
   blocks: [
     C('work', 'The work', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The workload to run.', 'Your workload.'),
-    C('ec2', 'EC2', 'compute', { pos: [-1, 0.7, -1.7] }, { name: 'Full-time cook', prop: 'cook', pos: [-1, -1.7], yaw: -90 }, 'A server you control and run by the hour.', 'EC2; full OS control, pay per running hour.'),
+    C('ec2', 'EC2', 'compute', { pos: [-1, 0.7, -1.7] }, { name: 'Full-time cook', prop: 'cook', pos: [-1, -1.7], yaw: -90 }, 'A server you control and run by the hour.', 'EC2; full OS control, pay per running hour.', 't3.micro · Amazon Linux 2023\nOn-Demand $/hr · Savings Plan -72%\nSpot -90% (can be interrupted)'),
     C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-call cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Runs per event; no servers; pay per use.', 'Lambda; serverless functions.'),
     C('cont', 'Containers', 'edge', { pos: [3.8, 0.7, 1.7] }, { name: 'Kit station', prop: 'crate', pos: [3.8, 1.7], yaw: 0 }, 'Portable packaged units (ECS/Fargate).', 'Containers on ECS/Fargate.'),
   ],
@@ -1049,7 +1049,7 @@ const cognito = {
   scenery: 'open',
   blocks: [
     C('user', 'App user', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'An end user of your application.', 'An application end user (not an AWS user).'),
-    C('cognito', 'Cognito', 'security', { pos: [-1, 0.7, 0] }, { name: 'Membership desk', prop: 'securitydesk', pos: [-1, 0], yaw: -90 }, 'Signs users up and in; issues tokens.', 'Amazon Cognito user pool; sign-up/in, MFA, social/SSO.'),
+    C('cognito', 'Cognito', 'security', { pos: [-1, 0.7, 0] }, { name: 'Membership desk', prop: 'securitydesk', pos: [-1, 0], yaw: -90 }, 'Signs users up and in; issues tokens.', 'Amazon Cognito user pool; sign-up/in, MFA, social/SSO.', 'User pool → JWT (id + access token)\nMFA · hosted UI · social / SSO\nAPI Gateway authorizer verifies the token'),
     C('app', 'Your app', 'compute', { pos: [3.5, 0.7, -1.5] }, { name: 'The app', prop: 'cook', pos: [3.5, -1.5], yaw: -90 }, 'Accepts the user’s token.', 'Your app/API trusting Cognito tokens.'),
     C('api', 'API / data', 'database', { pos: [4, 0.7, 1.5] }, { name: 'The pantry', prop: 'pantry', pos: [4, 1.5], yaw: -90 }, 'Protected resource behind the token.', 'A protected API/resource.'),
   ],
@@ -1078,7 +1078,7 @@ const iac = {
   scenery: 'open',
   blocks: [
     C('template', 'Template', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The blueprint', prop: 'dashboard', pos: [-6.5, 0], yaw: 90 }, 'A declarative description of all resources.', 'A CloudFormation template (infrastructure as code).'),
-    C('cfn', 'CloudFormation', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The builder', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Provisions exactly what the blueprint says.', 'AWS CloudFormation; provisions stacks from templates.'),
+    C('cfn', 'CloudFormation', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The builder', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Provisions exactly what the blueprint says.', 'AWS CloudFormation; provisions stacks from templates.', 'Resources:\n  AssetsBucket:\n    Type: AWS::S3::Bucket   # declarative, idempotent'),
     C('dev', 'Dev stack', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Dev kitchen', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One environment built from the template.', 'A dev environment.'),
     C('prod', 'Prod stack', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Prod kitchen', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'An identical environment from the same template.', 'An identical prod environment.'),
   ],
@@ -1107,7 +1107,7 @@ const audit = {
   scenery: 'open',
   blocks: [
     C('users', 'Users & services', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The staff', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Everyone making API calls.', 'IAM users, roles and services calling AWS APIs.'),
-    C('cloudtrail', 'CloudTrail', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The logbook', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Records who did what, when.', 'AWS CloudTrail; records account API activity.'),
+    C('cloudtrail', 'CloudTrail', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The logbook', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Records who did what, when.', 'AWS CloudTrail; records account API activity.', '{ "eventName": "DeleteBucket",\n  "userIdentity": {...}, "sourceIPAddress": ... }\n→ logged to S3 (+ CloudWatch Logs)'),
     C('log', 'Audit log (S3)', 'storage', { pos: [3.5, 0.7, 0] }, { name: 'The archive', prop: 'larder', pos: [3.5, 0], yaw: -90 }, 'Stores the trail durably for later.', 'CloudTrail logs delivered to S3 (often locked).'),
   ],
   connections: [
@@ -1253,7 +1253,7 @@ const egress = {
   scenery: 'open',
   blocks: [
     C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90 }, 'In a private subnet — no inbound from the internet.', 'An EC2 instance in a private subnet.'),
-    C('nat', 'NAT gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'Staffed exit', prop: 'guardpost', pos: [-0.5, 0], yaw: -90 }, 'Lets private servers reach OUT; nobody can start a connection IN.', 'A NAT gateway in a public subnet.'),
+    C('nat', 'NAT gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'Staffed exit', prop: 'guardpost', pos: [-0.5, 0], yaw: -90 }, 'Lets private servers reach OUT; nobody can start a connection IN.', 'A NAT gateway in a public subnet.', 'private subnet route table:\n0.0.0.0/0 → nat-0a1b2c3d\none NAT per AZ = resilient egress'),
     C('igw', 'Internet gateway', 'networking', { pos: [2.8, 0.7, 1.4] }, { name: 'Front door', prop: 'servicedoor', pos: [2.8, 1.4], yaw: -90 }, 'The VPC’s door to the internet (for public subnets).', 'The internet gateway.'),
     C('net', 'Internet', 'generic', { pos: [5, 0.7, -0.6] }, { name: 'The supplier', prop: 'customer', pos: [5, -0.6], yaw: -90 }, 'Updates, packages, external APIs.', 'The public internet.'),
   ],
@@ -1282,7 +1282,7 @@ const s3protect = {
   scenery: 'open',
   blocks: [
     C('user', 'Writer', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'Writes and overwrites objects.', 'A client writing objects.'),
-    C('bucket', 'S3 bucket', 'storage', { pos: [-1, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [-1, 0], yaw: -90 }, 'Stores objects redundantly across AZs.', 'An S3 bucket (~11 nines durability).'),
+    C('bucket', 'S3 bucket', 'storage', { pos: [-1, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [-1, 0], yaw: -90 }, 'Stores objects redundantly across AZs.', 'An S3 bucket (~11 nines durability).', 'Block Public Access: ON\nVersioning + MFA Delete\nDefault encryption: SSE-KMS'),
     C('versions', 'Versioning', 'storage', { pos: [3, 0.7, -1.6] }, { name: 'Old copies', prop: 'coldroom', pos: [3, -1.6], yaw: -90 }, 'Keeps every past version of an object.', 'S3 Versioning; recover overwrites/deletes.'),
     C('lock', 'Object Lock', 'security', { pos: [3.5, 0.7, 1.6] }, { name: 'The lock', prop: 'safe', pos: [3.5, 1.6], yaw: -90 }, 'Prevents objects being changed or deleted.', 'S3 Object Lock (WORM) / MFA-delete.'),
   ],
@@ -1368,7 +1368,7 @@ const backups = {
   blocks: [
     C('ebs', 'EBS / EFS', 'storage', { pos: [-5, 0.7, -1.6] }, { name: 'Cooler', prop: 'coldroom', pos: [-5, -1.6], yaw: -90 }, 'One resource to protect.', 'EBS volumes / EFS file systems.'),
     C('rds', 'RDS / DynamoDB', 'database', { pos: [-5, 0.7, 1.6] }, { name: 'Pantry', prop: 'pantry', pos: [-5, 1.6], yaw: -90 }, 'Another resource to protect.', 'Databases to back up.'),
-    C('backup', 'AWS Backup', 'security', { pos: [1, 0.7, 0] }, { name: 'Backup vault', prop: 'safe', pos: [1, 0], yaw: -90 }, 'Central, scheduled backups with retention.', 'AWS Backup; policy-based backups across services.'),
+    C('backup', 'AWS Backup', 'security', { pos: [1, 0.7, 0] }, { name: 'Backup vault', prop: 'safe', pos: [1, 0], yaw: -90 }, 'Central, scheduled backups with retention.', 'AWS Backup; policy-based backups across services.', 'Backup plan: daily 05:00 UTC\nRetain 35 days · copy to us-east-1\nSelection: tag backup=true'),
   ],
   connections: [
     { id: 'c_ebs_backup', from: 'ebs', to: 'backup', flow: 'data' },
