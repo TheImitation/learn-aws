@@ -46,10 +46,10 @@ function buildOpenFloor(group) {
 // Per-world room mood (floor/wall/trim colours). A world's character comes mostly from its dressing
 // and service props; the shell just sets the tone.
 const WORLD_MOOD = {
-  restaurant: { floor: 0x423a33, wall: 0x726c61, trim: 0x534f47 },
-  sortingoffice: { floor: 0x3a3b40, wall: 0x55585f, trim: 0x3f4146 },
-  transit: { floor: 0x33363d, wall: 0x4a4e57, trim: 0x3a3d44 },
-  library: { floor: 0x40342a, wall: 0x6b5a44, trim: 0x4a3d2e },
+  restaurant: { floor: 0x1d1d24, checker: 0xece6d6, wall: 0xdcd2bc, trim: 0xcf3a33 }, // old-school diner: checkerboard floor, cream walls, cherry-red trim
+  sortingoffice: { floor: 0x44474f, wall: 0x6f7480, trim: 0x535761 },
+  transit: { floor: 0x3c4049, wall: 0x5a606d, trim: 0x474c57 },
+  library: { floor: 0x4a3a2a, wall: 0x8a7048, trim: 0x5c4836 },
 };
 // Build a bespoke, decorated scene from a topic's `scene` config (works for any world). Adds the room
 // shell + zone tints + ambient dressing to storyGroup; functional service props are added afterwards
@@ -59,7 +59,14 @@ function buildScene(group, scene, world, w) {
   const M = WORLD_MOOD[world] || WORLD_MOOD.restaurant;
   const b = Object.assign({ w: 22, d: 13, x: -0.75 }, scene.bounds || {});
   const put = (m, x, y, z, ry = 0) => { m.position.set(x, y, z); m.rotation.y = ry; group.add(m); };
-  put(box(b.w, 0.16, b.d, M.floor), b.x, -0.08, 0);                       // floor
+  if (M.checker) {                                                        // diner checkerboard floor (one mesh, tiled texture)
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const cx = cv.getContext('2d');
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+    cx.fillStyle = hex(M.floor); cx.fillRect(0, 0, 64, 64); cx.fillStyle = hex(M.checker); cx.fillRect(0, 0, 32, 32); cx.fillRect(32, 32, 32, 32);
+    const tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.magFilter = THREE.NearestFilter; tex.repeat.set(Math.round(b.w / 1.4), Math.round(b.d / 1.4));
+    const fl = new THREE.Mesh(new THREE.BoxGeometry(b.w, 0.16, b.d), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5, metalness: 0.05 }));
+    fl.position.set(b.x, -0.08, 0); group.add(fl);
+  } else put(box(b.w, 0.16, b.d, M.floor), b.x, -0.08, 0);                // plain floor
   put(box(b.w, 1.5, 0.25, M.wall), b.x, 0.75, -b.d / 2 - 0.05);           // back wall
   put(box(0.25, 1.5, b.d, M.wall), b.x - b.w / 2 - 0.05, 0.75, 0);        // left wall
   put(box(0.25, 1.5, b.d, M.wall), b.x + b.w / 2 + 0.05, 0.75, 0);        // right wall
@@ -71,7 +78,7 @@ function buildScene(group, scene, world, w) {
     for (const [za, zc] of segs) { const len = Math.abs(zc - za); if (len < 0.05) continue; put(box(0.2, 1.3, len, M.wall), gx, 0.65, (za + zc) / 2); }
     if (gap) put(box(0.3, 0.2, Math.abs(gap[1] - gap[0]) + 0.4, M.trim), gx, 1.35, (gap[0] + gap[1]) / 2); // lintel over the doorway
   }
-  (scene.zones || []).forEach((z, zi) => {                                // per-zone floor tint (tiny y stagger so overlapping tints don't z-fight)
+  if (!M.checker) (scene.zones || []).forEach((z, zi) => {                // per-zone floor tint (skipped on the diner checkerboard); tiny y stagger avoids z-fight
     if (z.rect && z.floorTint != null) { const r = z.rect; put(box(Math.abs(r.x1 - r.x0), 0.02, Math.abs(r.z1 - r.z0), z.floorTint), (r.x0 + r.x1) / 2, 0.012 + zi * 0.002, (r.z0 + r.z1) / 2); }
   });
   for (const z of (scene.zones || [])) for (const d of (z.dressing || [])) { // ambient dressing scatter

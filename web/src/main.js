@@ -14,7 +14,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.22;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.appendChild(renderer.domElement);
@@ -44,14 +44,14 @@ function flyCamera(to, dur = 1.4) {
   camTween = { from: camera.position.clone(), to: new THREE.Vector3(to[0], to[1], to[2]), t: 0, dur };
 }
 
-scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x35301f, 0.6));   // sky / warm-ground ambient
+scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x4a4030, 0.85));   // sky / warm-ground ambient
 const sun = new THREE.DirectionalLight(0xfff1dc, 1.2); sun.position.set(6, 14, 8);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 50;
 sun.shadow.camera.left = -15; sun.shadow.camera.right = 15; sun.shadow.camera.top = 15; sun.shadow.camera.bottom = -15;
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0x9fb4d0, 0.28); fill.position.set(-6, 6, -4); scene.add(fill);
+const fill = new THREE.DirectionalLight(0x9fb4d0, 0.42); fill.position.set(-6, 6, -4); scene.add(fill);
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();

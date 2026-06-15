@@ -653,6 +653,13 @@ function officeDesk(o = {}) {
   return g;
 }
 function wallArt(o = {}) { const g = new THREE.Group(); add(g, box(0.06, 0.5, 0.7, darker(BRASS, 0.8)), 0, 0, 0); add(g, box(0.02, 0.4, 0.6, o.color || 0x6a8caf), 0.03, 0, 0); return g; } // mount on a wall at y≈1.1
+function neonSign(o = {}) { // a glowing diner neon sign (wall-mounted, faces +z)
+  const g = new THREE.Group(); const c = o.accent || 0xff3d6e;
+  add(g, box(2.0, 0.6, 0.08, 0x14151a), 0, 0, 0);             // dark backing
+  add(g, box(1.7, 0.16, 0.06, c, true), 0, 0.13, 0.05);       // glowing tube
+  add(g, box(1.7, 0.08, 0.06, 0x39e0d4, true), 0, -0.14, 0.05); // cyan underline
+  return g;
+}
 function signage(o = {}) { // a glowing zone strip (mesh only; no text)
   const g = new THREE.Group();
   add(g, new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, Math.max(0.6, (o.label || '').length * 0.12)), new THREE.MeshStandardMaterial({ color: 0x1a1d24, emissive: o.accent || 0x8fb6e6, emissiveIntensity: 0.7 })), 0, 0, 0);
@@ -678,6 +685,7 @@ export function makeDressing(kind, opts = {}) {
     case 'barstool': return barStool(opts);
     case 'officedesk': return officeDesk(opts);
     case 'wallart': return wallArt(opts);
+    case 'neon': return neonSign(opts);
     case 'signage': return signage(opts);
     case 'parcels': return parcelStack(opts);
     case 'dock': return loadingDock(opts);

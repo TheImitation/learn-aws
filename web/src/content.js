@@ -12,9 +12,10 @@ const C = (id, name, cat, arch, story, plain, real, code) => ({ id, name, cat, a
 const RScene = () => ({
   bounds: { w: 19, d: 12, x: -1 },
   zones: [
-    { id: 'foh', label: 'Front of house', rect: { x0: -10.5, z0: -6, x1: -2.5, z1: 6 }, floorTint: 0x473c34, accent: 0xf2b25a, dressing: [
-      { kind: 'diningtable', pos: [-8.8, 4.8] }, { kind: 'chair', pos: [-8.8, 5.5], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-8.8, 4.8], y: 1.5 },
-      { kind: 'diningtable', pos: [-8.8, -4.9] }, { kind: 'chair', pos: [-8.8, -5.6], yaw: 180, opts: { occupied: true } }, { kind: 'pendant', pos: [-8.8, -4.9], y: 1.5 },
+    { id: 'foh', label: 'Front of house', rect: { x0: -10.5, z0: -6, x1: -2.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+      { kind: 'diningtable', pos: [-8.8, 4.8], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8.8, 5.5], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'chair', pos: [-8.8, 4.1], opts: { color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8.8, 4.8], y: 1.5 },
+      { kind: 'diningtable', pos: [-8.8, -4.9], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8.8, -5.6], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8.8, -4.9], y: 1.5 },
+      { kind: 'neon', pos: [-6.5, -5.9], y: 1.7, opts: { accent: 0xff3d6e } },
       { kind: 'window', pos: [-10.4, 1.6] }, { kind: 'window', pos: [-10.4, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-10, 5.6] },
     ] },
     { id: 'kitchen', label: 'Kitchen', rect: { x0: -2.5, z0: -6, x1: 9, z1: 6 }, floorTint: 0x3d3a36, accent: 0x9aa0aa, dressing: [
@@ -36,9 +37,9 @@ const kitchen = {
     partitions: [{ x: -3.6, gap: [-1.3, 1.3] }], // the wall between front-of-house and the kitchen; the service door is its doorway
     zones: [
       { id: 'foh', label: 'Front of house', rect: { x0: -11.5, z0: -6.8, x1: -3.5, z1: 6.8 }, floorTint: 0x4a3f37, accent: 0xf2b25a, dressing: [
-        { kind: 'diningtable', pos: [-6.8, -1.2] }, { kind: 'chair', pos: [-6.8, -0.5], yaw: 180, opts: { occupied: true } }, { kind: 'chair', pos: [-6.8, -1.9], opts: { occupied: true } },
-        { kind: 'diningtable', pos: [-5.8, 2.6] }, { kind: 'chair', pos: [-5.8, 3.3], yaw: 180, opts: { occupied: true } }, { kind: 'chair', pos: [-5.8, 1.9] },
-        { kind: 'pendant', pos: [-6.8, -1.2], y: 1.4 }, { kind: 'pendant', pos: [-5.8, 2.6], y: 1.4 },
+        { kind: 'diningtable', pos: [-6.8, -1.2], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-6.8, -0.5], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'chair', pos: [-6.8, -1.9], opts: { occupied: true, color: 0xcf3a33 } },
+        { kind: 'diningtable', pos: [-5.8, 2.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-5.8, 3.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'chair', pos: [-5.8, 1.9], opts: { color: 0xcf3a33 } },
+        { kind: 'pendant', pos: [-6.8, -1.2], y: 1.4 }, { kind: 'pendant', pos: [-5.8, 2.6], y: 1.4 }, { kind: 'neon', pos: [-7.5, -6.85], y: 1.7, opts: { accent: 0xff3d6e } },
         { kind: 'window', pos: [-11.5, -2.5] }, { kind: 'window', pos: [-11.5, 2.5], opts: { variant: 'night' } },
         { kind: 'plant', pos: [-10.9, 5.9] }, { kind: 'plant', pos: [-4.0, 6.2] },
         { kind: 'bar', pos: [-5.2, -6.3] }, { kind: 'barstool', pos: [-6.1, -5.5] }, { kind: 'barstool', pos: [-5.6, -5.5] }, { kind: 'barstool', pos: [-4.8, -5.5] },
