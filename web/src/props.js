@@ -174,6 +174,14 @@ function ticketrail(color) {
   add(g, box(0.92, 0.1, 0.3, darker(color, 0.8)), 0, 0.06, 0);
   return g;
 }
+// A wall of numbered pickup cubbies (DynamoDB — grab any item by its key).
+function cubbies(color) {
+  const g = new THREE.Group(); const frame = darker(color, 0.55), hole = darker(color, 0.92);
+  add(g, box(0.86, 0.92, 0.32, frame), 0, 0.5, 0);                                  // cabinet
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) add(g, box(0.22, 0.22, 0.2, hole), -0.26 + c * 0.26, 0.27 + r * 0.27, 0.1); // cubbies
+  add(g, box(0.9, 0.06, 0.36, color), 0, 0.97, 0);                                  // top trim (accent)
+  return g;
+}
 
 // A small object that travels along a connection — shaped by the kind of flow.
 export function makeToken(flow) {
@@ -248,6 +256,7 @@ export function makeProp(kind, color) {
     case 'bouncer': return bouncer(color);
     case 'guardpost': return guardpost(color);
     case 'ticketrail': return ticketrail(color);
+    case 'cubbies': return cubbies(color);
     default: return station(color);
   }
 }

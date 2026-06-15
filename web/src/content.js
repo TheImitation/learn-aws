@@ -224,8 +224,123 @@ const sqs = {
   ],
 };
 
+const lambda = {
+  id: 'go-serverless-lambda', title: 'Go Serverless', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'Stop paying a cook to stand idle: pop-up cooks who clock in only when an order lands, then vanish.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person making a request.', 'A client request / event.'),
+    C('server', 'Always-on server', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Always-on cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90 }, 'A server that runs (and bills) 24/7, even when idle.', 'An EC2 instance you pay for per hour, always on.'),
+    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-demand cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Appears only when there is work; you manage no servers.', 'AWS Lambda; runs your code per event, auto-scaled.'),
+    C('lambda2', 'Lambda (scaled)', 'compute', { pos: [4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4, 1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
+    C('lambda3', 'Lambda (scaled)', 'compute', { pos: [4.3, 0.7, -1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4.3, -1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
+  ],
+  connections: [
+    { id: 'c_user_server', from: 'user', to: 'server', flow: 'request' },
+    { id: 'c_user_lambda', from: 'user', to: 'lambda', flow: 'request' },
+    { id: 'c_user_lambda2', from: 'user', to: 'lambda2', flow: 'request' },
+    { id: 'c_user_lambda3', from: 'user', to: 'lambda3', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Paying a cook to stand idle', focus: 'server', anim: 'pulse', animConn: 'c_user_server', narration: 'A server runs around the clock and bills every hour — even overnight when no requests come in.', storyNarration: 'The cook stands at the range all night. You pay for every hour, even when the dining room is empty.', concept: 'An always-on server bills whether or not it is working.', blocks: ['user', 'server'], conns: ['c_user_server'] },
+    { title: 'Cooks on demand (Lambda)', focus: 'lambda', anim: 'spike', narration: 'With Lambda, a function spins up only when an event arrives, runs your code, and goes away. No servers to manage.', storyNarration: 'A ticket lands and a cook appears instantly, cooks the dish, and clocks straight back out. Nobody idles.', concept: 'Lambda runs your code per event — no idle servers.', blocks: ['user', 'lambda'], conns: ['c_user_lambda'] },
+    { title: 'Scale to the rush', focus: 'lambda', anim: 'spike', narration: 'A hundred requests arrive at once and Lambda just runs a hundred executions in parallel — no capacity planning.', storyNarration: 'The rush hits and a hundred cooks appear at once, one per ticket. When it passes, they all clock out.', concept: 'Lambda scales out automatically with the load.', blocks: ['user', 'lambda', 'lambda2', 'lambda3'], conns: ['c_user_lambda', 'c_user_lambda2', 'c_user_lambda3'] },
+    { title: 'Pay per dish', focus: 'lambda', anim: 'pulse', animConn: 'c_user_lambda', narration: 'You pay per request and the milliseconds it runs — nothing while idle. Great for spiky, event-driven work.', storyNarration: 'You pay only for dishes actually cooked — nothing for an empty kitchen. Perfect when demand comes in bursts.', concept: 'Serverless = pay per execution, nothing when idle.', blocks: ['user', 'lambda', 'lambda2', 'lambda3'], conns: ['c_user_lambda', 'c_user_lambda2', 'c_user_lambda3'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'What does AWS Lambda let you avoid?', options: ['Managing and paying for idle servers', 'Writing any code', 'Using IAM', 'Storing data'], correct: [0], explain: 'Lambda runs code per event with no servers to provision or keep running.' },
+    { kind: 'single', prompt: '100 events arrive at once. Lambda…', options: ['Runs many executions concurrently, automatically', 'Queues them on one server', 'Drops the extras', 'Needs manual scaling'], correct: [0], explain: 'Lambda scales out concurrently with demand.' },
+    { kind: 'single', prompt: 'Lambda’s cost model is…', options: ['Per request + run duration; nothing when idle', 'A flat hourly fee', 'Per stored GB', 'Per user'], correct: [0], explain: 'You pay only for invocations and their duration.' },
+    { kind: 'single', prompt: 'Best fit for Lambda?', options: ['Spiky, event-driven work', 'A steady 24/7 high-CPU service', 'A desktop GUI', 'A relational database engine'], correct: [0], explain: 'Event-driven, bursty workloads suit serverless; steady heavy load may be cheaper on servers.' },
+  ],
+};
+
+const datastore = {
+  id: 'pick-the-pantry', title: 'Pick the Right Database', examDomain: 'Design High-Performing Architectures',
+  summary: 'A relational pantry with a ledger, or a giant wall of numbered cubbies — match the store to the job.',
+  scenery: 'open',
+  blocks: [
+    C('app', 'Your app', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The line cook', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The app that needs to read and write data.', 'Your application tier.'),
+    C('rds', 'Amazon RDS', 'database', { pos: [1.5, 0.7, -1.7] }, { name: 'Relational pantry', prop: 'pantry', pos: [1.5, -1.7], yaw: -90 }, 'Labelled shelves + a ledger: relationships, joins, transactions.', 'Amazon RDS; relational (SQL), ACID, scales up + read replicas.'),
+    C('dynamo', 'DynamoDB', 'database', { pos: [2.2, 0.7, 1.7] }, { name: 'Numbered cubbies', prop: 'cubbies', pos: [2.2, 1.7], yaw: -90 }, 'Grab any item by its number instantly; endless cubbies.', 'DynamoDB; key-value/document NoSQL, single-digit-ms, scales horizontally.'),
+  ],
+  connections: [
+    { id: 'c_app_rds', from: 'app', to: 'rds', flow: 'data' },
+    { id: 'c_app_dynamo', from: 'app', to: 'dynamo', flow: 'data' },
+  ],
+  stages: [
+    { title: 'The organised pantry (RDS)', focus: 'rds', anim: 'pulse', animConn: 'c_app_rds', narration: 'A relational database stores structured rows you can join and update in transactions — great when data is interrelated.', storyNarration: 'Stock sits on labelled shelves with a ledger: ask complex questions across it, and keep everything consistent.', concept: 'RDS = relational data with joins and transactions.', blocks: ['app', 'rds'], conns: ['c_app_rds'] },
+    { title: 'A wall of cubbies (DynamoDB)', focus: 'dynamo', anim: 'pulse', animConn: 'c_app_dynamo', narration: 'DynamoDB stores items you fetch by key in single-digit milliseconds, and scales horizontally to any size.', storyNarration: 'Grab item #4839 from its cubby in an instant. Add endless cubbies — but you fetch by the number, not by cross-referencing.', concept: 'DynamoDB = key-value NoSQL, huge scale, constant speed.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_dynamo'] },
+    { title: 'The trade-off', focus: 'app', narration: 'RDS gives relationships and transactions but scales mostly vertically; DynamoDB gives limitless scale and speed but key-based access, no joins.', storyNarration: 'The pantry lets you reason across all the stock; the cubby wall is faster and endless but you must know the number.', concept: 'Relationships/transactions vs limitless scale/speed.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_rds', 'c_app_dynamo'] },
+    { title: 'Pick the right store', focus: 'app', narration: 'Interrelated data, joins, transactions → RDS. Massive scale with simple key lookups and predictable latency → DynamoDB.', storyNarration: 'Recipes that reference each other → the pantry. A million quick grab-by-number pickups → the cubby wall.', concept: 'Match the data store to the access pattern.', blocks: ['app', 'rds', 'dynamo'], conns: ['c_app_rds', 'c_app_dynamo'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Highly interrelated data with joins and transactions?', options: ['Amazon RDS (relational)', 'DynamoDB', 'S3', 'CloudFront'], correct: [0], explain: 'Relational databases handle relationships, joins and ACID transactions.' },
+    { kind: 'single', prompt: 'Single-digit-ms key lookups at massive, growing scale?', options: ['DynamoDB', 'A single RDS instance', 'Amazon Glacier', 'An EBS volume'], correct: [0], explain: 'DynamoDB is a horizontally-scaling NoSQL store with consistent low latency.' },
+    { kind: 'single', prompt: 'Which is TRUE of DynamoDB?', options: ['NoSQL, scales horizontally, accessed by key', 'Supports arbitrary SQL joins', 'Scales only vertically', 'Is an object store for files'], correct: [0], explain: 'DynamoDB is key-value/document NoSQL; no cross-table joins.' },
+    { kind: 'tapfix', prompt: 'You need a known item by its key, instantly, at any scale. Tap the right store.', tapTarget: 'dynamo', explain: 'DynamoDB gives constant single-digit-ms key lookups at any scale.' },
+  ],
+};
+
+const cache = {
+  id: 'cache-hot-items', title: 'Cache the Hot Items', examDomain: 'Design High-Performing Architectures',
+  summary: 'Keep the popular dishes prepped at the line so most orders never touch the back pantry.',
+  scenery: 'open',
+  blocks: [
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person requesting data.', 'A client read request.'),
+    C('cache', 'ElastiCache', 'edge', { pos: [-1, 0.7, 0] }, { name: 'Prep station', prop: 'grabandgo', pos: [-1, 0], yaw: -90 }, 'Popular items kept ready in memory; served instantly.', 'ElastiCache (Redis/Memcached); in-memory cache.'),
+    C('db', 'Database', 'database', { pos: [3.5, 0.7, 0] }, { name: 'The pantry', prop: 'pantry', pos: [3.5, 0], yaw: -90 }, 'The full store; slower, and strained by repeats.', 'The backing database (e.g. RDS).'),
+  ],
+  connections: [
+    { id: 'c_user_db', from: 'user', to: 'db', flow: 'request' },
+    { id: 'c_user_cache', from: 'user', to: 'cache', flow: 'request' },
+    { id: 'c_cache_db', from: 'cache', to: 'db', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Every order hits the pantry', focus: 'db', anim: 'overload', animConn: 'c_user_db', narration: 'If every read goes to the database, popular queries repeat constantly and the database gets swamped — and it’s slow.', storyNarration: 'Every single order sends someone to the back pantry. The popular dishes get fetched over and over, and the pantry is mobbed.', concept: 'Repeated reads straight to the DB are slow and overload it.', blocks: ['user', 'db'], conns: ['c_user_db'] },
+    { title: 'Keep hot items ready (cache)', focus: 'cache', anim: 'pulse', animConn: 'c_user_cache', narration: 'Put an in-memory cache in front: frequent reads are served from memory in microseconds.', storyNarration: 'Pre-prep the popular dishes at the line. Most orders are handed over instantly, without a trip to the back.', concept: 'A cache serves frequent reads from memory, fast.', blocks: ['user', 'cache', 'db'], conns: ['c_user_cache'] },
+    { title: 'On a miss, fetch once', focus: 'cache', anim: 'chain', chain: ['c_user_cache', 'c_cache_db'], narration: 'On a cache miss, fetch from the database once, store it in the cache, then serve it fast next time.', storyNarration: 'If a dish isn’t prepped yet, fetch it from the pantry once, keep a tray ready, and serve it instantly after that.', concept: 'Cache miss → load from DB, then cache it.', blocks: ['user', 'cache', 'db'], conns: ['c_user_cache', 'c_cache_db'] },
+    { title: 'Fast reads, relaxed pantry', focus: 'cache', anim: 'pulse', animConn: 'c_user_cache', narration: 'The cache absorbs the bulk of reads; the database only handles misses — lower latency and far less load.', storyNarration: 'The line handles the crowd; the pantry only gets the occasional special. Faster service, calm back-of-house.', concept: 'Caching cuts latency and offloads the database.', blocks: ['user', 'cache', 'db'], conns: ['c_user_cache', 'c_cache_db'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Why put ElastiCache in front of a database?', options: ['Serve frequent reads from memory; cut DB load + latency', 'To store files durably', 'To replace IAM', 'To add transactions'], correct: [0], explain: 'An in-memory cache answers hot reads fast and offloads the database.' },
+    { kind: 'single', prompt: 'On a cache miss you should…', options: ['Read from the DB, then store it in the cache', 'Fail the request', 'Delete the cache', 'Never use the DB again'], correct: [0], explain: 'Lazy-loading: fetch on miss, then cache for next time.' },
+    { kind: 'single', prompt: 'ElastiCache is…', options: ['An in-memory data store (Redis/Memcached)', 'An object store', 'A CDN', 'A relational database'], correct: [0], explain: 'ElastiCache runs managed Redis or Memcached in memory.' },
+    { kind: 'tapfix', prompt: 'The same reads repeat constantly and the database is overloaded. Tap what to add in front of it.', tapTarget: 'cache', explain: 'A cache serves the repeated reads from memory and offloads the DB.' },
+  ],
+};
+
+const cost = {
+  id: 'optimise-cost', title: 'Optimize Cost', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'Staff the kitchen wisely: per-shift hires, cooks booked ahead at a discount, and cheap casual labour.',
+  scenery: 'open',
+  blocks: [
+    C('work', 'The workload', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The compute demand to cover.', 'Your steady + variable compute load.'),
+    C('ondemand', 'On-Demand', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Per-shift cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90 }, 'Hired per shift at full rate; total flexibility, no commitment.', 'On-Demand instances; pay per second, no commitment.'),
+    C('reserved', 'Reserved / Savings', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'Booked cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Booked for a year for a big discount; for steady baseline work.', 'Reserved Instances / Savings Plans; commit 1–3y for up to ~72% off.'),
+    C('spot', 'Spot', 'compute', { pos: [4, 0.7, 1.7] }, { name: 'Casual cook', prop: 'cook', pos: [4, 1.7], yaw: -90 }, 'Cheap casual labour grabbed when idle — can be sent home any moment.', 'Spot Instances; up to ~90% off, can be reclaimed with ~2 min notice.'),
+  ],
+  connections: [
+    { id: 'c_work_ondemand', from: 'work', to: 'ondemand', flow: 'request' },
+    { id: 'c_work_reserved', from: 'work', to: 'reserved', flow: 'request' },
+    { id: 'c_work_spot', from: 'work', to: 'spot', flow: 'request' },
+  ],
+  stages: [
+    { title: 'Pay per shift (On-Demand)', focus: 'ondemand', anim: 'pulse', animConn: 'c_work_ondemand', narration: 'On-Demand has no commitment and total flexibility — but it’s the priciest way to cover load you run all the time.', storyNarration: 'Hire a cook per shift at the full rate. Brilliant flexibility, but expensive if they’re in every single night.', concept: 'On-Demand: max flexibility, highest steady-state price.', blocks: ['work', 'ondemand'], conns: ['c_work_ondemand'] },
+    { title: 'Commit for a discount (Reserved)', focus: 'reserved', anim: 'pulse', animConn: 'c_work_reserved', narration: 'For the baseline you always need, commit with Reserved Instances or Savings Plans and pay far less per hour.', storyNarration: 'For the cooks you need every night anyway, book them for the year — same work, much smaller bill.', concept: 'Reserved/Savings: commit to baseline for a big discount.', blocks: ['work', 'ondemand', 'reserved'], conns: ['c_work_ondemand', 'c_work_reserved'] },
+    { title: 'Cheap casual labour (Spot)', focus: 'spot', anim: 'overload', animConn: 'c_work_spot', narration: 'Spot is up to ~90% cheaper, but AWS can reclaim it with ~2 minutes’ notice — only for interruptible, retryable work.', storyNarration: 'Grab cheap casual cooks when they’re free — but they can be called away mid-shift, so only give them work that can be picked up by someone else.', concept: 'Spot: cheapest, but interruptible — use for fault-tolerant work.', blocks: ['work', 'ondemand', 'reserved', 'spot'], conns: ['c_work_ondemand', 'c_work_reserved', 'c_work_spot'] },
+    { title: 'Mix for the best bill', focus: 'work', narration: 'Cover the baseline with Reserved/Savings, variable demand with On-Demand, and spiky fault-tolerant work with Spot.', storyNarration: 'Book your regulars, top up per-shift on busy nights, and lean on casual hands for the overflow you can afford to lose.', concept: 'Blend purchase options to fit the workload shape.', blocks: ['work', 'ondemand', 'reserved', 'spot'], conns: ['c_work_ondemand', 'c_work_reserved', 'c_work_spot'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Cheapest for a steady 24/7 baseline you can commit to?', options: ['Reserved Instances / Savings Plans', 'On-Demand', 'Spot', 'More EBS'], correct: [0], explain: 'Committing 1–3 years gives the biggest discount for steady load.' },
+    { kind: 'single', prompt: 'Cheapest compute for interruptible, fault-tolerant work?', options: ['Spot Instances', 'On-Demand', 'Reserved', 'Dedicated Hosts'], correct: [0], explain: 'Spot is deeply discounted but can be reclaimed at short notice.' },
+    { kind: 'single', prompt: 'No commitment and full flexibility (e.g. unpredictable dev/test)?', options: ['On-Demand', 'Reserved', 'A 3-year Savings Plan', 'Spot only'], correct: [0], explain: 'On-Demand has no commitment; you pay per use.' },
+    { kind: 'single', prompt: 'Key caveat of Spot Instances?', options: ['Can be reclaimed with ~2 minutes’ notice', 'Cost more than On-Demand', 'Cannot run Linux', 'Require a 1-year commitment'], correct: [0], explain: 'Use Spot only for work that tolerates interruption.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost],
 };

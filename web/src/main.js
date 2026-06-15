@@ -85,6 +85,10 @@ const CARD = {
   'secure-access-iam': { icon: '🔑', accent: '#d15656' },
   'network-boundaries-vpc': { icon: '🚪', accent: '#3585c6' },
   'decouple-with-queue-sqs': { icon: '🧾', accent: '#33b38c' },
+  'go-serverless-lambda': { icon: '⚡', accent: '#f0a92e' },
+  'pick-the-pantry': { icon: '🗄️', accent: '#7d66d1' },
+  'cache-hot-items': { icon: '🍽️', accent: '#3aa9b5' },
+  'optimise-cost': { icon: '💰', accent: '#67ad5b' },
 };
 
 function openCourseMap() {
