@@ -67,6 +67,15 @@ function record(id, m, b) {
   localStorage.setItem(PKEY, JSON.stringify(progress));
 }
 
+// ---------- exam history (localStorage) ----------
+const HKEY = 'learnaws.examhistory';
+let examHistory = (() => { try { return JSON.parse(localStorage.getItem(HKEY) || '[]'); } catch { return []; } })();
+function recordExam(entry) {
+  examHistory.push(entry);
+  if (examHistory.length > 50) examHistory = examHistory.slice(-50);
+  localStorage.setItem(HKEY, JSON.stringify(examHistory));
+}
+
 // ---------- state ----------
 let world = null, journey = null, topic = null, mode = 'story', showAnalogy = false;
 let inspectorReal = false, selectedId = null;
@@ -180,8 +189,12 @@ function openCourseMap() {
 
   // Overview: overall progress + a Continue/Start CTA + a Mock exam across all topics.
   const ov = $('map-overview');
+  const fullHist = examHistory.filter((h) => h.scopeKey === 'full');
+  const examStat = fullHist.length
+    ? `<div class="ov-stat">Mock exam — last <b class="inline">${fullHist[fullHist.length - 1].pct}%</b> · best <b class="inline">${Math.max(...fullHist.map((h) => h.pct))}%</b></div>`
+    : '';
   ov.innerHTML = `<div class="ov-stat"><b>${mastered}</b> / ${total} mastered</div>
-    <div class="ov-bar"><i style="width:${Math.round((mastered / total) * 100)}%"></i></div>`;
+    <div class="ov-bar"><i style="width:${Math.round((mastered / total) * 100)}%"></i></div>${examStat}`;
   const nxt = nextTopic();
   if (nxt) {
     const btn = document.createElement('button'); btn.className = 'primary';
@@ -196,6 +209,7 @@ function openCourseMap() {
   exam.onclick = () => startMockExam();
   ov.appendChild(exam);
   const find = document.createElement('button'); find.textContent = '🔎 Find a topic';
+  find.title = 'Press / to search from anywhere';
   find.onclick = openFind;
   ov.appendChild(find);
 
@@ -278,7 +292,7 @@ function renderFind(query) {
   list.appendChild(grid);
 }
 function openFind() {
-  examMode = false; examDomain = null;
+  examMode = false; examDomain = null; stopExamTimer(); examTimed = false;
   $('find-input').value = '';
   renderFind('');
   showScreen('find');
@@ -495,7 +509,21 @@ function showExamResults() {
   }).join('');
   const revisit = [...new Set(examItems.filter((e) => e.ok === false).map((e) => e.topic.title))].slice(0, 5);
   const tip = revisit.length ? `<div class="exam-tip"><b>Revisit:</b> ${revisit.join(' · ')}</div>` : '';
-  $('r-recap').innerHTML = `<h3>By domain</h3><div class="dom-rows">${rows}</div>${tip}`;
+  // record this attempt, then show a trend of recent attempts of the same scope
+  const scopeKey = examDomain || 'full';
+  recordExam({ t: Date.now(), scopeKey, scopeLabel: dom ? dom.label : 'Mock exam', pct, correct: correctCount, total: examItems.length, timed: examTimed, expired: examTimedOut });
+  const hist = examHistory.filter((h) => h.scopeKey === scopeKey);
+  let histHtml = '';
+  if (hist.length > 1) {
+    const recent = hist.slice(-6);
+    const best = Math.max(...hist.map((h) => h.pct));
+    const prev = hist[hist.length - 2].pct, d = pct - prev;
+    const bars = recent.map((h, i) => `<span class="hist-bar${i === recent.length - 1 ? ' latest' : ''}" title="${h.correct}/${h.total}"><i style="height:${Math.max(h.pct, 3)}%"></i><b>${h.pct}</b></span>`).join('');
+    const delta = d === 0 ? '· no change from last time'
+      : d > 0 ? `· <span class="up">▲ +${d}%</span> from last time` : `· <span class="down">▼ ${d}%</span> from last time`;
+    histHtml = `<h3>Your attempts</h3><div class="hist"><div class="hist-bars">${bars}</div><div class="hist-note">Best <b>${best}%</b> ${delta}</div></div>`;
+  }
+  $('r-recap').innerHTML = `<h3>By domain</h3><div class="dom-rows">${rows}</div>${tip}${histHtml}`;
   // Offer to drill the weakest domain (only meaningful on a full exam with a clear weak spot).
   const weak = DOMAINS.filter((d) => tally[d.key] && tally[d.key].ok < tally[d.key].total)
     .sort((a, b) => (tally[a.key].ok / tally[a.key].total) - (tally[b.key].ok / tally[b.key].total))[0];
@@ -549,6 +577,14 @@ $('r-retry').onclick = () => (examMode ? startMockExam(examDomain) : startAssess
 $('find-map').onclick = openCourseMap;
 $('find-input').oninput = (e) => renderFind(e.target.value);
 $('find-input').onkeydown = (e) => { if (e.key === 'Escape') openCourseMap(); };
+// press "/" anywhere (except while typing or mid-assessment) to jump to search
+addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const el = document.activeElement, tag = el && el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) return;
+  if ($('screen-assess').classList.contains('active')) return;
+  e.preventDefault(); openFind();
+});
 
 // ---------- render loop ----------
 let last = performance.now();
