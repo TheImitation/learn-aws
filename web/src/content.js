@@ -1305,8 +1305,175 @@ const s3protect = {
   ],
 };
 
+const govern = {
+  id: 'govern-accounts', title: 'Govern Many Accounts', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'Run franchises from head office: one combined bill with volume discounts, and house rules all must follow.',
+  scenery: 'open',
+  blocks: [
+    C('billing', 'Consolidated billing', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'One bill', prop: 'dashboard', pos: [-6.5, 0], yaw: 90 }, 'All accounts roll up to one payer.', 'Consolidated billing; pooled usage earns volume/Savings discounts.'),
+    C('org', 'Organizations', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Head office', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Manages all the accounts centrally.', 'AWS Organizations; SCP guardrails + central management.', '{\n  "Effect": "Deny",\n  "Action": "cloudtrail:StopLogging",\n  "Resource": "*"\n}'),
+    C('dev', 'Account: Dev', 'compute', { pos: [3.2, 0.7, -1.7] }, { name: 'Dev franchise', prop: 'cook', pos: [3.2, -1.7], yaw: -90 }, 'An isolated member account.', 'A member account (isolation + blast-radius limit).'),
+    C('prod', 'Account: Prod', 'compute', { pos: [3.7, 0.7, 1.7] }, { name: 'Prod franchise', prop: 'cook', pos: [3.7, 1.7], yaw: -90 }, 'Another isolated account.', 'Another member account.'),
+  ],
+  connections: [
+    { id: 'c_org_dev', from: 'org', to: 'dev', flow: 'network' },
+    { id: 'c_org_prod', from: 'org', to: 'prod', flow: 'network' },
+    { id: 'c_org_billing', from: 'org', to: 'billing', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Many accounts, one org', focus: 'org', narration: 'Separate accounts isolate teams, environments and blast radius; AWS Organizations manages them centrally.', storyNarration: 'Each franchise is its own kitchen with its own books; head office oversees them all.', concept: 'Multi-account isolates; Organizations manages centrally.', blocks: ['org', 'dev', 'prod'], conns: ['c_org_dev', 'c_org_prod'] },
+    { title: 'One combined bill', focus: 'billing', anim: 'pulse', animConn: 'c_org_billing', narration: 'Consolidated billing rolls every account into one payer — and pooled usage unlocks volume and Savings Plan discounts.', storyNarration: 'All the franchises’ tills total to one bill, and buying in bulk across them earns a better rate.', concept: 'Consolidated billing = one bill + pooled discounts.', blocks: ['billing', 'org', 'dev', 'prod'], conns: ['c_org_billing', 'c_org_dev', 'c_org_prod'] },
+    { title: 'House rules (SCPs)', focus: 'org', anim: 'pulse', animConn: 'c_org_dev', narration: 'Service Control Policies set guardrails every account must obey — e.g. “never disable logging”, or restrict regions.', storyNarration: 'Head office posts non-negotiable house rules in every franchise: some things simply cannot be done, ever.', concept: 'SCPs = org-wide permission guardrails (max permissions).', blocks: ['billing', 'org', 'dev', 'prod'], conns: ['c_org_dev', 'c_org_prod'] },
+    { title: 'Scale safely', focus: 'org', narration: 'New accounts inherit the guardrails and billing automatically; Control Tower sets up a governed landing zone.', storyNarration: 'Open a new franchise and it arrives pre-fitted with the house rules and on the shared bill from day one.', concept: 'Governed multi-account at scale.', blocks: ['billing', 'org', 'dev', 'prod'], conns: ['c_org_billing', 'c_org_dev', 'c_org_prod'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Why use multiple AWS accounts under Organizations?', options: ['Isolation and limited blast radius, centrally managed', 'It’s faster', 'To avoid IAM', 'To get a public IP'], correct: [0], explain: 'Separate accounts isolate workloads; Organizations governs them.' },
+    { kind: 'single', prompt: 'Consolidated billing gives you…', options: ['One bill and pooled volume/Savings discounts', 'Free compute', 'A second region', 'A CDN'], correct: [0], explain: 'Usage pools across accounts for better pricing.' },
+    { kind: 'single', prompt: 'Enforce “no account may disable CloudTrail” across the org. Use…', options: ['A Service Control Policy (SCP)', 'An IAM user policy in each account', 'A security group', 'Route 53'], correct: [0], explain: 'SCPs set guardrails (maximum permissions) for all accounts.' },
+    { kind: 'single', prompt: 'An SCP defines…', options: ['The maximum permissions accounts can have', 'Who pays the bill', 'A VPC’s CIDR', 'A backup schedule'], correct: [0], explain: 'SCPs bound permissions; they don’t grant them by themselves.' },
+  ],
+};
+
+const endpoints = {
+  id: 'vpc-endpoints', title: 'Keep Traffic Private', examDomain: 'Design Cost-Optimized Architectures',
+  summary: 'A private hatch straight to the AWS pantry, so deliveries never hit the street — faster, private, no NAT toll.',
+  scenery: 'open',
+  blocks: [
+    C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90 }, 'An instance in a private subnet.', 'A private EC2 instance.'),
+    C('endpoint', 'VPC endpoint', 'networking', { pos: [0, 0.7, 0] }, { name: 'Private hatch', prop: 'servicedoor', pos: [0, 0], yaw: -90 }, 'A private door to AWS services, bypassing the internet.', 'A VPC endpoint; reaches AWS services over the AWS network.', 'Gateway endpoint → com.amazonaws.eu-west-1.s3\nroute: pl-id (S3 prefix list)'),
+    C('s3svc', 'S3 / service', 'storage', { pos: [4, 0.7, 0] }, { name: 'The pantry', prop: 'larder', pos: [4, 0], yaw: -90 }, 'The AWS service you’re reaching.', 'e.g. Amazon S3.'),
+  ],
+  connections: [
+    { id: 'c_server_ep', from: 'server', to: 'endpoint', flow: 'network' },
+    { id: 'c_ep_s3', from: 'endpoint', to: 's3svc', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Reaching S3 the long way', focus: 'server', anim: 'overload', animConn: 'c_server_ep', narration: 'Without an endpoint, traffic to S3 leaves your VPC via the NAT/internet gateway — slower, exposed, and you pay NAT + data charges.', storyNarration: 'Every delivery walks out to the busy street and back, paying a toll each trip, just to reach the pantry next door.', concept: 'The public path to AWS services adds cost and exposure.', blocks: ['server', 's3svc'], conns: ['c_server_ep'] },
+    { title: 'Open a private hatch', focus: 'endpoint', anim: 'chain', chain: ['c_server_ep', 'c_ep_s3'], narration: 'A VPC endpoint lets private instances reach AWS services over the AWS network — no internet, no NAT.', storyNarration: 'Cut a private hatch straight through to the pantry; deliveries never touch the street.', concept: 'VPC endpoint = private path to AWS services.', blocks: ['server', 'endpoint', 's3svc'], conns: ['c_server_ep', 'c_ep_s3'] },
+    { title: 'Gateway vs Interface', focus: 'endpoint', narration: 'Gateway endpoints serve S3 and DynamoDB (free, via route tables); Interface endpoints (PrivateLink, an ENI) serve most other services.', storyNarration: 'A built-in hatch for the two big pantries (S3/DynamoDB); a fitted intercom port for everything else.', concept: 'Gateway (S3/DynamoDB) vs Interface (PrivateLink) endpoints.', blocks: ['server', 'endpoint', 's3svc'], conns: ['c_server_ep', 'c_ep_s3'] },
+    { title: 'Private, cheaper, scoped', focus: 's3svc', narration: 'Traffic stays on AWS’s network, avoids NAT/egress cost, and endpoint policies can scope exactly what’s reachable.', storyNarration: 'No street, no toll, and the hatch only opens to the shelves you’re allowed.', concept: 'Private + cheaper + policy-scoped access.', blocks: ['server', 'endpoint', 's3svc'], conns: ['c_server_ep', 'c_ep_s3'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Let a private instance reach S3 without the internet or a NAT gateway?', options: ['A VPC (gateway) endpoint', 'A public IP', 'An internet gateway', 'A second VPC'], correct: [0], explain: 'Endpoints reach AWS services over the AWS network privately.' },
+    { kind: 'single', prompt: 'Which services use a (free) gateway endpoint?', options: ['S3 and DynamoDB', 'All services', 'Only EC2', 'Lambda only'], correct: [0], explain: 'Gateway endpoints serve S3 and DynamoDB; others use interface endpoints.' },
+    { kind: 'single', prompt: 'A cost benefit of VPC endpoints?', options: ['Avoids NAT gateway + internet data charges', 'Free compute', 'Cheaper storage class', 'No need for IAM'], correct: [0], explain: 'Keeping traffic private avoids NAT/egress costs.' },
+    { kind: 'single', prompt: 'Interface endpoints are powered by…', options: ['AWS PrivateLink (an ENI in your subnet)', 'A NAT gateway', 'Route 53', 'An SQS queue'], correct: [0], explain: 'Interface endpoints use PrivateLink ENIs.' },
+  ],
+};
+
+const backups = {
+  id: 'centralize-backups', title: 'Centralize Backups', examDomain: 'Design Resilient Architectures',
+  summary: 'One vault that automatically copies every fridge and pantry on a schedule, locks them, and restores on demand.',
+  scenery: 'open',
+  blocks: [
+    C('ebs', 'EBS / EFS', 'storage', { pos: [-5, 0.7, -1.6] }, { name: 'Cooler', prop: 'coldroom', pos: [-5, -1.6], yaw: -90 }, 'One resource to protect.', 'EBS volumes / EFS file systems.'),
+    C('rds', 'RDS / DynamoDB', 'database', { pos: [-5, 0.7, 1.6] }, { name: 'Pantry', prop: 'pantry', pos: [-5, 1.6], yaw: -90 }, 'Another resource to protect.', 'Databases to back up.'),
+    C('backup', 'AWS Backup', 'security', { pos: [1, 0.7, 0] }, { name: 'Backup vault', prop: 'safe', pos: [1, 0], yaw: -90 }, 'Central, scheduled backups with retention.', 'AWS Backup; policy-based backups across services.'),
+  ],
+  connections: [
+    { id: 'c_ebs_backup', from: 'ebs', to: 'backup', flow: 'data' },
+    { id: 'c_rds_backup', from: 'rds', to: 'backup', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Backups scattered everywhere', focus: 'backup', narration: 'Each service has its own snapshots and scripts — it’s easy to miss one or let a schedule drift.', storyNarration: 'Every fridge gets backed up by a different person on a different day — until one quietly doesn’t.', concept: 'Ad-hoc, per-service backups are inconsistent.', blocks: ['ebs', 'rds', 'backup'], conns: [] },
+    { title: 'One place, one policy', focus: 'backup', anim: 'flow', narration: 'AWS Backup centrally schedules and stores backups across EBS, EFS, RDS, DynamoDB and more, by policy.', storyNarration: 'One vault automatically takes a copy of every fridge and pantry on the same schedule — nothing forgotten.', concept: 'AWS Backup = central, policy-based backups.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
+    { title: 'Retention & vault lock', focus: 'backup', anim: 'pulse', animConn: 'c_rds_backup', narration: 'Set retention rules, lock the vault so backups can’t be deleted (immutable), and copy cross-region/account for DR.', storyNarration: 'Keep copies for a set time in a sealed vault nobody can empty, and mirror it to another city.', concept: 'Retention + vault lock + cross-region copies.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
+    { title: 'Restore on demand', focus: 'backup', narration: 'When something’s lost or corrupted, restore the resource from the vault to a known good point.', storyNarration: 'Lost a tray of stock? Pull the exact copy from the vault and you’re back.', concept: 'Centralized, point-in-time restore.', blocks: ['ebs', 'rds', 'backup'], conns: ['c_ebs_backup', 'c_rds_backup'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Centrally schedule and manage backups across EBS, RDS, DynamoDB, EFS…?', options: ['AWS Backup', 'Per-service scripts only', 'A NAT gateway', 'Route 53'], correct: [0], explain: 'AWS Backup centralizes backup policy across services.' },
+    { kind: 'single', prompt: 'Stop backups being deleted (ransomware/insider)?', options: ['Backup Vault Lock (immutable)', 'A bigger instance', 'A security group', 'A read replica'], correct: [0], explain: 'Vault Lock makes backups immutable for a retention period.' },
+    { kind: 'single', prompt: 'Protect backups against a regional disaster?', options: ['Cross-region (and cross-account) backup copies', 'One copy in one AZ', 'No copies', 'A NAT gateway'], correct: [0], explain: 'Copy backups to another region/account for DR.' },
+    { kind: 'single', prompt: 'AWS Backup’s main value over per-service snapshots?', options: ['One consistent policy across many services', 'Faster CPUs', 'Cheaper data transfer', 'A global CDN'], correct: [0], explain: 'Central policy = consistent, auditable backups.' },
+  ],
+};
+
+const migrate = {
+  id: 'migrate-data', title: 'Move Big Data In', examDomain: 'Design Resilient Architectures',
+  summary: 'Years of stock to shift: a truck of crates for a huge one-off, or a steady conveyor over the wire for ongoing sync.',
+  scenery: 'open',
+  blocks: [
+    C('onprem', 'On-prem data', 'compute', { pos: [-6.5, 0.7, 0] }, { name: 'Old store', prop: 'cook', pos: [-6.5, 0], yaw: 90 }, 'Large datasets sitting on-premises.', 'On-prem data to migrate.'),
+    C('snow', 'Snow Family', 'storage', { pos: [-1, 0.7, -1.7] }, { name: 'The truck', prop: 'crate', pos: [-1, -1.7], yaw: 0 }, 'A rugged device AWS ships you for offline transfer.', 'AWS Snowball/Snowmobile; offline bulk transfer.'),
+    C('datasync', 'DataSync', 'edge', { pos: [-0.5, 0.7, 1.6] }, { name: 'The conveyor', prop: 'ticketrail', pos: [-0.5, 1.6], yaw: 0 }, 'Moves and syncs file data over the network.', 'AWS DataSync; online file transfer/sync.'),
+    C('s3', 'S3', 'storage', { pos: [4, 0.7, 0] }, { name: 'New larder', prop: 'larder', pos: [4, 0], yaw: -90 }, 'The destination in AWS.', 'Amazon S3 (or EFS/FSx).'),
+  ],
+  connections: [
+    { id: 'c_op_snow', from: 'onprem', to: 'snow', flow: 'data' },
+    { id: 'c_snow_s3', from: 'snow', to: 's3', flow: 'data' },
+    { id: 'c_op_ds', from: 'onprem', to: 'datasync', flow: 'data' },
+    { id: 'c_ds_s3', from: 'datasync', to: 's3', flow: 'data' },
+  ],
+  stages: [
+    { title: 'Petabytes to move', focus: 'onprem', narration: 'Pushing huge datasets over a normal internet link could take weeks or months.', storyNarration: 'Carrying years of stock to the new kitchen one box at a time would take all season.', concept: 'Large offline data is slow over the wire.', blocks: ['onprem', 's3'], conns: [] },
+    { title: 'Ship it on a device (Snow)', focus: 'snow', anim: 'chain', chain: ['c_op_snow', 'c_snow_s3'], narration: 'AWS ships you a rugged Snow device; you load the data and send it back — faster than the network for huge one-off moves.', storyNarration: 'AWS sends a truck of crates; load it up, send it back, and it’s shelved far quicker than carrying boxes.', concept: 'Snow Family = offline bulk transfer.', blocks: ['onprem', 'snow', 's3'], conns: ['c_op_snow', 'c_snow_s3'] },
+    { title: 'Sync over the network (DataSync)', focus: 'datasync', anim: 'chain', chain: ['c_op_ds', 'c_ds_s3'], narration: 'For ongoing or online transfers, DataSync moves and continuously syncs file data over the network.', storyNarration: 'For steady restocking, run a conveyor over the wire that keeps the new larder in sync with the old.', concept: 'DataSync = online file transfer/sync.', blocks: ['onprem', 'datasync', 's3'], conns: ['c_op_ds', 'c_ds_s3'] },
+    { title: 'Pick by size & cadence', focus: 's3', narration: 'One-off petabytes or a poor link → Snow; ongoing/online sync → DataSync; databases → DMS.', storyNarration: 'A whole season’s stock at once → the truck; a daily top-up → the conveyor.', concept: 'Choose the transfer by volume and frequency.', blocks: ['onprem', 'snow', 'datasync', 's3'], conns: ['c_op_snow', 'c_snow_s3', 'c_op_ds', 'c_ds_s3'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Move 100 TB once, over a slow link, fastest?', options: ['AWS Snowball (offline device)', 'Upload over the internet', 'A read replica', 'A NAT gateway'], correct: [0], explain: 'Snow devices beat the wire for big one-off transfers.' },
+    { kind: 'single', prompt: 'Continuously sync on-prem files to S3/EFS over the network?', options: ['AWS DataSync', 'Snowmobile', 'A security group', 'Route 53'], correct: [0], explain: 'DataSync is for online file transfer and ongoing sync.' },
+    { kind: 'single', prompt: 'Migrate a relational database to AWS?', options: ['AWS Database Migration Service (DMS)', 'Snowball only', 'DataSync only', 'CloudFront'], correct: [0], explain: 'DMS migrates databases (often with SCT for engine changes).' },
+    { kind: 'single', prompt: 'Why ship a Snow device instead of uploading?', options: ['Bandwidth/time: the network would take too long', 'It’s more secure than everything', 'It’s always cheaper', 'It avoids IAM'], correct: [0], explain: 'For huge datasets, physical transfer is faster than the link.' },
+  ],
+};
+
+const compliance = {
+  id: 'stay-compliant', title: 'Stay Compliant', examDomain: 'Design Secure Architectures',
+  summary: 'An inspector that records the exact setup of every appliance and checks it against the rulebook, flagging breaches.',
+  scenery: 'open',
+  blocks: [
+    C('resources', 'Your resources', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'The resources whose config matters.', 'Your AWS resources and their settings.'),
+    C('config', 'AWS Config', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The inspector', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Records config and how it changes.', 'AWS Config; configuration recorder + rules.'),
+    C('status', 'Compliance status', 'security', { pos: [3.5, 0.7, 0] }, { name: 'The rulebook board', prop: 'dashboard', pos: [3.5, 0], yaw: -90 }, 'Shows what’s compliant and what isn’t.', 'Config rules evaluation results.'),
+  ],
+  connections: [
+    { id: 'c_res_config', from: 'resources', to: 'config', flow: 'data' },
+    { id: 'c_config_status', from: 'config', to: 'status', flow: 'request' },
+  ],
+  stages: [
+    { title: 'What’s actually configured?', focus: 'config', anim: 'pulse', animConn: 'c_res_config', narration: 'AWS Config records the configuration of every resource and tracks how it changes over time.', storyNarration: 'An inspector writes down the exact setup of every appliance, and notes every time someone tweaks one.', concept: 'Config = a configuration history of your resources.', blocks: ['resources', 'config'], conns: ['c_res_config'] },
+    { title: 'Check against the rules', focus: 'status', anim: 'chain', chain: ['c_res_config', 'c_config_status'], narration: 'Config rules continuously evaluate resources — “no public S3”, “EBS encrypted” — and flag non-compliant ones.', storyNarration: 'The inspector checks each appliance against the rulebook and lights up anything that’s out of code.', concept: 'Config rules = continuous compliance checks.', blocks: ['resources', 'config', 'status'], conns: ['c_res_config', 'c_config_status'] },
+    { title: 'Auto-remediate', focus: 'status', anim: 'pulse', animConn: 'c_config_status', narration: 'A non-compliant resource can trigger automatic remediation to put it back in line.', storyNarration: 'Catch an unplugged fridge and the system quietly switches it back on — no waiting for someone to notice.', concept: 'Drift can trigger automatic remediation.', blocks: ['resources', 'config', 'status'], conns: ['c_res_config', 'c_config_status'] },
+    { title: 'Config vs CloudTrail', focus: 'config', narration: 'Config answers “what does this resource look like, and is it compliant?”; CloudTrail answers “who changed it?”.', storyNarration: 'The inspector’s notes say how each appliance is set; the door logbook says who came in and changed it.', concept: 'Config (state/compliance) vs CloudTrail (actions).', blocks: ['resources', 'config', 'status'], conns: ['c_res_config', 'c_config_status'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Track resource configuration over time and check compliance?', options: ['AWS Config', 'CloudTrail', 'CloudFront', 'A NAT gateway'], correct: [0], explain: 'Config records configuration state and evaluates rules.' },
+    { kind: 'single', prompt: 'Continuously flag any S3 bucket that becomes public. Use…', options: ['An AWS Config rule', 'A security group', 'Route 53', 'An SQS queue'], correct: [0], explain: 'Config rules evaluate resources against desired settings.' },
+    { kind: 'single', prompt: 'Config vs CloudTrail:', options: ['Config = resource state/compliance; CloudTrail = who did what', 'They are identical', 'Config = audit log', 'CloudTrail = config history'], correct: [0], explain: 'Different lenses: configuration state vs API actions.' },
+    { kind: 'single', prompt: 'A non-compliant resource is found. Config can…', options: ['Trigger automatic remediation', 'Only email yearly', 'Do nothing ever', 'Delete the account'], correct: [0], explain: 'Config supports automatic remediation actions.' },
+  ],
+};
+
+const ssm = {
+  id: 'ssm-session', title: 'Access Without a Bastion', examDomain: 'Design Secure Architectures',
+  summary: 'Reach the back room through a secure, logged hatch — no open door, no keys, nothing exposed to the street.',
+  scenery: 'open',
+  blocks: [
+    C('admin', 'Admin', 'generic', { pos: [-6, 0.7, 0] }, { name: 'Admin', prop: 'customer', pos: [-6, 0], yaw: 90 }, 'An operator who needs shell access.', 'An administrator (authenticated by IAM).'),
+    C('ssm', 'Session Manager', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'Secure hatch', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Opens a logged shell via the SSM agent + IAM.', 'SSM Session Manager; no inbound ports, no keys.'),
+    C('server', 'Private server', 'compute', { pos: [3.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [3.5, 0], yaw: -90 }, 'A private instance — no public IP, no open SSH.', 'A private EC2 instance with the SSM agent.'),
+  ],
+  connections: [
+    { id: 'c_admin_ssm', from: 'admin', to: 'ssm', flow: 'request' },
+    { id: 'c_ssm_server', from: 'ssm', to: 'server', flow: 'network' },
+  ],
+  stages: [
+    { title: 'A bastion is still a door', focus: 'admin', narration: 'A bastion host works, but it’s an SSH door you must harden, patch, key-manage and audit.', storyNarration: 'A guarded entrance helps, but it’s still a door that can be forced, and someone must mind it.', concept: 'A bastion adds an exposed entry point to manage.', blocks: ['admin', 'server'], conns: [] },
+    { title: 'Connect through SSM', focus: 'ssm', anim: 'chain', chain: ['c_admin_ssm', 'c_ssm_server'], narration: 'SSM Session Manager opens a shell via the instance’s SSM agent and IAM — no inbound ports, no bastion, no SSH keys.', storyNarration: 'Staff reach the back room through a secure intercom hatch the building opens from inside — there’s no street door at all.', concept: 'Session Manager = no-bastion, no-inbound access.', blocks: ['admin', 'ssm', 'server'], conns: ['c_admin_ssm', 'c_ssm_server'] },
+    { title: 'Logged and controlled', focus: 'ssm', anim: 'pulse', animConn: 'c_admin_ssm', narration: 'Every session is authorized by IAM and fully logged — who connected, when, and what they ran.', storyNarration: 'The hatch only opens for staff on the list, and records every visit and everything done.', concept: 'IAM-gated, fully-audited access.', blocks: ['admin', 'ssm', 'server'], conns: ['c_admin_ssm', 'c_ssm_server'] },
+    { title: 'Even fully-private instances', focus: 'server', narration: 'It works for instances with no public IP (via VPC endpoints) — nothing is exposed to the internet at all.', storyNarration: 'Even the deepest back room with no outside wall is reachable through the hatch — and still invisible from the street.', concept: 'Secure access to fully-private instances.', blocks: ['admin', 'ssm', 'server'], conns: ['c_admin_ssm', 'c_ssm_server'] },
+  ],
+  quiz: [
+    { kind: 'single', prompt: 'Get a shell on EC2 without SSH, a bastion, or open inbound ports?', options: ['SSM Session Manager', 'A public IP + SSH', 'A second bastion', 'A NAT gateway'], correct: [0], explain: 'Session Manager connects via the SSM agent + IAM, no inbound.' },
+    { kind: 'single', prompt: 'Session Manager requires which inbound ports open?', options: ['None', 'Port 22', 'Port 443 from anywhere', 'All ports'], correct: [0], explain: 'It needs no inbound ports; the agent connects outbound.' },
+    { kind: 'single', prompt: 'How is Session Manager access controlled and recorded?', options: ['IAM authorization + full session logging', 'A shared SSH key', 'It isn’t', 'A security group only'], correct: [0], explain: 'IAM authorizes; sessions are logged for audit.' },
+    { kind: 'tapfix', prompt: 'You want admins to reach private instances without exposing SSH. Tap the right path.', tapTarget: 'ssm', explain: 'Session Manager gives keyless, no-inbound, audited access.' },
+  ],
+};
+
 export const COURSE = {
   id: 'saa-c03',
   title: 'AWS Solutions Architect',
-  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute, hybrid, threats, accelerator, cognito, iac, audit, sgnacl, multiaz, messaging, scaleupout, egress, s3protect],
+  topics: [kitchen, storage, iam, vpc, sqs, lambda, datastore, cache, cost, monitor, blockfile, fanout, dns, dr, containers, kms, edge, apigw, orchestrate, scaling, analytics, secrets, bill, aurora, networks, stateless, events, kinesis, storageclass, compute, hybrid, threats, accelerator, cognito, iac, audit, sgnacl, multiaz, messaging, scaleupout, egress, s3protect, govern, endpoints, backups, migrate, compliance, ssm],
 };
