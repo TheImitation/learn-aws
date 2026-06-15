@@ -282,10 +282,16 @@ function selectBlock(id) {
   renderInspector();
   $('inspector').classList.remove('hidden');
 }
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 function renderInspector() {
   const spec = topic.blocks.find((b) => b.id === selectedId); if (!spec) return;
   $('insp-name').textContent = mode === 'story' && spec.story.prop ? spec.story.name : spec.name;
-  $('insp-body').textContent = inspectorReal ? spec.real : spec.plain;
+  const body = $('insp-body');
+  if (inspectorReal) {
+    body.innerHTML = `<div>${esc(spec.real)}</div>` + (spec.code ? `<pre class="code">${esc(spec.code)}</pre>` : '');
+  } else {
+    body.textContent = spec.plain;
+  }
 }
 
 // ---------- assessment ----------

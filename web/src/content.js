@@ -2,7 +2,9 @@
 // arch.pos = [x,y,z] technical layout; container blocks also have arch.size = [w,h,d].
 // story.pos = [x,z] on the floor; story.prop = procedural prop key (null = represented by scenery).
 
-const C = (id, name, cat, arch, story, plain, real) => ({ id, name, cat, arch, story, plain, real });
+// C(id, name, cat, arch, story, plain, real, code?) — `code` is an optional real-AWS syntax snippet
+// (ARN, CIDR, IAM JSON, SG rule…) shown under the Real inspector tab to bridge the metaphor to exam wording.
+const C = (id, name, cat, arch, story, plain, real, code) => ({ id, name, cat, arch, story, plain, real, code });
 
 const kitchen = {
   id: 'ha-web-app',
@@ -15,8 +17,8 @@ const kitchen = {
     C('region', 'Region (eu-west-1)', 'networking', { pos: [0, 1.4, 0], size: [14, 3.2, 10], container: true }, { name: 'The restaurant', prop: null, pos: [0, 0], yaw: 0 }, 'A geographic area such as eu-west-1.', 'Region eu-west-1; contains multiple isolated Availability Zones.'),
     C('azA', 'Availability Zone A', 'networking', { pos: [-3.5, 1.2, 0], size: [6.4, 2.6, 9], container: true }, { name: 'Kitchen line A', prop: null, pos: [0, 0], yaw: 0 }, 'An isolated zone with its own power and network.', 'Availability Zone eu-west-1a.'),
     C('azB', 'Availability Zone B', 'networking', { pos: [3.5, 1.2, 0], size: [6.4, 2.6, 9], container: true }, { name: 'Kitchen line B', prop: null, pos: [0, 0], yaw: 0 }, 'A second isolated zone.', 'Availability Zone eu-west-1b.'),
-    C('vpc', 'VPC', 'networking', { pos: [0, 1.1, 0.3], size: [12.6, 2.4, 8.2], container: true }, { name: 'The kitchen', prop: null, pos: [0, 0], yaw: 0 }, 'Your private network inside the region.', 'VPC 10.0.0.0/16 — carved into subnets.'),
-    C('pubA', 'Public subnet A', 'networking', { pos: [-3.5, 0.8, -2.4], size: [5.6, 1.6, 3.2], container: true }, { name: 'Front of house A', prop: null, pos: [0, 0], yaw: 0 }, 'A subnet routed to the internet gateway.', 'Public subnet 10.0.0.0/24.'),
+    C('vpc', 'VPC', 'networking', { pos: [0, 1.1, 0.3], size: [12.6, 2.4, 8.2], container: true }, { name: 'The kitchen', prop: null, pos: [0, 0], yaw: 0 }, 'Your private network inside the region.', 'VPC 10.0.0.0/16 — carved into subnets.', 'CIDR 10.0.0.0/16\n→ 10.0.0.0 – 10.0.255.255  (65,536 IPs)'),
+    C('pubA', 'Public subnet A', 'networking', { pos: [-3.5, 0.8, -2.4], size: [5.6, 1.6, 3.2], container: true }, { name: 'Front of house A', prop: null, pos: [0, 0], yaw: 0 }, 'A subnet routed to the internet gateway.', 'Public subnet 10.0.0.0/24.', 'subnet 10.0.0.0/24  (256 IPs)\nroute: 0.0.0.0/0 → igw-0a1b2c'),
     C('pubB', 'Public subnet B', 'networking', { pos: [3.5, 0.8, -2.4], size: [5.6, 1.6, 3.2], container: true }, { name: 'Front of house B', prop: null, pos: [0, 0], yaw: 0 }, 'Public subnet in AZ B.', 'Public subnet 10.0.1.0/24.'),
     C('privA', 'Private subnet A', 'networking', { pos: [-3.5, 0.8, 2.0], size: [5.6, 1.6, 3.6], container: true }, { name: 'The line A', prop: null, pos: [0, 0], yaw: 0 }, 'No inbound route from the internet.', 'Private subnet 10.0.2.0/24.'),
     C('privB', 'Private subnet B', 'networking', { pos: [3.5, 0.8, 2.0], size: [5.6, 1.6, 3.6], container: true }, { name: 'The line B', prop: null, pos: [0, 0], yaw: 0 }, 'Private subnet in AZ B.', 'Private subnet 10.0.3.0/24.'),
@@ -109,7 +111,7 @@ const storage = {
   blocks: [
     C('user', 'Global user', 'generic', { pos: [-8, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-8, 0], yaw: 90 }, 'A person requesting a file.', 'Client HTTPS request for an object.'),
     C('cf', 'CloudFront', 'edge', { pos: [-3, 0.7, 0] }, { name: 'Grab-and-go', prop: 'grabandgo', pos: [-3, 0], yaw: -90 }, 'Caches objects near each user.', 'CloudFront distribution; origin = the S3 bucket.'),
-    C('s3', 'S3 bucket', 'storage', { pos: [1.5, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [1.5, 0], yaw: -90 }, 'Virtually unlimited, durable object storage.', 'S3; ~11 nines of durability, copies across AZs.'),
+    C('s3', 'S3 bucket', 'storage', { pos: [1.5, 0.7, 0] }, { name: 'The larder', prop: 'larder', pos: [1.5, 0], yaw: -90 }, 'Virtually unlimited, durable object storage.', 'S3; ~11 nines of durability, copies across AZs.', 'arn:aws:s3:::my-app-assets/img/logo.png'),
     C('glacier', 'S3 Glacier', 'storage', { pos: [5, 0.7, 0] }, { name: 'Cold room', prop: 'coldroom', pos: [5, 0], yaw: -90 }, 'Cheap archival storage for cold data.', 'S3 Glacier; very low cost, retrieval in minutes–hours.'),
   ],
   connections: [
@@ -138,8 +140,8 @@ const iam = {
   scenery: 'open',
   blocks: [
     C('staff', 'Person / app', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Staff member', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'Someone (or something) that needs access.', 'An IAM identity: a user, role, or federated principal.'),
-    C('iam', 'IAM', 'security', { pos: [-2, 0.7, 0] }, { name: 'Security desk', prop: 'securitydesk', pos: [-2, 0], yaw: -90 }, 'Issues identities and decides who can do what.', 'IAM users, roles and policies.'),
-    C('stockroom', 'Assets bucket', 'storage', { pos: [2.5, 0.7, -1.6] }, { name: 'Stockroom', prop: 'larder', pos: [2.5, -1.6], yaw: -90 }, 'A resource this identity may use.', 'An S3 bucket the policy permits.'),
+    C('iam', 'IAM', 'security', { pos: [-2, 0.7, 0] }, { name: 'Security desk', prop: 'securitydesk', pos: [-2, 0], yaw: -90 }, 'Issues identities and decides who can do what.', 'IAM users, roles and policies.', '{\n  "Effect": "Allow",\n  "Action": "s3:GetObject",\n  "Resource": "arn:aws:s3:::assets/*"\n}'),
+    C('stockroom', 'Assets bucket', 'storage', { pos: [2.5, 0.7, -1.6] }, { name: 'Stockroom', prop: 'larder', pos: [2.5, -1.6], yaw: -90 }, 'A resource this identity may use.', 'An S3 bucket the policy permits.', 'arn:aws:s3:::assets-bucket'),
     C('safe', 'Payroll bucket', 'storage', { pos: [2.5, 0.7, 1.6] }, { name: 'Payroll safe', prop: 'coldroom', pos: [2.5, 1.6], yaw: -90 }, 'A resource this identity must NOT use.', 'An S3 bucket the policy does not grant.'),
   ],
   connections: [
@@ -169,7 +171,7 @@ const vpc = {
     C('admin', 'Admin', 'generic', { pos: [-8, 0.7, 0] }, { name: 'Admin', prop: 'customer', pos: [-8, 0], yaw: 90 }, 'An operator who manages the server.', 'An administrator connecting from the internet.'),
     C('igw', 'Internet gateway', 'networking', { pos: [-4.5, 0.7, 0] }, { name: 'Front door', prop: 'servicedoor', pos: [-4.5, 0], yaw: 90 }, 'The only route between the VPC and the internet.', 'Internet gateway; only public subnets route to it.'),
     C('bastion', 'Bastion host', 'compute', { pos: [-1.5, 0.7, 0] }, { name: 'Guard post', prop: 'guardpost', pos: [-1.5, 0], yaw: -90 }, 'The one hardened, audited way in.', 'Bastion host in a public subnet (or use SSM).'),
-    C('sg', 'Security group', 'security', { pos: [2, 0.7, 0] }, { name: 'Bouncer', prop: 'bouncer', pos: [2, 0], yaw: -90 }, 'Allows only specific traffic to the server.', 'Stateful, instance-level firewall; deny by default.'),
+    C('sg', 'Security group', 'security', { pos: [2, 0.7, 0] }, { name: 'Bouncer', prop: 'bouncer', pos: [2, 0], yaw: -90 }, 'Allows only specific traffic to the server.', 'Stateful, instance-level firewall; deny by default.', 'Inbound:  tcp/443 from sg-alb\nOutbound: all (stateful — replies auto)'),
     C('web', 'Web server', 'compute', { pos: [5, 0.7, 0] }, { name: 'Back-of-house server', prop: 'cook', pos: [5, 0], yaw: -90 }, 'The server doing the work, kept private.', 'EC2 in a private subnet.'),
   ],
   connections: [
@@ -519,7 +521,7 @@ const kms = {
   blocks: [
     C('app', 'App / user', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes the data.', 'Your application requesting data.'),
     C('data', 'Encrypted data', 'storage', { pos: [0.5, 0.7, -1.6] }, { name: 'Locked larder', prop: 'larder', pos: [0.5, -1.6], yaw: -90 }, 'Stored locked; a stolen disk is useless without the key.', 'Encrypted S3 / EBS / RDS at rest.'),
-    C('kms', 'AWS KMS', 'security', { pos: [0.5, 0.7, 1.6] }, { name: 'Key vault', prop: 'safe', pos: [0.5, 1.6], yaw: -90 }, 'Holds the master keys; only allowed identities may unlock.', 'AWS KMS; managed keys, access via IAM, audited in CloudTrail.'),
+    C('kms', 'AWS KMS', 'security', { pos: [0.5, 0.7, 1.6] }, { name: 'Key vault', prop: 'safe', pos: [0.5, 1.6], yaw: -90 }, 'Holds the master keys; only allowed identities may unlock.', 'AWS KMS; managed keys, access via IAM, audited in CloudTrail.', 'arn:aws:kms:eu-west-1:111122223333:key/1234abcd\nalias/app-data'),
   ],
   connections: [
     { id: 'c_app_data', from: 'app', to: 'data', flow: 'data' },
@@ -1132,8 +1134,8 @@ const sgnacl = {
   scenery: 'open',
   blocks: [
     C('traffic', 'Traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'Packets arriving (and leaving).', 'Inbound/outbound traffic.'),
-    C('nacl', 'Network ACL', 'security', { pos: [-3, 0.7, 0] }, { name: 'Perimeter guard', prop: 'guardpost', pos: [-3, 0], yaw: 90 }, 'Filters at the subnet edge; allow AND deny; stateless.', 'A NACL; subnet-level, stateless, ordered allow/deny rules.'),
-    C('sg', 'Security group', 'security', { pos: [1, 0.7, 0] }, { name: 'Door bouncer', prop: 'bouncer', pos: [1, 0], yaw: 90 }, 'Allows specific traffic to the instance; remembers the conversation.', 'A security group; instance-level, stateful, allow-only.'),
+    C('nacl', 'Network ACL', 'security', { pos: [-3, 0.7, 0] }, { name: 'Perimeter guard', prop: 'guardpost', pos: [-3, 0], yaw: 90 }, 'Filters at the subnet edge; allow AND deny; stateless.', 'A NACL; subnet-level, stateless, ordered allow/deny rules.', '#100 ALLOW tcp/443 0.0.0.0/0\n#200 DENY  tcp/22  1.2.3.4/32\n#*   DENY  all  (stateless)'),
+    C('sg', 'Security group', 'security', { pos: [1, 0.7, 0] }, { name: 'Door bouncer', prop: 'bouncer', pos: [1, 0], yaw: 90 }, 'Allows specific traffic to the instance; remembers the conversation.', 'A security group; instance-level, stateful, allow-only.', 'ALLOW tcp/443 from 0.0.0.0/0\n(reply traffic auto-allowed)'),
     C('server', 'Instance', 'compute', { pos: [4.5, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [4.5, 0], yaw: -90 }, 'The protected instance.', 'An EC2 instance.'),
   ],
   connections: [
