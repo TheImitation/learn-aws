@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { makeProp, makeDressing, makeToken, makeRunner, applyModel, archBlock, containerWire, box, PALETTE, faceYaw } from './props.js';
+import { makeProp, makeDressing, makeExterior, makeToken, makeRunner, applyModel, archBlock, containerWire, box, PALETTE, faceYaw } from './props.js';
 
 const FLOW = { request: 0x66ccff, data: 0x6cda7f, replication: 0xa680e6, network: 0xaeb4bf };
 const CONTAINER = { networking: 0x4a9fe0, compute: 0xf2b25a, database: 0x9a86e6, edge: 0x4fc7a3, generic: 0xb0b4b0 };
@@ -81,6 +81,7 @@ function buildScene(group, scene, world, w) {
     piece.rotation.y = THREE.MathUtils.degToRad(d.yaw || 0);
     group.add(piece);
   }
+  if (scene.exterior !== false) group.add(makeExterior(world, b)); // surrounding neighbourhood
   w._collectAmbient(group);
 }
 

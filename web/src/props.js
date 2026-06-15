@@ -510,6 +510,47 @@ function branchdesk(color) {                                            // a len
   return g;
 }
 
+// The world beyond the building: ground, roads, street trees and a backdrop of other (night-lit)
+// buildings, so each scene sits in a neighbourhood instead of a void. Tall buildings go to the back
+// and sides; the front (camera side, +z) stays low so the interior is never hidden. Tuned per world.
+export function makeExterior(world, b) {
+  const g = new THREE.Group();
+  const L = b.x - b.w / 2, R = b.x + b.w / 2, BK = -b.d / 2, FR = b.d / 2;
+  const cfg = ({
+    transit: { tall: 9, lamp: 0xbcd2e0, tree: 0x35502f, ground: 0x191b21, facade: 0x262a33 },
+    sortingoffice: { tall: 5, lamp: 0xcfe0a0, tree: 0x3a4a30, ground: 0x1b1d22, facade: 0x2a2c30 },
+    library: { tall: 6, lamp: 0xffd9a0, tree: 0x35502f, ground: 0x1c1a18, facade: 0x2b2620 },
+    restaurant: { tall: 6, lamp: 0xffce8a, tree: 0x35502f, ground: 0x1b1916, facade: 0x29251f },
+  })[world] || { tall: 6, lamp: 0xffd9a0, tree: 0x35502f, ground: 0x1b1b20, facade: 0x262a33 };
+  const put = (m, x, y, z) => { m.position.set(x, y, z); g.add(m); };
+  put(box(b.w * 3.4, 0.04, b.d * 3.6, cfg.ground), b.x, -0.12, 0);                 // ground
+  const roadZ = FR + 2.8;
+  put(box(b.w * 2.6, 0.05, 2.4, 0x111318), b.x, -0.09, roadZ);                     // front road
+  for (let i = -7; i <= 7; i++) put(box(0.7, 0.06, 0.14, 0x7a7f5a), b.x + i * 1.7, -0.06, roadZ); // lane dashes
+  put(box(2.4, 0.05, b.d * 2.2, 0x111318), L - 3.4, -0.09, 0);                     // side roads
+  put(box(2.4, 0.05, b.d * 2.2, 0x111318), R + 3.4, -0.09, 0);
+  const tree = (x, z, s = 1) => {
+    const t = new THREE.Group();
+    add(t, cyl(0.1 * s, 0.7 * s, 0x5a4631), 0, 0.35 * s, 0);
+    add(t, sph(0.5 * s, cfg.tree), 0, 0.9 * s, 0);
+    add(t, sph(0.36 * s, darker(cfg.tree, 1.18)), 0.2 * s, 1.04 * s, 0.1 * s);
+    add(t, sph(0.32 * s, darker(cfg.tree, 0.85)), -0.18 * s, 0.98 * s, -0.08 * s);
+    t.position.set(x, 0, z); g.add(t);
+  };
+  const bld = (x, z, w, h, d) => {
+    add(g, box(w, h, d, cfg.facade), x, h / 2, z);
+    add(g, box(w + 0.12, 0.18, d + 0.12, darker(cfg.facade, 0.7)), x, h, z);        // roof lip
+    const cols = Math.max(1, Math.round(w / 0.8)), rows = Math.max(1, Math.round(h / 1.0));
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if ((r * 5 + c * 3 + (x * 2 | 0)) % 3 === 0) add(g, box(0.22, 0.3, 0.02, 0xffe0a0, true), x - w / 2 + 0.4 + c * (w / cols), 0.7 + r * 1.0, z + d / 2 + 0.02); // lit windows
+  };
+  for (let i = 0; i < 7; i++) bld(L + 1 + i * (b.w / 6.5), BK - 4 - (i % 2) * 2.5, 2.4 + (i % 3) * 0.7, cfg.tall - (i % 3) * 2, 2.4); // backdrop skyline
+  for (let i = 0; i < 4; i++) { const z = BK + 2 + i * (b.d / 3.5); bld(L - 6 - (i % 2) * 1.4, z, 2.2, cfg.tall - 2 - (i % 2) * 1.5, 2.6); bld(R + 6 + (i % 2) * 1.4, z, 2.2, cfg.tall - 2 - (i % 2) * 1.5, 2.6); } // side buildings
+  for (let i = 0; i < 6; i++) tree(L + 1 + i * (b.w / 6), FR + 1.3, 1);             // front-edge trees (low)
+  for (let i = 0; i < 3; i++) { tree(L - 1.9, BK + 3 + i * 3, 0.9); tree(R + 1.9, BK + 3 + i * 3, 0.9); } // side trees
+  for (let i = -2; i <= 2; i++) { const lp = new THREE.Group(); add(lp, box(0.08, 1.5, 0.08, 0x33363f), 0, 0.75, 0); add(lp, box(0.5, 0.07, 0.07, 0x33363f), 0.21, 1.48, 0); add(lp, box(0.16, 0.1, 0.16, cfg.lamp, true), 0.42, 1.45, 0); lp.position.set(b.x + i * 4.2, 0, roadZ - 1.4); g.add(lp); } // street lamps
+  return g;
+}
+
 // ===== Set-dressing (ambient decoration) ====================================================
 // Never given a userData.blockId by the caller → automatically label-free and non-pickable.
 // Animatable pieces tag a child with userData.flicker / userData.diner so one world updater finds them.
