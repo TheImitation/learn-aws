@@ -381,17 +381,35 @@ const datastore = {
 
 const cache = {
   id: 'cache-hot-items', title: 'Cache the Hot Items', examDomain: 'Design High-Performing Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 21, d: 12, x: -0.5 },
+    partitions: [{ x: -3.5, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'foh', label: 'Front of house', rect: { x0: -10.5, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'diningtable', pos: [-7, -3.7], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-7, -3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-7, -3.7], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-10.4, 1.4] }, { kind: 'window', pos: [-10.4, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-10, 5.6] },
+      ] },
+      { id: 'line', label: 'The line (prepped)', rect: { x0: -3.5, z0: -6, x1: 1.5, z1: 6 }, accent: 0xf0a93a, dressing: [
+        { kind: 'extractor', pos: [-1, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-1, 4.6], y: 1.6 },
+      ] },
+      { id: 'pantry', label: 'Back pantry', rect: { x0: 1.5, z0: -6, x1: 9.5, z1: 6 }, accent: 0x8a8f99, dressing: [
+        { kind: 'shelving', pos: [5, -5.3] }, { kind: 'shelving', pos: [7, -5.3] }, { kind: 'shelving', pos: [8.6, 2] }, { kind: 'preptable', pos: [6, 4.8] }, { kind: 'bin', pos: [8.8, 5.2] },
+      ] },
+    ],
+  },
   summary: 'Keep the popular dishes prepped at the line so most orders never touch the back pantry.',
   scenery: 'open',
   blocks: [
-    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person requesting data.', 'A client read request.'),
-    C('cache', 'ElastiCache', 'edge', { pos: [-1, 0.7, 0] }, { name: 'Prep station', prop: 'grabandgo', pos: [-1, 0], yaw: -90 }, 'Popular items kept ready in memory; served instantly.', 'ElastiCache (Redis/Memcached); in-memory cache.'),
-    C('db', 'Database', 'database', { pos: [3.5, 0.7, 0] }, { name: 'The pantry', prop: 'pantry', pos: [3.5, 0], yaw: -90 }, 'The full store; slower, and strained by repeats.', 'The backing database (e.g. RDS).'),
+    C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90, face: 'cache' }, 'A person requesting data.', 'A client read request.'),
+    C('cache', 'ElastiCache', 'edge', { pos: [-1, 0.7, 0] }, { name: 'Prep station', prop: 'grabandgo', pos: [-1, 0], yaw: -90, face: 'user' }, 'Popular items kept ready in memory; served instantly.', 'ElastiCache (Redis/Memcached); in-memory cache.'),
+    C('db', 'Database', 'database', { pos: [3.5, 0.7, 0] }, { name: 'The pantry', prop: 'pantry', pos: [3.5, 0], yaw: -90, face: 'cache' }, 'The full store; slower, and strained by repeats.', 'The backing database (e.g. RDS).'),
   ],
   connections: [
-    { id: 'c_user_db', from: 'user', to: 'db', flow: 'request' },
-    { id: 'c_user_cache', from: 'user', to: 'cache', flow: 'request' },
+    { id: 'c_user_db', from: 'user', to: 'db', flow: 'request', waypoints: [[-3.5, 0.4]] },
+    { id: 'c_user_cache', from: 'user', to: 'cache', flow: 'request', waypoints: [[-3.5, -0.3]] },
     { id: 'c_cache_db', from: 'cache', to: 'db', flow: 'data' },
   ],
   stages: [
@@ -410,19 +428,33 @@ const cache = {
 
 const cost = {
   id: 'optimise-cost', title: 'Optimize Cost', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'pass', label: 'The orders', rect: { x0: -10, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'kitchen', label: 'Staffing the line', rect: { x0: -3.5, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [-1.5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [1.5, -5.3], y: 1.6 }, { kind: 'preptable', pos: [5, -5.3] }, { kind: 'shelving', pos: [8, -5.3] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Staff the kitchen wisely: per-shift hires, cooks booked ahead at a discount, and cheap casual labour.',
   scenery: 'open',
   blocks: [
-    C('work', 'The workload', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The compute demand to cover.', 'Your steady + variable compute load.'),
-    C('ondemand', 'On-Demand', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Per-shift cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90 }, 'Hired per shift at full rate; total flexibility, no commitment.', 'On-Demand instances; pay per second, no commitment.'),
-    C('reserved', 'Reserved / Savings', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'Booked cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Booked for a year for a big discount; for steady baseline work.', 'Reserved Instances / Savings Plans; commit 1–3y for up to ~72% off.'),
-    C('spot', 'Spot', 'compute', { pos: [4, 0.7, 1.7] }, { name: 'Casual cook', prop: 'cook', pos: [4, 1.7], yaw: -90 }, 'Cheap casual labour grabbed when idle — can be sent home any moment.', 'Spot Instances; up to ~90% off, can be reclaimed with ~2 min notice.'),
+    C('work', 'The workload', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], face: 'reserved' }, 'The compute demand to cover.', 'Your steady + variable compute load.'),
+    C('ondemand', 'On-Demand', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Per-shift cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90, face: 'work' }, 'Hired per shift at full rate; total flexibility, no commitment.', 'On-Demand instances; pay per second, no commitment.'),
+    C('reserved', 'Reserved / Savings', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'Booked cook', prop: 'cook', pos: [1.5, 0], yaw: -90, face: 'work' }, 'Booked for a year for a big discount; for steady baseline work.', 'Reserved Instances / Savings Plans; commit 1–3y for up to ~72% off.'),
+    C('spot', 'Spot', 'compute', { pos: [4, 0.7, 1.7] }, { name: 'Casual cook', prop: 'cook', pos: [4, 1.7], yaw: -90, face: 'work' }, 'Cheap casual labour grabbed when idle — can be sent home any moment.', 'Spot Instances; up to ~90% off, can be reclaimed with ~2 min notice.'),
   ],
   connections: [
-    { id: 'c_work_ondemand', from: 'work', to: 'ondemand', flow: 'request' },
-    { id: 'c_work_reserved', from: 'work', to: 'reserved', flow: 'request' },
-    { id: 'c_work_spot', from: 'work', to: 'spot', flow: 'request' },
+    { id: 'c_work_ondemand', from: 'work', to: 'ondemand', flow: 'request', waypoints: [[-3.5, -0.5]] },
+    { id: 'c_work_reserved', from: 'work', to: 'reserved', flow: 'request', waypoints: [[-3.5, 0]] },
+    { id: 'c_work_spot', from: 'work', to: 'spot', flow: 'request', waypoints: [[-3.5, 0.6]] },
   ],
   stages: [
     { title: 'Pay per shift (On-Demand)', focus: 'ondemand', anim: 'pulse', animConn: 'c_work_ondemand', narration: 'On-Demand has no commitment and total flexibility — but it’s the priciest way to cover load you run all the time.', storyNarration: 'Hire a cook per shift at the full rate. Brilliant flexibility, but expensive if they’re in every single night.', concept: 'On-Demand: max flexibility, highest steady-state price.', blocks: ['work', 'ondemand'], conns: ['c_work_ondemand'] },
@@ -440,16 +472,29 @@ const cost = {
 
 const monitor = {
   id: 'monitor-cloudwatch', title: 'See What’s Happening', examDomain: 'Design Resilient Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-2.5, 0], entrance: [-5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -2.5, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -2.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-7.5, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.5, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'bin', pos: [-9.4, 5.2] }, { kind: 'plant', pos: [-9.4, -3] },
+      ] },
+      { id: 'station', label: 'Manager’s station', rect: { x0: -2.5, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'officedesk', pos: [6, 3.6] }, { kind: 'wallart', pos: [8.6, -2], y: 1.6 }, { kind: 'wallart', pos: [8.6, 1.5], y: 1.6 }, { kind: 'plant', pos: [8.4, 5.2] }, { kind: 'shelving', pos: [2, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A manager’s board watching every station, an alarm when things heat up, and a log of what happened.',
   scenery: 'open',
   blocks: [
-    C('kitchen', 'Your workload', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The stations', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'The running system being watched.', 'Your EC2 / app emitting metrics.'),
-    C('cw', 'CloudWatch', 'edge', { pos: [0.5, 0.7, -1.6] }, { name: 'The board', prop: 'dashboard', pos: [0.5, -1.6], yaw: -90 }, 'Live gauges for every station: load, latency, errors.', 'CloudWatch metrics + dashboards + Logs.'),
-    C('alarm', 'CloudWatch Alarm', 'security', { pos: [3.5, 0.7, 1], }, { name: 'The alarm', prop: 'tannoy', pos: [3.5, 1], yaw: -90 }, 'Goes off when a gauge crosses a line.', 'A CloudWatch Alarm on a metric threshold.', 'ALARM when CPUUtilization > 70%\nfor 3 of 3 datapoints (5 min)\n→ notify SNS / trigger scaling policy'),
+    C('kitchen', 'Your workload', 'compute', { pos: [-5, 0.7, 0] }, { name: 'The stations', prop: 'cook', pos: [-5, 0], yaw: 90, face: 'cw' }, 'The running system being watched.', 'Your EC2 / app emitting metrics.'),
+    C('cw', 'CloudWatch', 'edge', { pos: [0.5, 0.7, -1.6] }, { name: 'The board', prop: 'dashboard', pos: [0.5, -1.6], yaw: -90, face: 'kitchen' }, 'Live gauges for every station: load, latency, errors.', 'CloudWatch metrics + dashboards + Logs.'),
+    C('alarm', 'CloudWatch Alarm', 'security', { pos: [3.5, 0.7, 1], }, { name: 'The alarm', prop: 'tannoy', pos: [3.5, 1], yaw: -90, face: 'kitchen' }, 'Goes off when a gauge crosses a line.', 'A CloudWatch Alarm on a metric threshold.', 'ALARM when CPUUtilization > 70%\nfor 3 of 3 datapoints (5 min)\n→ notify SNS / trigger scaling policy'),
   ],
   connections: [
-    { id: 'c_kitchen_cw', from: 'kitchen', to: 'cw', flow: 'data' },
+    { id: 'c_kitchen_cw', from: 'kitchen', to: 'cw', flow: 'data', waypoints: [[-2.5, -0.8]] },
     { id: 'c_cw_alarm', from: 'cw', to: 'alarm', flow: 'request' },
   ],
   stages: [
@@ -750,14 +795,25 @@ const apigw = {
 
 const orchestrate = {
   id: 'orchestrate-step-functions', title: 'Coordinate the Steps', examDomain: 'Design Resilient Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  scene: {
+    bounds: { w: 19, d: 12, x: -0.5 },
+    zones: [
+      { id: 'expo', label: 'The pass (head chef)', rect: { x0: -9.5, z0: -6, x1: -2.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'preptable', pos: [-7, 3.6] }, { kind: 'pendant', pos: [-5, 0], y: 1.6 }, { kind: 'shelving', pos: [-8.8, -3] }, { kind: 'window', pos: [-9.4, 4.6] }, { kind: 'plant', pos: [-8.8, 5.4] },
+      ] },
+      { id: 'line', label: 'Prep → cook → plate', rect: { x0: -2.5, z0: -6, x1: 9, z1: 6 }, accent: 0xcf6a3a, dressing: [
+        { kind: 'extractor', pos: [0, -5.3], y: 1.5 }, { kind: 'potrack', pos: [2, -5.3], y: 1.6 }, { kind: 'preptable', pos: [5, -5.3] }, { kind: 'shelving', pos: [8, -5.3] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A head chef with a recipe card who calls each step in order, waits, and handles a step that fails.',
   scenery: 'open',
   blocks: [
-    C('sf', 'Step Functions', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Head chef', prop: 'host', pos: [-5, 0], yaw: 90 }, 'Coordinates the whole multi-step job.', 'AWS Step Functions; a managed state machine.', '"States": {\n  "Prep": { "Type":"Task", "Next":"Cook" },\n  "Cook": { "Type":"Task", "End":true } }'),
-    C('s1', 'Step 1: Prep', 'compute', { pos: [0, 0.7, -1.7] }, { name: 'Prep cook', prop: 'cook', pos: [0, -1.7], yaw: -90 }, 'The first step.', 'A task (e.g. a Lambda).'),
-    C('s2', 'Step 2: Cook', 'compute', { pos: [1.8, 0.7, 0] }, { name: 'Line cook', prop: 'cook', pos: [1.8, 0], yaw: -90 }, 'The second step, after the first.', 'The next task in the workflow.'),
-    C('s3', 'Step 3: Plate', 'compute', { pos: [3.6, 0.7, 1.7] }, { name: 'Plating cook', prop: 'cook', pos: [3.6, 1.7], yaw: -90 }, 'The final step.', 'The final task.'),
+    C('sf', 'Step Functions', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Head chef', prop: 'host', pos: [-5, 0], yaw: 90, face: 's2' }, 'Coordinates the whole multi-step job.', 'AWS Step Functions; a managed state machine.', '"States": {\n  "Prep": { "Type":"Task", "Next":"Cook" },\n  "Cook": { "Type":"Task", "End":true } }'),
+    C('s1', 'Step 1: Prep', 'compute', { pos: [0, 0.7, -1.7] }, { name: 'Prep cook', prop: 'cook', pos: [0, -1.7], yaw: -90, face: 'sf' }, 'The first step.', 'A task (e.g. a Lambda).'),
+    C('s2', 'Step 2: Cook', 'compute', { pos: [1.8, 0.7, 0] }, { name: 'Line cook', prop: 'cook', pos: [1.8, 0], yaw: -90, face: 'sf' }, 'The second step, after the first.', 'The next task in the workflow.'),
+    C('s3', 'Step 3: Plate', 'compute', { pos: [3.6, 0.7, 1.7] }, { name: 'Plating cook', prop: 'cook', pos: [3.6, 1.7], yaw: -90, face: 'sf' }, 'The final step.', 'The final task.'),
   ],
   connections: [
     { id: 'c_sf_s1', from: 'sf', to: 's1', flow: 'request' },
@@ -901,19 +957,32 @@ const secrets = {
 
 const bill = {
   id: 'watch-the-bill', title: 'Watch the Bill', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -3, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.6, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'bin', pos: [-9.4, 5.2] }, { kind: 'plant', pos: [-9.4, -2.6] },
+      ] },
+      { id: 'office', label: 'Back office', rect: { x0: -3, z0: -6, x1: 9, z1: 6 }, accent: 0x4fa37a, dressing: [
+        { kind: 'officedesk', pos: [5.5, 3.7] }, { kind: 'wallart', pos: [8.6, -2.2], y: 1.6 }, { kind: 'wallart', pos: [8.6, 1.4], y: 1.6 }, { kind: 'shelving', pos: [1.5, -5.3] }, { kind: 'plant', pos: [8.4, 5.2] },
+      ] },
+    ],
+  },
   summary: 'See where the money goes, get an alarm before you overspend, and let a consultant flag the waste.',
   scenery: 'open',
   blocks: [
-    C('workload', 'Your spend', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Everything running and costing money.', 'Your running resources accruing cost.'),
-    C('explorer', 'Cost Explorer', 'edge', { pos: [-0.5, 0.7, -1.6] }, { name: 'The books', prop: 'dashboard', pos: [-0.5, -1.6], yaw: -90 }, 'Charts spend by service, tag and time.', 'AWS Cost Explorer; spend visualization.'),
-    C('budget', 'AWS Budgets', 'security', { pos: [3.2, 0.7, -0.4] }, { name: 'The budget alarm', prop: 'tannoy', pos: [3.2, -0.4], yaw: -90 }, 'Goes off when spend crosses a line.', 'AWS Budgets; threshold/forecast alerts.'),
-    C('advisor', 'Trusted Advisor', 'generic', { pos: [1, 0.7, 1.7] }, { name: 'The consultant', prop: 'securitydesk', pos: [1, 1.7], yaw: -90 }, 'Points out waste and savings.', 'Trusted Advisor; cost (and other) checks.'),
+    C('workload', 'Your spend', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90, face: 'explorer' }, 'Everything running and costing money.', 'Your running resources accruing cost.'),
+    C('explorer', 'Cost Explorer', 'edge', { pos: [-0.5, 0.7, -1.6] }, { name: 'The books', prop: 'dashboard', pos: [-0.5, -1.6], yaw: -90, face: 'workload' }, 'Charts spend by service, tag and time.', 'AWS Cost Explorer; spend visualization.'),
+    C('budget', 'AWS Budgets', 'security', { pos: [3.2, 0.7, -0.4] }, { name: 'The budget alarm', prop: 'tannoy', pos: [3.2, -0.4], yaw: -90, face: 'workload' }, 'Goes off when spend crosses a line.', 'AWS Budgets; threshold/forecast alerts.'),
+    C('advisor', 'Trusted Advisor', 'generic', { pos: [1, 0.7, 1.7] }, { name: 'The consultant', prop: 'securitydesk', pos: [1, 1.7], yaw: -90, face: 'workload' }, 'Points out waste and savings.', 'Trusted Advisor; cost (and other) checks.'),
   ],
   connections: [
-    { id: 'c_workload_explorer', from: 'workload', to: 'explorer', flow: 'data' },
+    { id: 'c_workload_explorer', from: 'workload', to: 'explorer', flow: 'data', waypoints: [[-3, -0.6]] },
     { id: 'c_explorer_budget', from: 'explorer', to: 'budget', flow: 'request' },
-    { id: 'c_workload_advisor', from: 'workload', to: 'advisor', flow: 'data' },
+    { id: 'c_workload_advisor', from: 'workload', to: 'advisor', flow: 'data', waypoints: [[-3, 0.6]] },
   ],
   stages: [
     { title: 'See where the money goes', focus: 'explorer', anim: 'pulse', animConn: 'c_workload_explorer', narration: 'Cost Explorer charts your spend by service, tag and time — so you can find what’s actually costing you.', storyNarration: 'Open the books: a clear chart of what every station spent this month, not a shoebox of receipts.', concept: 'Cost Explorer gives spend visibility.', blocks: ['workload', 'explorer'], conns: ['c_workload_explorer'] },
