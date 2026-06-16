@@ -815,14 +815,30 @@ const kms = {
 
 const edge = {
   id: 'protect-the-edge', title: 'Guard the Front Door', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { entrance: [-7.5, 0] },
+  scene: {
+    bounds: { w: 21, d: 12, x: -0.5 },
+    partitions: [{ x: -3.5, gap: [-1.6, 1.6] }, { x: 0, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'street', label: 'The street', rect: { x0: -10.5, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'plant', pos: [-9.8, 5.4] }, { kind: 'plant', pos: [-9.8, -5.4] }, { kind: 'window', pos: [-10.4, 1.4] }, { kind: 'window', pos: [-10.4, -1.6], opts: { variant: 'night' } }, { kind: 'neon', pos: [-7.5, -5.8], y: 1.7, opts: { accent: 0xff3d6e } },
+      ] },
+      { id: 'entrance', label: 'The entrance', rect: { x0: -3.5, z0: -6, x1: 0, z1: 6 }, accent: 0xcf6a3a, dressing: [
+        { kind: 'wallart', pos: [-1.8, -5.4], y: 1.6 }, { kind: 'plant', pos: [-3.1, 5.4] },
+      ] },
+      { id: 'kitchen', label: 'Back of house', rect: { x0: 0, z0: -6, x1: 9.5, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [4, -5.3], y: 1.5 }, { kind: 'potrack', pos: [6, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.8, 2] }, { kind: 'bin', pos: [8.8, 5.2] }, { kind: 'plant', pos: [8.6, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A barrier that soaks up a stampede, and a doorman who turns away troublemakers before they reach the kitchen.',
   scenery: 'open',
   blocks: [
-    C('traffic', 'Incoming traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'A mix of real users and bad actors.', 'Inbound requests, some malicious.'),
-    C('shield', 'AWS Shield', 'security', { pos: [-3.5, 0.7, 0] }, { name: 'The barrier', prop: 'guardpost', pos: [-3.5, 0], yaw: 90 }, 'Soaks up volumetric floods (DDoS) at the edge.', 'AWS Shield; DDoS protection.'),
-    C('waf', 'AWS WAF', 'security', { pos: [0, 0.7, 0] }, { name: 'The doorman', prop: 'bouncer', pos: [0, 0], yaw: 90 }, 'Inspects each request and blocks bad ones.', 'AWS WAF; L7 rules — SQLi/XSS/bots/rate limits.'),
-    C('app', 'Your app', 'compute', { pos: [4, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [4, 0], yaw: -90 }, 'The protected application.', 'Your app behind CloudFront/ALB.'),
+    C('traffic', 'Incoming traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90, face: 'app' }, 'A mix of real users and bad actors.', 'Inbound requests, some malicious.'),
+    C('shield', 'AWS Shield', 'security', { pos: [-3.5, 0.7, 0] }, { name: 'The barrier', prop: 'guardpost', pos: [-3.5, 0], yaw: 90, face: 'traffic' }, 'Soaks up volumetric floods (DDoS) at the edge.', 'AWS Shield; DDoS protection.'),
+    C('waf', 'AWS WAF', 'security', { pos: [0, 0.7, 0] }, { name: 'The doorman', prop: 'bouncer', pos: [0, 0], yaw: 90, face: 'traffic' }, 'Inspects each request and blocks bad ones.', 'AWS WAF; L7 rules — SQLi/XSS/bots/rate limits.'),
+    C('app', 'Your app', 'compute', { pos: [4, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [4, 0], yaw: -90, face: 'waf' }, 'The protected application.', 'Your app behind CloudFront/ALB.'),
   ],
   connections: [
     { id: 'c_traffic_shield', from: 'traffic', to: 'shield', flow: 'request' },
@@ -1467,19 +1483,32 @@ const hybrid = {
 
 const threats = {
   id: 'detect-threats', title: 'Detect Threats', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-2.5, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -2.5, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -2.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.6, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] },
+      ] },
+      { id: 'security', label: 'Security office', rect: { x0: -2.5, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'officedesk', pos: [6, 3.6] }, { kind: 'wallart', pos: [8.6, -2], y: 1.6 }, { kind: 'wallart', pos: [8.6, 1.5], y: 1.6 }, { kind: 'plant', pos: [8.4, 5.2] }, { kind: 'shelving', pos: [1.5, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A camera watching for intruders, a scanner finding unlocked doors, and a clerk flagging sensitive papers.',
   scenery: 'open',
   blocks: [
-    C('account', 'Your account', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'The activity and data to protect.', 'Your account’s logs, workloads and data.'),
-    C('guardduty', 'GuardDuty', 'security', { pos: [-0.5, 0.7, -1.6] }, { name: 'Security camera', prop: 'cctv', pos: [-0.5, -1.6], yaw: -90 }, 'Watches logs for malicious activity.', 'GuardDuty; threat detection from VPC/DNS/CloudTrail logs.'),
-    C('findings', 'Findings', 'security', { pos: [3.2, 0.7, 0] }, { name: 'Alerts board', prop: 'dashboard', pos: [3.2, 0], yaw: -90 }, 'Suspicious activity surfaced for action.', 'Findings you alert/respond to.'),
-    C('macie', 'Macie', 'security', { pos: [0.5, 0.7, 1.7] }, { name: 'Sensitive-data clerk', prop: 'securitydesk', pos: [0.5, 1.7], yaw: -90 }, 'Flags sensitive data (PII) left exposed.', 'Amazon Macie; sensitive-data discovery in S3.'),
+    C('account', 'Your account', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90, face: 'guardduty' }, 'The activity and data to protect.', 'Your account’s logs, workloads and data.'),
+    C('guardduty', 'GuardDuty', 'security', { pos: [-0.5, 0.7, -1.6] }, { name: 'Security camera', prop: 'cctv', pos: [-0.5, -1.6], yaw: -90, face: 'account' }, 'Watches logs for malicious activity.', 'GuardDuty; threat detection from VPC/DNS/CloudTrail logs.'),
+    C('findings', 'Findings', 'security', { pos: [3.2, 0.7, 0] }, { name: 'Alerts board', prop: 'dashboard', pos: [3.2, 0], yaw: -90, face: 'account' }, 'Suspicious activity surfaced for action.', 'Findings you alert/respond to.'),
+    C('macie', 'Macie', 'security', { pos: [0.5, 0.7, 1.7] }, { name: 'Sensitive-data clerk', prop: 'securitydesk', pos: [0.5, 1.7], yaw: -90, face: 'account' }, 'Flags sensitive data (PII) left exposed.', 'Amazon Macie; sensitive-data discovery in S3.'),
   ],
   connections: [
-    { id: 'c_acc_gd', from: 'account', to: 'guardduty', flow: 'data' },
+    { id: 'c_acc_gd', from: 'account', to: 'guardduty', flow: 'data', waypoints: [[-2.5, -0.6]] },
     { id: 'c_gd_find', from: 'guardduty', to: 'findings', flow: 'request' },
-    { id: 'c_acc_macie', from: 'account', to: 'macie', flow: 'data' },
+    { id: 'c_acc_macie', from: 'account', to: 'macie', flow: 'data', waypoints: [[-2.5, 0.6]] },
   ],
   stages: [
     { title: 'Spot the intruder (GuardDuty)', focus: 'guardduty', anim: 'pulse', animConn: 'c_acc_gd', narration: 'GuardDuty continuously watches your logs (VPC, DNS, CloudTrail) for malicious or unusual activity.', storyNarration: 'A camera quietly watches the doors and tills all night for anyone who shouldn’t be there.', concept: 'GuardDuty = threat detection from your logs.', blocks: ['account', 'guardduty'], conns: ['c_acc_gd'] },
@@ -1584,19 +1613,32 @@ const cognito = {
 
 const iac = {
   id: 'iac-cloudformation', title: 'Blueprint Your Stack', examDomain: 'Design Resilient Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [1, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: 1, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'workshop', label: 'The workshop', rect: { x0: -10, z0: -6, x1: 1, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'preptable', pos: [-7, 3.6] }, { kind: 'shelving', pos: [-9.4, -3] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'wallart', pos: [-9.4, 3.5], y: 1.6 }, { kind: 'signage', pos: [0.6, -5.4], opts: { accent: 0x6f86c9 } },
+      ] },
+      { id: 'kitchens', label: 'Built kitchens', rect: { x0: 1, z0: -6, x1: 9, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [3, -5.3], y: 1.5 }, { kind: 'potrack', pos: [5.5, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.6, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A written blueprint that builds the whole kitchen identically every time — no hand-assembly.',
   scenery: 'open',
   blocks: [
-    C('template', 'Template', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The blueprint', prop: 'dashboard', pos: [-6.5, 0], yaw: 90 }, 'A declarative description of all resources.', 'A CloudFormation template (infrastructure as code).'),
-    C('cfn', 'CloudFormation', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The builder', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Provisions exactly what the blueprint says.', 'AWS CloudFormation; provisions stacks from templates.', 'Resources:\n  AssetsBucket:\n    Type: AWS::S3::Bucket   # declarative, idempotent'),
-    C('dev', 'Dev stack', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Dev kitchen', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One environment built from the template.', 'A dev environment.'),
-    C('prod', 'Prod stack', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Prod kitchen', prop: 'cook', pos: [3.5, 1.6], yaw: -90 }, 'An identical environment from the same template.', 'An identical prod environment.'),
+    C('template', 'Template', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The blueprint', prop: 'dashboard', pos: [-6.5, 0], yaw: 90, face: 'cfn' }, 'A declarative description of all resources.', 'A CloudFormation template (infrastructure as code).'),
+    C('cfn', 'CloudFormation', 'generic', { pos: [-1, 0.7, 0] }, { name: 'The builder', prop: 'hub', pos: [-1, 0], yaw: 0, face: [3.2, 0] }, 'Provisions exactly what the blueprint says.', 'AWS CloudFormation; provisions stacks from templates.', 'Resources:\n  AssetsBucket:\n    Type: AWS::S3::Bucket   # declarative, idempotent'),
+    C('dev', 'Dev stack', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Dev kitchen', prop: 'cook', pos: [3, -1.6], yaw: -90, face: 'cfn' }, 'One environment built from the template.', 'A dev environment.'),
+    C('prod', 'Prod stack', 'compute', { pos: [3.5, 0.7, 1.6] }, { name: 'Prod kitchen', prop: 'cook', pos: [3.5, 1.6], yaw: -90, face: 'cfn' }, 'An identical environment from the same template.', 'An identical prod environment.'),
   ],
   connections: [
     { id: 'c_tmpl_cfn', from: 'template', to: 'cfn', flow: 'data' },
-    { id: 'c_cfn_dev', from: 'cfn', to: 'dev', flow: 'request' },
-    { id: 'c_cfn_prod', from: 'cfn', to: 'prod', flow: 'request' },
+    { id: 'c_cfn_dev', from: 'cfn', to: 'dev', flow: 'request', waypoints: [[1, -0.4]] },
+    { id: 'c_cfn_prod', from: 'cfn', to: 'prod', flow: 'request', waypoints: [[1, 0.4]] },
   ],
   stages: [
     { title: 'Don’t build by hand', focus: 'template', anim: 'overload', animConn: 'c_tmpl_cfn', narration: 'Clicking around the console to build infra is slow, error-prone and impossible to reproduce exactly.', storyNarration: 'Fitting out each kitchen by hand from memory means every one comes out slightly different — and mistakes creep in.', concept: 'Manual setup doesn’t reproduce or scale.', blocks: ['template', 'cfn'], conns: ['c_tmpl_cfn'] },
@@ -1614,13 +1656,26 @@ const iac = {
 
 const audit = {
   id: 'audit-cloudtrail', title: 'Audit Every Action', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-0.5, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -0.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -0.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.6, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] },
+      ] },
+      { id: 'records', label: 'Records room', rect: { x0: -0.5, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'shelving', pos: [6, -5.3] }, { kind: 'shelving', pos: [8, -5.3] }, { kind: 'shelving', pos: [8.6, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'wallart', pos: [2, -5.4], y: 1.6 },
+      ] },
+    ],
+  },
   summary: 'A logbook of who did what, and when, across the whole operation — for investigations and compliance.',
   scenery: 'open',
   blocks: [
-    C('users', 'Users & services', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The staff', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Everyone making API calls.', 'IAM users, roles and services calling AWS APIs.'),
-    C('cloudtrail', 'CloudTrail', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The logbook', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Records who did what, when.', 'AWS CloudTrail; records account API activity.', '{ "eventName": "DeleteBucket",\n  "userIdentity": {...}, "sourceIPAddress": ... }\n→ logged to S3 (+ CloudWatch Logs)'),
-    C('log', 'Audit log (S3)', 'storage', { pos: [3.5, 0.7, 0] }, { name: 'The archive', prop: 'larder', pos: [3.5, 0], yaw: -90 }, 'Stores the trail durably for later.', 'CloudTrail logs delivered to S3 (often locked).'),
+    C('users', 'Users & services', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The staff', prop: 'cook', pos: [-6, 0], yaw: 90, face: 'cloudtrail' }, 'Everyone making API calls.', 'IAM users, roles and services calling AWS APIs.'),
+    C('cloudtrail', 'CloudTrail', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The logbook', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90, face: 'users' }, 'Records who did what, when.', 'AWS CloudTrail; records account API activity.', '{ "eventName": "DeleteBucket",\n  "userIdentity": {...}, "sourceIPAddress": ... }\n→ logged to S3 (+ CloudWatch Logs)'),
+    C('log', 'Audit log (S3)', 'storage', { pos: [3.5, 0.7, 0] }, { name: 'The archive', prop: 'larder', pos: [3.5, 0], yaw: -90, face: 'cloudtrail' }, 'Stores the trail durably for later.', 'CloudTrail logs delivered to S3 (often locked).'),
   ],
   connections: [
     { id: 'c_users_ct', from: 'users', to: 'cloudtrail', flow: 'request' },
@@ -1913,18 +1968,31 @@ const s3protect = {
 
 const govern = {
   id: 'govern-accounts', title: 'Govern Many Accounts', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [1, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: 1, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'headoffice', label: 'Head office', rect: { x0: -10, z0: -6, x1: 1, z1: 6 }, accent: 0x4fa37a, dressing: [
+        { kind: 'officedesk', pos: [-7, 3.6] }, { kind: 'wallart', pos: [-9.4, -2], y: 1.6 }, { kind: 'wallart', pos: [-9.4, 1.5], y: 1.6 }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'signage', pos: [0.6, -5.4], opts: { accent: 0x4fa37a } },
+      ] },
+      { id: 'franchises', label: 'Franchises', rect: { x0: 1, z0: -6, x1: 9, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [3.2, -5.3], y: 1.5 }, { kind: 'potrack', pos: [6, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.6, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Run franchises from head office: one combined bill with volume discounts, and house rules all must follow.',
   scenery: 'open',
   blocks: [
-    C('billing', 'Consolidated billing', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'One bill', prop: 'dashboard', pos: [-6.5, 0], yaw: 90 }, 'All accounts roll up to one payer.', 'Consolidated billing; pooled usage earns volume/Savings discounts.'),
-    C('org', 'Organizations', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Head office', prop: 'hub', pos: [-1, 0], yaw: 0 }, 'Manages all the accounts centrally.', 'AWS Organizations; SCP guardrails + central management.', '{\n  "Effect": "Deny",\n  "Action": "cloudtrail:StopLogging",\n  "Resource": "*"\n}'),
-    C('dev', 'Account: Dev', 'compute', { pos: [3.2, 0.7, -1.7] }, { name: 'Dev franchise', prop: 'cook', pos: [3.2, -1.7], yaw: -90 }, 'An isolated member account.', 'A member account (isolation + blast-radius limit).'),
-    C('prod', 'Account: Prod', 'compute', { pos: [3.7, 0.7, 1.7] }, { name: 'Prod franchise', prop: 'cook', pos: [3.7, 1.7], yaw: -90 }, 'Another isolated account.', 'Another member account.'),
+    C('billing', 'Consolidated billing', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'One bill', prop: 'dashboard', pos: [-6.5, 0], yaw: 90, face: 'org' }, 'All accounts roll up to one payer.', 'Consolidated billing; pooled usage earns volume/Savings discounts.'),
+    C('org', 'Organizations', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Head office', prop: 'hub', pos: [-1, 0], yaw: 0, face: [3.5, 0] }, 'Manages all the accounts centrally.', 'AWS Organizations; SCP guardrails + central management.', '{\n  "Effect": "Deny",\n  "Action": "cloudtrail:StopLogging",\n  "Resource": "*"\n}'),
+    C('dev', 'Account: Dev', 'compute', { pos: [3.2, 0.7, -1.7] }, { name: 'Dev franchise', prop: 'cook', pos: [3.2, -1.7], yaw: -90, face: 'org' }, 'An isolated member account.', 'A member account (isolation + blast-radius limit).'),
+    C('prod', 'Account: Prod', 'compute', { pos: [3.7, 0.7, 1.7] }, { name: 'Prod franchise', prop: 'cook', pos: [3.7, 1.7], yaw: -90, face: 'org' }, 'Another isolated account.', 'Another member account.'),
   ],
   connections: [
-    { id: 'c_org_dev', from: 'org', to: 'dev', flow: 'network' },
-    { id: 'c_org_prod', from: 'org', to: 'prod', flow: 'network' },
+    { id: 'c_org_dev', from: 'org', to: 'dev', flow: 'network', waypoints: [[1, -0.4]] },
+    { id: 'c_org_prod', from: 'org', to: 'prod', flow: 'network', waypoints: [[1, 0.4]] },
     { id: 'c_org_billing', from: 'org', to: 'billing', flow: 'data' },
   ],
   stages: [
@@ -2066,13 +2134,26 @@ const migrate = {
 
 const compliance = {
   id: 'stay-compliant', title: 'Stay Compliant', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-0.5, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -0.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -0.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.6, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] },
+      ] },
+      { id: 'inspection', label: 'Inspection office', rect: { x0: -0.5, z0: -6, x1: 9, z1: 6 }, accent: 0x4fa37a, dressing: [
+        { kind: 'officedesk', pos: [6, 3.6] }, { kind: 'wallart', pos: [8.6, -2], y: 1.6 }, { kind: 'wallart', pos: [8.6, 1.5], y: 1.6 }, { kind: 'plant', pos: [8.4, 5.2] }, { kind: 'shelving', pos: [2, -5.3] },
+      ] },
+    ],
+  },
   summary: 'An inspector that records the exact setup of every appliance and checks it against the rulebook, flagging breaches.',
   scenery: 'open',
   blocks: [
-    C('resources', 'Your resources', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'The resources whose config matters.', 'Your AWS resources and their settings.'),
-    C('config', 'AWS Config', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The inspector', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Records config and how it changes.', 'AWS Config; configuration recorder + rules.'),
-    C('status', 'Compliance status', 'security', { pos: [3.5, 0.7, 0] }, { name: 'The rulebook board', prop: 'dashboard', pos: [3.5, 0], yaw: -90 }, 'Shows what’s compliant and what isn’t.', 'Config rules evaluation results.'),
+    C('resources', 'Your resources', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [-6, 0], yaw: 90, face: 'config' }, 'The resources whose config matters.', 'Your AWS resources and their settings.'),
+    C('config', 'AWS Config', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'The inspector', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90, face: 'resources' }, 'Records config and how it changes.', 'AWS Config; configuration recorder + rules.'),
+    C('status', 'Compliance status', 'security', { pos: [3.5, 0.7, 0] }, { name: 'The rulebook board', prop: 'dashboard', pos: [3.5, 0], yaw: -90, face: 'resources' }, 'Shows what’s compliant and what isn’t.', 'Config rules evaluation results.'),
   ],
   connections: [
     { id: 'c_res_config', from: 'resources', to: 'config', flow: 'data' },
