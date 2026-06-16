@@ -199,18 +199,31 @@ const storage = {
 
 const iam = {
   id: 'secure-access-iam', title: 'Secure Access with IAM', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-2, 0], entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -2, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'lobby', label: 'Staff entrance', rect: { x0: -10, z0: -6, x1: -2, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'officedesk', pos: [-7, 3.6] }, { kind: 'wallart', pos: [-9.4, -2], y: 1.6 }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'signage', pos: [-2.4, -5.6], opts: { accent: 0xf2b25a } },
+      ] },
+      { id: 'stores', label: 'Secured stores', rect: { x0: -2, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'shelving', pos: [5, -5.3] }, { kind: 'shelving', pos: [7, -5.3] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] }, { kind: 'wallart', pos: [8.6, 0], y: 1.6 },
+      ] },
+    ],
+  },
   summary: 'Hand out the right keys: individual identities, least privilege, temporary badges, and a second lock.',
   scenery: 'open',
   blocks: [
-    C('staff', 'Person / app', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Staff member', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'Someone (or something) that needs access.', 'An IAM identity: a user, role, or federated principal.'),
-    C('iam', 'IAM', 'security', { pos: [-2, 0.7, 0] }, { name: 'Security desk', prop: 'securitydesk', pos: [-2, 0], yaw: -90 }, 'Issues identities and decides who can do what.', 'IAM users, roles and policies.', '{\n  "Effect": "Allow",\n  "Action": "s3:GetObject",\n  "Resource": "arn:aws:s3:::assets/*"\n}'),
-    C('stockroom', 'Assets bucket', 'storage', { pos: [2.5, 0.7, -1.6] }, { name: 'Stockroom', prop: 'larder', pos: [2.5, -1.6], yaw: -90 }, 'A resource this identity may use.', 'An S3 bucket the policy permits.', 'arn:aws:s3:::assets-bucket'),
-    C('safe', 'Payroll bucket', 'storage', { pos: [2.5, 0.7, 1.6] }, { name: 'Payroll safe', prop: 'coldroom', pos: [2.5, 1.6], yaw: -90 }, 'A resource this identity must NOT use.', 'An S3 bucket the policy does not grant.'),
+    C('staff', 'Person / app', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Staff member', prop: 'customer', pos: [-7, 0], yaw: 90, face: 'iam' }, 'Someone (or something) that needs access.', 'An IAM identity: a user, role, or federated principal.'),
+    C('iam', 'IAM', 'security', { pos: [-2, 0.7, 0] }, { name: 'Security desk', prop: 'securitydesk', pos: [-2, 0], yaw: -90, face: 'staff' }, 'Issues identities and decides who can do what.', 'IAM users, roles and policies.', '{\n  "Effect": "Allow",\n  "Action": "s3:GetObject",\n  "Resource": "arn:aws:s3:::assets/*"\n}'),
+    C('stockroom', 'Assets bucket', 'storage', { pos: [2.5, 0.7, -1.6] }, { name: 'Stockroom', prop: 'larder', pos: [2.5, -1.6], yaw: -90, face: 'iam' }, 'A resource this identity may use.', 'An S3 bucket the policy permits.', 'arn:aws:s3:::assets-bucket'),
+    C('safe', 'Payroll bucket', 'storage', { pos: [2.5, 0.7, 1.6] }, { name: 'Payroll safe', prop: 'coldroom', pos: [2.5, 1.6], yaw: -90, face: 'iam' }, 'A resource this identity must NOT use.', 'An S3 bucket the policy does not grant.'),
   ],
   connections: [
     { id: 'c_staff_iam', from: 'staff', to: 'iam', flow: 'request' },
-    { id: 'c_staff_stock', from: 'staff', to: 'stockroom', flow: 'request' },
+    { id: 'c_staff_stock', from: 'staff', to: 'stockroom', flow: 'request', waypoints: [[-2, -0.3]] },
   ],
   stages: [
     { title: 'Lock away the master key', focus: 'iam', anim: 'pulse', animConn: 'c_staff_iam', narration: 'The root user can do anything; using it daily is dangerous. Lock it behind MFA and use individual IAM identities.', storyNarration: 'One master key opens every door. Lock it in the safe and give people their own keys.', concept: 'Never use the account root user for daily work.', blocks: ['staff', 'iam'], conns: ['c_staff_iam'] },
@@ -747,17 +760,30 @@ const containers = {
 
 const kms = {
   id: 'encrypt-with-kms', title: 'Lock It with KMS', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-2, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -2, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -2, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.6, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'window', pos: [-9.9, -2.6] },
+      ] },
+      { id: 'store', label: 'Locked store', rect: { x0: -2, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'shelving', pos: [5, -5.3] }, { kind: 'shelving', pos: [7, -5.3] }, { kind: 'wallart', pos: [8.6, 0], y: 1.6 }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'signage', pos: [-1.4, -5.6], opts: { accent: 0x6f86c9 } },
+      ] },
+    ],
+  },
   summary: 'Lock every store, and keep the master keys in a vault that decides who may unlock what.',
   scenery: 'open',
   blocks: [
-    C('app', 'App / user', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Reads and writes the data.', 'Your application requesting data.'),
-    C('data', 'Encrypted data', 'storage', { pos: [0.5, 0.7, -1.6] }, { name: 'Locked larder', prop: 'larder', pos: [0.5, -1.6], yaw: -90 }, 'Stored locked; a stolen disk is useless without the key.', 'Encrypted S3 / EBS / RDS at rest.'),
-    C('kms', 'AWS KMS', 'security', { pos: [0.5, 0.7, 1.6] }, { name: 'Key vault', prop: 'safe', pos: [0.5, 1.6], yaw: -90 }, 'Holds the master keys; only allowed identities may unlock.', 'AWS KMS; managed keys, access via IAM, audited in CloudTrail.', 'arn:aws:kms:eu-west-1:111122223333:key/1234abcd\nalias/app-data'),
+    C('app', 'App / user', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90, face: 'data' }, 'Reads and writes the data.', 'Your application requesting data.'),
+    C('data', 'Encrypted data', 'storage', { pos: [0.5, 0.7, -1.6] }, { name: 'Locked larder', prop: 'larder', pos: [0.5, -1.6], yaw: -90, face: 'app' }, 'Stored locked; a stolen disk is useless without the key.', 'Encrypted S3 / EBS / RDS at rest.'),
+    C('kms', 'AWS KMS', 'security', { pos: [0.5, 0.7, 1.6] }, { name: 'Key vault', prop: 'safe', pos: [0.5, 1.6], yaw: -90, face: 'app' }, 'Holds the master keys; only allowed identities may unlock.', 'AWS KMS; managed keys, access via IAM, audited in CloudTrail.', 'arn:aws:kms:eu-west-1:111122223333:key/1234abcd\nalias/app-data'),
   ],
   connections: [
-    { id: 'c_app_data', from: 'app', to: 'data', flow: 'data' },
-    { id: 'c_app_kms', from: 'app', to: 'kms', flow: 'request' },
+    { id: 'c_app_data', from: 'app', to: 'data', flow: 'data', waypoints: [[-2, -0.4]] },
+    { id: 'c_app_kms', from: 'app', to: 'kms', flow: 'request', waypoints: [[-2, 0.4]] },
     { id: 'c_kms_data', from: 'kms', to: 'data', flow: 'network' },
   ],
   stages: [
@@ -984,17 +1010,30 @@ const analytics = {
 
 const secrets = {
   id: 'manage-secrets', title: 'Manage Secrets', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-2, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -2, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'kitchen', label: 'The kitchen', rect: { x0: -10, z0: -6, x1: -2, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.6, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'window', pos: [-9.9, -2.6] },
+      ] },
+      { id: 'store', label: 'Locked store', rect: { x0: -2, z0: -6, x1: 9, z1: 6 }, accent: 0x4fa37a, dressing: [
+        { kind: 'shelving', pos: [6, -5.3] }, { kind: 'wallart', pos: [8.6, -1], y: 1.6 }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] }, { kind: 'signage', pos: [-1.4, -5.6], opts: { accent: 0x4fa37a } },
+      ] },
+    ],
+  },
   summary: 'No passwords on a sticky note by the till: keep them in a locked box that rotates the locks itself.',
   scenery: 'open',
   blocks: [
-    C('app', 'App / service', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90 }, 'Needs a database password to work.', 'Your application needing credentials.'),
-    C('secrets', 'Secrets Manager', 'security', { pos: [0, 0.7, -1.6] }, { name: 'The lockbox', prop: 'safe', pos: [0, -1.6], yaw: -90 }, 'Stores credentials and hands them out at runtime.', 'AWS Secrets Manager; central, rotated, IAM-gated secrets.', 'GetSecretValue(SecretId: prod/db/creds)\n→ { "username": ..., "password": ... }\nRotation: every 30 days via Lambda'),
-    C('db', 'Database', 'database', { pos: [3.2, 0.7, 1.2] }, { name: 'The pantry', prop: 'pantry', pos: [3.2, 1.2], yaw: -90 }, 'The resource the password unlocks.', 'The database the credential authenticates to.'),
+    C('app', 'App / service', 'compute', { pos: [-6, 0.7, 0] }, { name: 'The cook', prop: 'cook', pos: [-6, 0], yaw: 90, face: 'secrets' }, 'Needs a database password to work.', 'Your application needing credentials.'),
+    C('secrets', 'Secrets Manager', 'security', { pos: [0, 0.7, -1.6] }, { name: 'The lockbox', prop: 'safe', pos: [0, -1.6], yaw: -90, face: 'app' }, 'Stores credentials and hands them out at runtime.', 'AWS Secrets Manager; central, rotated, IAM-gated secrets.', 'GetSecretValue(SecretId: prod/db/creds)\n→ { "username": ..., "password": ... }\nRotation: every 30 days via Lambda'),
+    C('db', 'Database', 'database', { pos: [3.2, 0.7, 1.2] }, { name: 'The pantry', prop: 'pantry', pos: [3.2, 1.2], yaw: -90, face: 'app' }, 'The resource the password unlocks.', 'The database the credential authenticates to.'),
   ],
   connections: [
-    { id: 'c_app_secrets', from: 'app', to: 'secrets', flow: 'request' },
-    { id: 'c_app_db', from: 'app', to: 'db', flow: 'data' },
+    { id: 'c_app_secrets', from: 'app', to: 'secrets', flow: 'request', waypoints: [[-2, -0.4]] },
+    { id: 'c_app_db', from: 'app', to: 'db', flow: 'data', waypoints: [[-2, 0.4]] },
     { id: 'c_secrets_db', from: 'secrets', to: 'db', flow: 'network' },
   ],
   stages: [
@@ -1488,18 +1527,32 @@ const accelerator = {
 
 const cognito = {
   id: 'user-signin-cognito', title: 'Sign In Your Users', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-1, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -1, gap: [-1.8, 1.8] }],
+    zones: [
+      { id: 'lobby', label: 'Members’ lobby', rect: { x0: -10, z0: -6, x1: -1, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-7.5, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-7.5, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-7.5, 3.6], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'app', label: 'The app', rect: { x0: -1, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [3.5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [6, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.4, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A membership desk that signs your app’s customers up and in — separate from the staff keys (IAM).',
   scenery: 'open',
   blocks: [
-    C('user', 'App user', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90 }, 'An end user of your application.', 'An application end user (not an AWS user).'),
-    C('cognito', 'Cognito', 'security', { pos: [-1, 0.7, 0] }, { name: 'Membership desk', prop: 'securitydesk', pos: [-1, 0], yaw: -90 }, 'Signs users up and in; issues tokens.', 'Amazon Cognito user pool; sign-up/in, MFA, social/SSO.', 'User pool → JWT (id + access token)\nMFA · hosted UI · social / SSO\nAPI Gateway authorizer verifies the token'),
-    C('app', 'Your app', 'compute', { pos: [3.5, 0.7, -1.5] }, { name: 'The app', prop: 'cook', pos: [3.5, -1.5], yaw: -90 }, 'Accepts the user’s token.', 'Your app/API trusting Cognito tokens.'),
+    C('user', 'App user', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-6.5, 0], yaw: 90, face: 'cognito' }, 'An end user of your application.', 'An application end user (not an AWS user).'),
+    C('cognito', 'Cognito', 'security', { pos: [-1, 0.7, 0] }, { name: 'Membership desk', prop: 'securitydesk', pos: [-1, 0], yaw: -90, face: 'user' }, 'Signs users up and in; issues tokens.', 'Amazon Cognito user pool; sign-up/in, MFA, social/SSO.', 'User pool → JWT (id + access token)\nMFA · hosted UI · social / SSO\nAPI Gateway authorizer verifies the token'),
+    C('app', 'Your app', 'compute', { pos: [3.5, 0.7, -1.5] }, { name: 'The app', prop: 'cook', pos: [3.5, -1.5], yaw: -90, face: 'cognito' }, 'Accepts the user’s token.', 'Your app/API trusting Cognito tokens.'),
     C('api', 'API / data', 'database', { pos: [4, 0.7, 1.5] }, { name: 'The pantry', prop: 'pantry', pos: [4, 1.5], yaw: -90 }, 'Protected resource behind the token.', 'A protected API/resource.'),
   ],
   connections: [
     { id: 'c_user_cognito', from: 'user', to: 'cognito', flow: 'request' },
-    { id: 'c_user_app', from: 'user', to: 'app', flow: 'request' },
+    { id: 'c_user_app', from: 'user', to: 'app', flow: 'request', waypoints: [[-1, -0.4]] },
     { id: 'c_app_api', from: 'app', to: 'api', flow: 'data' },
   ],
   stages: [
@@ -1986,13 +2039,26 @@ const compliance = {
 
 const ssm = {
   id: 'ssm-session', title: 'Access Without a Bastion', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-0.5, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -0.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'front', label: 'Front room', rect: { x0: -10, z0: -6, x1: -0.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'officedesk', pos: [-7, 3.6] }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'wallart', pos: [-9.4, -2], y: 1.6 },
+      ] },
+      { id: 'backroom', label: 'Private back room', rect: { x0: -0.5, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [3.5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [6, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.4, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'signage', pos: [0, -5.6], opts: { accent: 0x6f86c9 } },
+      ] },
+    ],
+  },
   summary: 'Reach the back room through a secure, logged hatch — no open door, no keys, nothing exposed to the street.',
   scenery: 'open',
   blocks: [
-    C('admin', 'Admin', 'generic', { pos: [-6, 0.7, 0] }, { name: 'Admin', prop: 'customer', pos: [-6, 0], yaw: 90 }, 'An operator who needs shell access.', 'An administrator (authenticated by IAM).'),
-    C('ssm', 'Session Manager', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'Secure hatch', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90 }, 'Opens a logged shell via the SSM agent + IAM.', 'SSM Session Manager; no inbound ports, no keys.'),
-    C('server', 'Private server', 'compute', { pos: [3.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [3.5, 0], yaw: -90 }, 'A private instance — no public IP, no open SSH.', 'A private EC2 instance with the SSM agent.'),
+    C('admin', 'Admin', 'generic', { pos: [-6, 0.7, 0] }, { name: 'Admin', prop: 'customer', pos: [-6, 0], yaw: 90, face: 'ssm' }, 'An operator who needs shell access.', 'An administrator (authenticated by IAM).'),
+    C('ssm', 'Session Manager', 'security', { pos: [-0.5, 0.7, 0] }, { name: 'Secure hatch', prop: 'securitydesk', pos: [-0.5, 0], yaw: -90, face: 'admin' }, 'Opens a logged shell via the SSM agent + IAM.', 'SSM Session Manager; no inbound ports, no keys.'),
+    C('server', 'Private server', 'compute', { pos: [3.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [3.5, 0], yaw: -90, face: 'ssm' }, 'A private instance — no public IP, no open SSH.', 'A private EC2 instance with the SSM agent.'),
   ],
   connections: [
     { id: 'c_admin_ssm', from: 'admin', to: 'ssm', flow: 'request' },
