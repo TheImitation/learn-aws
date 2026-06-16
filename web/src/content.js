@@ -261,19 +261,34 @@ const vpc = {
 
 const sqs = {
   id: 'decouple-with-queue-sqs', title: 'Decouple with a Queue', examDomain: 'Design Resilient Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3, 0], entrance: [-6, 0] },
+  scene: {
+    bounds: { w: 20, d: 13, x: -1 },
+    partitions: [{ x: -3, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'foh', label: 'Front of house', rect: { x0: -10, z0: -6.5, x1: -3, z1: 6.5 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-7.5, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-7.5, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-7.5, 3.6], y: 1.5 },
+        { kind: 'diningtable', pos: [-6.5, -3.8], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-6.5, -3.1], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-6.5, -3.8], y: 1.5 },
+        { kind: 'neon', pos: [-7, -6.3], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 6] },
+      ] },
+      { id: 'kitchen', label: 'Kitchen (the rail)', rect: { x0: -3, z0: -6.5, x1: 9, z1: 6.5 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [2, -5.6], y: 1.5 }, { kind: 'potrack', pos: [4.5, -5.6], y: 1.6 }, { kind: 'preptable', pos: [6.8, -5.6] }, { kind: 'shelving', pos: [8, -5.6] }, { kind: 'bin', pos: [8.4, 5.6] }, { kind: 'plant', pos: [8.4, -5.6] },
+      ] },
+    ],
+  },
   summary: 'Stop the waiter waiting on the cook: a ticket rail buffers orders so neither side ever stalls.',
   scenery: 'open',
   blocks: [
-    C('waiter', 'Producer', 'compute', { pos: [-6, 0.7, 0] }, { name: 'Waiter', prop: 'customer', pos: [-6, 0], yaw: 90 }, 'Creates work (sends messages).', 'A producer app sending messages.'),
+    C('waiter', 'Producer', 'compute', { pos: [-6, 0.7, 0] }, { name: 'Waiter', prop: 'customer', pos: [-6, 0], yaw: 90, face: 'queue' }, 'Creates work (sends messages).', 'A producer app sending messages.'),
     C('queue', 'SQS queue', 'generic', { pos: [-1, 0.7, 0] }, { name: 'Ticket rail', prop: 'ticketrail', pos: [-1, 0], yaw: 0 }, 'Holds messages until a consumer is ready.', 'An SQS queue; messages wait, processed at-least-once.', 'VisibilityTimeout 30s · Retention 4d\nReceive → handle → DeleteMessage\nFailures → DLQ after 5 receives'),
-    C('cookA', 'Consumer', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'Processes messages.', 'A consumer polling the queue.'),
-    C('cookB', 'Consumer (scaled)', 'compute', { pos: [4.4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4.4, 1.6], yaw: -90 }, 'An extra consumer to clear a backlog.', 'Added by scaling on queue depth.'),
+    C('cookA', 'Consumer', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [3, -1.6], yaw: -90, face: 'queue' }, 'Processes messages.', 'A consumer polling the queue.'),
+    C('cookB', 'Consumer (scaled)', 'compute', { pos: [4.4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4.4, 1.6], yaw: -90, face: 'queue' }, 'An extra consumer to clear a backlog.', 'Added by scaling on queue depth.'),
     C('dlq', 'Dead-letter queue', 'generic', { pos: [3, 0.7, 3.2] }, { name: 'Lost-tickets bin', prop: 'ticketrail', pos: [3, 3.2], yaw: 0 }, 'Holds messages that keep failing.', 'Dead-letter queue after N failed receives.'),
   ],
   connections: [
-    { id: 'c_waiter_cook', from: 'waiter', to: 'cookA', flow: 'request' },
-    { id: 'c_waiter_queue', from: 'waiter', to: 'queue', flow: 'data' },
+    { id: 'c_waiter_cook', from: 'waiter', to: 'cookA', flow: 'request', waypoints: [[-3, -0.6]] },
+    { id: 'c_waiter_queue', from: 'waiter', to: 'queue', flow: 'data', waypoints: [[-3, 0]] },
     { id: 'c_queue_cookA', from: 'queue', to: 'cookA', flow: 'data' },
     { id: 'c_queue_cookB', from: 'queue', to: 'cookB', flow: 'data' },
     { id: 'c_queue_dlq', from: 'queue', to: 'dlq', flow: 'data' },
@@ -513,19 +528,32 @@ const monitor = {
 
 const blockfile = {
   id: 'block-vs-file-storage', title: 'Disks vs Shared Files', examDomain: 'Design High-Performing Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [1, 0], entrance: [-5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: 1, gap: [-1.5, 1.5] }],
+    zones: [
+      { id: 'kitchen', label: 'The stations', rect: { x0: -10, z0: -6, x1: 1, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-2.5, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.5, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'window', pos: [-9.9, -3] },
+      ] },
+      { id: 'walkin', label: 'Shared walk-in', rect: { x0: 1, z0: -6, x1: 9, z1: 6 }, accent: 0x6fa6c9, dressing: [
+        { kind: 'shelving', pos: [7.6, -4.5] }, { kind: 'shelving', pos: [7.6, -1.6] }, { kind: 'shelving', pos: [7.6, 4.5] }, { kind: 'bin', pos: [8.6, 1.8] }, { kind: 'signage', pos: [2, -5.6], opts: { accent: 0x6fa6c9 } },
+      ] },
+    ],
+  },
   summary: 'A cooler bolted to one station, or a shared walk-in every cook uses at once — EBS vs EFS.',
   scenery: 'open',
   blocks: [
-    C('cookA', 'Instance A', 'compute', { pos: [-5, 0.7, -1.6] }, { name: 'Cook A', prop: 'cook', pos: [-5, -1.6], yaw: -90 }, 'One server.', 'An EC2 instance.'),
-    C('cookB', 'Instance B', 'compute', { pos: [-5, 0.7, 1.6] }, { name: 'Cook B', prop: 'cook', pos: [-5, 1.6], yaw: -90 }, 'Another server.', 'Another EC2 instance.'),
-    C('ebs', 'EBS volume', 'storage', { pos: [-1, 0.7, -1.6] }, { name: 'Bolted-on cooler', prop: 'coldroom', pos: [-1, -1.6], yaw: -90 }, 'A fast disk attached to ONE station, in one AZ.', 'Amazon EBS; block volume, one instance, one AZ.'),
+    C('cookA', 'Instance A', 'compute', { pos: [-5, 0.7, -1.6] }, { name: 'Cook A', prop: 'cook', pos: [-5, -1.6], yaw: -90, face: 'ebs' }, 'One server.', 'An EC2 instance.'),
+    C('cookB', 'Instance B', 'compute', { pos: [-5, 0.7, 1.6] }, { name: 'Cook B', prop: 'cook', pos: [-5, 1.6], yaw: -90, face: 'efs' }, 'Another server.', 'Another EC2 instance.'),
+    C('ebs', 'EBS volume', 'storage', { pos: [-1, 0.7, -1.6] }, { name: 'Bolted-on cooler', prop: 'coldroom', pos: [-1, -1.6], yaw: -90, face: 'cookA' }, 'A fast disk attached to ONE station, in one AZ.', 'Amazon EBS; block volume, one instance, one AZ.'),
     C('efs', 'EFS', 'storage', { pos: [3, 0.7, 0] }, { name: 'Shared walk-in', prop: 'larder', pos: [3, 0], yaw: -90 }, 'A shared store every station can use at once.', 'Amazon EFS; shared NFS file system, multi-instance, multi-AZ.'),
   ],
   connections: [
     { id: 'c_cookA_ebs', from: 'cookA', to: 'ebs', flow: 'data' },
-    { id: 'c_cookA_efs', from: 'cookA', to: 'efs', flow: 'data' },
-    { id: 'c_cookB_efs', from: 'cookB', to: 'efs', flow: 'data' },
+    { id: 'c_cookA_efs', from: 'cookA', to: 'efs', flow: 'data', waypoints: [[1, -0.4]] },
+    { id: 'c_cookB_efs', from: 'cookB', to: 'efs', flow: 'data', waypoints: [[1, 0.4]] },
   ],
   stages: [
     { title: 'A cooler for one station (EBS)', focus: 'ebs', anim: 'pulse', animConn: 'c_cookA_ebs', narration: 'EBS is a block volume attached to a single instance in a single AZ — fast, like a local disk.', storyNarration: 'Bolt a cooler to one station. It’s right there and quick — but it belongs to that station alone.', concept: 'EBS = block storage for ONE instance, in ONE AZ.', blocks: ['cookA', 'ebs'], conns: ['c_cookA_ebs'] },
@@ -633,13 +661,26 @@ const dns = {
 
 const dr = {
   id: 'disaster-recovery', title: 'Survive a Whole Region', examDomain: 'Design Resilient Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [1.5, 0], entrance: [-5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: 1.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'primary', label: 'Primary region', rect: { x0: -10, z0: -6, x1: 1.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'extractor', pos: [-5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-2.5, -5.3], y: 1.6 }, { kind: 'preptable', pos: [-8.5, 3.6] }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'neon', pos: [-6, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'plant', pos: [-9.4, 5.4] },
+      ] },
+      { id: 'dr', label: 'DR region (standby)', rect: { x0: 1.5, z0: -6, x1: 9, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [5, -5.3], y: 1.5 }, { kind: 'preptable', pos: [7, -5.3] }, { kind: 'shelving', pos: [8.4, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'signage', pos: [2.4, -5.6], opts: { accent: 0x6f86c9 } },
+      ] },
+    ],
+  },
   summary: 'Back up the recipes off-site and keep a standby kitchen in another city, ready if the lights go out.',
   scenery: 'open',
   blocks: [
-    C('primary', 'Primary region', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Main kitchen', prop: 'cook', pos: [-5, 0], yaw: 90 }, 'Where you serve from today.', 'Your primary AWS region.'),
-    C('backup', 'Cross-region backup', 'storage', { pos: [-0.5, 0.7, -1.7] }, { name: 'Off-site store', prop: 'larder', pos: [-0.5, -1.7], yaw: -90 }, 'Copies of your data kept in another region.', 'S3 cross-region replication / backups.'),
-    C('drk', 'DR region', 'compute', { pos: [3.5, 0.7, 1.3] }, { name: 'Standby kitchen', prop: 'cook', pos: [3.5, 1.3], yaw: -90 }, 'A second site ready to take over.', 'A standby region (pilot light / warm standby).'),
+    C('primary', 'Primary region', 'compute', { pos: [-5, 0.7, 0] }, { name: 'Main kitchen', prop: 'cook', pos: [-5, 0], yaw: 90, face: 'drk' }, 'Where you serve from today.', 'Your primary AWS region.'),
+    C('backup', 'Cross-region backup', 'storage', { pos: [-0.5, 0.7, -1.7] }, { name: 'Off-site store', prop: 'larder', pos: [-0.5, -1.7], yaw: -90, face: 'primary' }, 'Copies of your data kept in another region.', 'S3 cross-region replication / backups.'),
+    C('drk', 'DR region', 'compute', { pos: [3.5, 0.7, 1.3] }, { name: 'Standby kitchen', prop: 'cook', pos: [3.5, 1.3], yaw: -90, face: 'primary' }, 'A second site ready to take over.', 'A standby region (pilot light / warm standby).'),
   ],
   connections: [
     { id: 'c_primary_backup', from: 'primary', to: 'backup', flow: 'replication' },
@@ -765,14 +806,29 @@ const edge = {
 
 const apigw = {
   id: 'api-front-door', title: 'A Front Door for APIs', examDomain: 'Design High-Performing Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-1.5, 0], entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -1.5, gap: [-1.8, 1.8] }],
+    zones: [
+      { id: 'foh', label: 'Front of house', rect: { x0: -10, z0: -6, x1: -1.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'chair', pos: [-8, 2.9], opts: { color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'diningtable', pos: [-6.5, -3.8], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-6.5, -3.1], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-6.5, -3.8], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'kitchen', label: 'Kitchen', rect: { x0: -1.5, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [3, -5.3], y: 1.5 }, { kind: 'potrack', pos: [5.5, -5.3], y: 1.6 }, { kind: 'preptable', pos: [7.5, -5.3] }, { kind: 'shelving', pos: [8.6, 2] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'One managed window that takes every order, checks it, limits the pace, and passes it to the kitchen.',
   scenery: 'open',
   blocks: [
-    C('client', 'API client', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'An app calling your API.', 'A client calling your HTTP API.'),
-    C('api', 'API Gateway', 'networking', { pos: [-1.5, 0.7, 0] }, { name: 'The order window', prop: 'pass', pos: [-1.5, 0], yaw: -90 }, 'Takes, checks, throttles and routes every request.', 'Amazon API Gateway; managed API front door.', 'GET /orders → Lambda integration\nThrottle 10k rps · burst 5k\nStages: prod · dev (usage plans + keys)'),
-    C('lambda', 'Lambda', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'On-demand cook', prop: 'cook', pos: [3, -1.6], yaw: -90 }, 'One backend the gateway can route to.', 'A Lambda backend.'),
-    C('svc', 'Service', 'compute', { pos: [3.3, 0.7, 1.6] }, { name: 'Line cook', prop: 'cook', pos: [3.3, 1.6], yaw: -90 }, 'Another backend.', 'An HTTP/container backend.'),
+    C('client', 'API client', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90, face: 'api' }, 'An app calling your API.', 'A client calling your HTTP API.'),
+    C('api', 'API Gateway', 'networking', { pos: [-1.5, 0.7, 0] }, { name: 'The order window', prop: 'pass', pos: [-1.5, 0], yaw: -90, face: 'client' }, 'Takes, checks, throttles and routes every request.', 'Amazon API Gateway; managed API front door.', 'GET /orders → Lambda integration\nThrottle 10k rps · burst 5k\nStages: prod · dev (usage plans + keys)'),
+    C('lambda', 'Lambda', 'compute', { pos: [3, 0.7, -1.6] }, { name: 'On-demand cook', prop: 'cook', pos: [3, -1.6], yaw: -90, face: 'api' }, 'One backend the gateway can route to.', 'A Lambda backend.'),
+    C('svc', 'Service', 'compute', { pos: [3.3, 0.7, 1.6] }, { name: 'Line cook', prop: 'cook', pos: [3.3, 1.6], yaw: -90, face: 'api' }, 'Another backend.', 'An HTTP/container backend.'),
   ],
   connections: [
     { id: 'c_client_api', from: 'client', to: 'api', flow: 'request' },
