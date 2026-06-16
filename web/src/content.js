@@ -242,15 +242,28 @@ const iam = {
 
 const vpc = {
   id: 'network-boundaries-vpc', title: 'Network Boundaries', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [0.5, 0], entrance: [-8, 0] },
+  scene: {
+    bounds: { w: 21, d: 12, x: -0.5 },
+    partitions: [{ x: 0.5, gap: [-1.5, 1.5] }],
+    zones: [
+      { id: 'public', label: 'Public subnet', rect: { x0: -10.5, z0: -6, x1: 0.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'officedesk', pos: [-7, 3.6] }, { kind: 'signage', pos: [-9.4, -5.4], opts: { accent: 0xf2b25a } }, { kind: 'plant', pos: [-9.8, 5.4] }, { kind: 'window', pos: [-10.4, 1.4] }, { kind: 'window', pos: [-10.4, -1.6], opts: { variant: 'night' } }, { kind: 'wallart', pos: [-9.8, -3], y: 1.6 },
+      ] },
+      { id: 'private', label: 'Private subnet', rect: { x0: 0.5, z0: -6, x1: 9.5, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [7, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.8, 2] }, { kind: 'bin', pos: [8.8, 5.2] }, { kind: 'plant', pos: [8.6, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Keep servers off the street: private rooms, a bouncer on the door, and one guarded entrance.',
   scenery: 'open',
   blocks: [
-    C('admin', 'Admin', 'generic', { pos: [-8, 0.7, 0] }, { name: 'Admin', prop: 'customer', pos: [-8, 0], yaw: 90 }, 'An operator who manages the server.', 'An administrator connecting from the internet.'),
+    C('admin', 'Admin', 'generic', { pos: [-8, 0.7, 0] }, { name: 'Admin', prop: 'customer', pos: [-8, 0], yaw: 90, face: 'web' }, 'An operator who manages the server.', 'An administrator connecting from the internet.'),
     C('igw', 'Internet gateway', 'networking', { pos: [-4.5, 0.7, 0] }, { name: 'Front door', prop: 'servicedoor', pos: [-4.5, 0], yaw: 90 }, 'The only route between the VPC and the internet.', 'Internet gateway; only public subnets route to it.'),
-    C('bastion', 'Bastion host', 'compute', { pos: [-1.5, 0.7, 0] }, { name: 'Guard post', prop: 'guardpost', pos: [-1.5, 0], yaw: -90 }, 'The one hardened, audited way in.', 'Bastion host in a public subnet (or use SSM).'),
-    C('sg', 'Security group', 'security', { pos: [2, 0.7, 0] }, { name: 'Bouncer', prop: 'bouncer', pos: [2, 0], yaw: -90 }, 'Allows only specific traffic to the server.', 'Stateful, instance-level firewall; deny by default.', 'Inbound:  tcp/443 from sg-alb\nOutbound: all (stateful — replies auto)'),
-    C('web', 'Web server', 'compute', { pos: [5, 0.7, 0] }, { name: 'Back-of-house server', prop: 'cook', pos: [5, 0], yaw: -90 }, 'The server doing the work, kept private.', 'EC2 in a private subnet.'),
+    C('bastion', 'Bastion host', 'compute', { pos: [-1.5, 0.7, 0] }, { name: 'Guard post', prop: 'guardpost', pos: [-1.5, 0], yaw: -90, face: 'admin' }, 'The one hardened, audited way in.', 'Bastion host in a public subnet (or use SSM).'),
+    C('sg', 'Security group', 'security', { pos: [2, 0.7, 0] }, { name: 'Bouncer', prop: 'bouncer', pos: [2, 0], yaw: -90, face: 'admin' }, 'Allows only specific traffic to the server.', 'Stateful, instance-level firewall; deny by default.', 'Inbound:  tcp/443 from sg-alb\nOutbound: all (stateful — replies auto)'),
+    C('web', 'Web server', 'compute', { pos: [5, 0.7, 0] }, { name: 'Back-of-house server', prop: 'cook', pos: [5, 0], yaw: -90, face: 'sg' }, 'The server doing the work, kept private.', 'EC2 in a private subnet.'),
   ],
   connections: [
     { id: 'c_admin_web', from: 'admin', to: 'web', flow: 'request' },
@@ -1629,14 +1642,30 @@ const audit = {
 
 const sgnacl = {
   id: 'sg-vs-nacl', title: 'Security Groups vs NACLs', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { entrance: [-7.5, 0] },
+  scene: {
+    bounds: { w: 21, d: 12, x: -0.5 },
+    partitions: [{ x: -3, gap: [-1.5, 1.5] }, { x: 1, gap: [-1.5, 1.5] }],
+    zones: [
+      { id: 'outside', label: 'Outside', rect: { x0: -10.5, z0: -6, x1: -3, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'plant', pos: [-9.8, 5.4] }, { kind: 'plant', pos: [-9.8, -5.4] }, { kind: 'window', pos: [-10.4, 1.4] }, { kind: 'window', pos: [-10.4, -1.6], opts: { variant: 'night' } }, { kind: 'signage', pos: [-3.4, -5.4], opts: { accent: 0xf2b25a } },
+      ] },
+      { id: 'subnet', label: 'Subnet', rect: { x0: -3, z0: -6, x1: 1, z1: 6 }, accent: 0xcf6a3a, dressing: [
+        { kind: 'wallart', pos: [-1, -5.4], y: 1.6 }, { kind: 'plant', pos: [-2.6, 5.4] },
+      ] },
+      { id: 'instance', label: 'Instance', rect: { x0: 1, z0: -6, x1: 9.5, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [5, -5.3], y: 1.5 }, { kind: 'potrack', pos: [7, -5.3], y: 1.6 }, { kind: 'shelving', pos: [8.8, 2] }, { kind: 'bin', pos: [8.8, 5.2] }, { kind: 'plant', pos: [8.6, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A bouncer at each door who remembers you, and a gate guard at the perimeter with a strict allow/deny list.',
   scenery: 'open',
   blocks: [
-    C('traffic', 'Traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'Packets arriving (and leaving).', 'Inbound/outbound traffic.'),
-    C('nacl', 'Network ACL', 'security', { pos: [-3, 0.7, 0] }, { name: 'Perimeter guard', prop: 'guardpost', pos: [-3, 0], yaw: 90 }, 'Filters at the subnet edge; allow AND deny; stateless.', 'A NACL; subnet-level, stateless, ordered allow/deny rules.', '#100 ALLOW tcp/443 0.0.0.0/0\n#200 DENY  tcp/22  1.2.3.4/32\n#*   DENY  all  (stateless)'),
-    C('sg', 'Security group', 'security', { pos: [1, 0.7, 0] }, { name: 'Door bouncer', prop: 'bouncer', pos: [1, 0], yaw: 90 }, 'Allows specific traffic to the instance; remembers the conversation.', 'A security group; instance-level, stateful, allow-only.', 'ALLOW tcp/443 from 0.0.0.0/0\n(reply traffic auto-allowed)'),
-    C('server', 'Instance', 'compute', { pos: [4.5, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [4.5, 0], yaw: -90 }, 'The protected instance.', 'An EC2 instance.'),
+    C('traffic', 'Traffic', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'The crowd', prop: 'customer', pos: [-7.5, 0], yaw: 90, face: 'server' }, 'Packets arriving (and leaving).', 'Inbound/outbound traffic.'),
+    C('nacl', 'Network ACL', 'security', { pos: [-3, 0.7, 0] }, { name: 'Perimeter guard', prop: 'guardpost', pos: [-3, 0], yaw: 90, face: 'traffic' }, 'Filters at the subnet edge; allow AND deny; stateless.', 'A NACL; subnet-level, stateless, ordered allow/deny rules.', '#100 ALLOW tcp/443 0.0.0.0/0\n#200 DENY  tcp/22  1.2.3.4/32\n#*   DENY  all  (stateless)'),
+    C('sg', 'Security group', 'security', { pos: [1, 0.7, 0] }, { name: 'Door bouncer', prop: 'bouncer', pos: [1, 0], yaw: 90, face: 'traffic' }, 'Allows specific traffic to the instance; remembers the conversation.', 'A security group; instance-level, stateful, allow-only.', 'ALLOW tcp/443 from 0.0.0.0/0\n(reply traffic auto-allowed)'),
+    C('server', 'Instance', 'compute', { pos: [4.5, 0.7, 0] }, { name: 'The kitchen', prop: 'cook', pos: [4.5, 0], yaw: -90, face: 'sg' }, 'The protected instance.', 'An EC2 instance.'),
   ],
   connections: [
     { id: 'c_t_nacl', from: 'traffic', to: 'nacl', flow: 'network' },
@@ -1796,14 +1825,27 @@ const scaleupout = {
 
 const egress = {
   id: 'private-egress-nat', title: 'Private Servers, Public Updates', examDomain: 'Design Secure Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-0.5, 0], entrance: [-5.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -0.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'private', label: 'Private subnet', rect: { x0: -10, z0: -6, x1: -0.5, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'signage', pos: [-0.9, -5.6], opts: { accent: 0x6f86c9 } },
+      ] },
+      { id: 'public', label: 'Public subnet', rect: { x0: -0.5, z0: -6, x1: 9, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'officedesk', pos: [6, 3.6] }, { kind: 'plant', pos: [8.4, 5.2] }, { kind: 'window', pos: [8.9, 1.4] }, { kind: 'window', pos: [8.9, -1.6], opts: { variant: 'night' } }, { kind: 'wallart', pos: [8.6, -3.5], y: 1.6 },
+      ] },
+    ],
+  },
   summary: 'No street door to the back rooms — but a staffed exit lets staff fetch supplies without letting anyone in.',
   scenery: 'open',
   blocks: [
-    C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90 }, 'In a private subnet — no inbound from the internet.', 'An EC2 instance in a private subnet.'),
-    C('nat', 'NAT gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'Staffed exit', prop: 'guardpost', pos: [-0.5, 0], yaw: -90 }, 'Lets private servers reach OUT; nobody can start a connection IN.', 'A NAT gateway in a public subnet.', 'private subnet route table:\n0.0.0.0/0 → nat-0a1b2c3d\none NAT per AZ = resilient egress'),
-    C('igw', 'Internet gateway', 'networking', { pos: [2.8, 0.7, 1.4] }, { name: 'Front door', prop: 'servicedoor', pos: [2.8, 1.4], yaw: -90 }, 'The VPC’s door to the internet (for public subnets).', 'The internet gateway.'),
-    C('net', 'Internet', 'generic', { pos: [5, 0.7, -0.6] }, { name: 'The supplier', prop: 'customer', pos: [5, -0.6], yaw: -90 }, 'Updates, packages, external APIs.', 'The public internet.'),
+    C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90, face: 'nat' }, 'In a private subnet — no inbound from the internet.', 'An EC2 instance in a private subnet.'),
+    C('nat', 'NAT gateway', 'networking', { pos: [-0.5, 0.7, 0] }, { name: 'Staffed exit', prop: 'guardpost', pos: [-0.5, 0], yaw: -90, face: 'server' }, 'Lets private servers reach OUT; nobody can start a connection IN.', 'A NAT gateway in a public subnet.', 'private subnet route table:\n0.0.0.0/0 → nat-0a1b2c3d\none NAT per AZ = resilient egress'),
+    C('igw', 'Internet gateway', 'networking', { pos: [2.8, 0.7, 1.4] }, { name: 'Front door', prop: 'servicedoor', pos: [2.8, 1.4], yaw: -90, face: 'net' }, 'The VPC’s door to the internet (for public subnets).', 'The internet gateway.'),
+    C('net', 'Internet', 'generic', { pos: [5, 0.7, -0.6] }, { name: 'The supplier', prop: 'customer', pos: [5, -0.6], yaw: -90, face: 'igw' }, 'Updates, packages, external APIs.', 'The public internet.'),
   ],
   connections: [
     { id: 'c_server_nat', from: 'server', to: 'nat', flow: 'network' },
@@ -1901,13 +1943,26 @@ const govern = {
 
 const endpoints = {
   id: 'vpc-endpoints', title: 'Keep Traffic Private', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [0, 0], entrance: [-5.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: 0, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'private', label: 'Private subnet', rect: { x0: -10, z0: -6, x1: 0, z1: 6 }, accent: 0x6f86c9, dressing: [
+        { kind: 'extractor', pos: [-6, -5.3], y: 1.5 }, { kind: 'potrack', pos: [-8, -5.3], y: 1.6 }, { kind: 'shelving', pos: [-9.4, 0.4] }, { kind: 'plant', pos: [-9.4, 5.4] }, { kind: 'window', pos: [-9.9, -2.6] },
+      ] },
+      { id: 'pantry', label: 'AWS service (the pantry)', rect: { x0: 0, z0: -6, x1: 9, z1: 6 }, accent: 0x4fa37a, dressing: [
+        { kind: 'shelving', pos: [6, -5.3] }, { kind: 'shelving', pos: [8, -5.3] }, { kind: 'shelving', pos: [8.6, 2] }, { kind: 'bin', pos: [8.6, 5.2] }, { kind: 'signage', pos: [0.4, -5.6], opts: { accent: 0x4fa37a } },
+      ] },
+    ],
+  },
   summary: 'A private hatch straight to the AWS pantry, so deliveries never hit the street — faster, private, no NAT toll.',
   scenery: 'open',
   blocks: [
-    C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90 }, 'An instance in a private subnet.', 'A private EC2 instance.'),
-    C('endpoint', 'VPC endpoint', 'networking', { pos: [0, 0.7, 0] }, { name: 'Private hatch', prop: 'servicedoor', pos: [0, 0], yaw: -90 }, 'A private door to AWS services, bypassing the internet.', 'A VPC endpoint; reaches AWS services over the AWS network.', 'Gateway endpoint → com.amazonaws.eu-west-1.s3\nroute: pl-id (S3 prefix list)'),
-    C('s3svc', 'S3 / service', 'storage', { pos: [4, 0.7, 0] }, { name: 'The pantry', prop: 'larder', pos: [4, 0], yaw: -90 }, 'The AWS service you’re reaching.', 'e.g. Amazon S3.'),
+    C('server', 'Private server', 'compute', { pos: [-5.5, 0.7, 0] }, { name: 'Back-of-house', prop: 'cook', pos: [-5.5, 0], yaw: 90, face: 'endpoint' }, 'An instance in a private subnet.', 'A private EC2 instance.'),
+    C('endpoint', 'VPC endpoint', 'networking', { pos: [0, 0.7, 0] }, { name: 'Private hatch', prop: 'servicedoor', pos: [0, 0], yaw: -90, face: 'server' }, 'A private door to AWS services, bypassing the internet.', 'A VPC endpoint; reaches AWS services over the AWS network.', 'Gateway endpoint → com.amazonaws.eu-west-1.s3\nroute: pl-id (S3 prefix list)'),
+    C('s3svc', 'S3 / service', 'storage', { pos: [4, 0.7, 0] }, { name: 'The pantry', prop: 'larder', pos: [4, 0], yaw: -90, face: 'endpoint' }, 'The AWS service you’re reaching.', 'e.g. Amazon S3.'),
   ],
   connections: [
     { id: 'c_server_ep', from: 'server', to: 'endpoint', flow: 'network' },
