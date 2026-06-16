@@ -294,21 +294,36 @@ const sqs = {
 
 const lambda = {
   id: 'go-serverless-lambda', title: 'Go Serverless', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-4, 0], entrance: [-7, 0] },
+  scene: {
+    bounds: { w: 20, d: 13, x: -1 },
+    partitions: [{ x: -4, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'foh', label: 'Front of house', rect: { x0: -10, z0: -6.2, x1: -4, z1: 6.2 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.4], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.1], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'chair', pos: [-8, 2.7], opts: { color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.4], y: 1.5 },
+        { kind: 'diningtable', pos: [-7, -3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-7, -2.9], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-7, -3.6], y: 1.5 },
+        { kind: 'neon', pos: [-7, -6.1], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.4], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.5, 5.7] },
+      ] },
+      { id: 'kitchen', label: 'Kitchen line', rect: { x0: -4, z0: -6.2, x1: 9, z1: 6.2 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [1.5, -5.4], y: 1.5 }, { kind: 'potrack', pos: [4, -5.4], y: 1.6 }, { kind: 'preptable', pos: [6.4, -5.4] }, { kind: 'shelving', pos: [8, -5.4] }, { kind: 'bin', pos: [8.4, 5.3] }, { kind: 'plant', pos: [8.4, -5.4] },
+      ] },
+    ],
+  },
   summary: 'Stop paying a cook to stand idle: pop-up cooks who clock in only when an order lands, then vanish.',
   scenery: 'open',
   blocks: [
     C('user', 'Global user', 'generic', { pos: [-7, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7, 0], yaw: 90 }, 'A person making a request.', 'A client request / event.'),
-    C('server', 'Always-on server', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Always-on cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90 }, 'A server that runs (and bills) 24/7, even when idle.', 'An EC2 instance you pay for per hour, always on.'),
-    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-demand cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Appears only when there is work; you manage no servers.', 'AWS Lambda; runs your code per event, auto-scaled.', 'handler index.handler · runtime nodejs20.x\nMemorySize 512MB · Timeout 30s\nScales out one instance per concurrent event'),
-    C('lambda2', 'Lambda #2', 'compute', { pos: [4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4, 1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
-    C('lambda3', 'Lambda #3', 'compute', { pos: [4.3, 0.7, -1.6] }, { name: 'Another cook', prop: 'cook', pos: [4.3, -1.6], yaw: -90 }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
+    C('server', 'Always-on server', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Always-on cook', prop: 'cook', pos: [-1.5, -1.7], yaw: -90, face: 'user' }, 'A server that runs (and bills) 24/7, even when idle.', 'An EC2 instance you pay for per hour, always on.'),
+    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-demand cook', prop: 'cook', pos: [1.5, 0], yaw: -90, face: 'user' }, 'Appears only when there is work; you manage no servers.', 'AWS Lambda; runs your code per event, auto-scaled.', 'handler index.handler · runtime nodejs20.x\nMemorySize 512MB · Timeout 30s\nScales out one instance per concurrent event'),
+    C('lambda2', 'Lambda #2', 'compute', { pos: [4, 0.7, 1.6] }, { name: 'Extra cook', prop: 'cook', pos: [4, 1.6], yaw: -90, face: 'user' }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
+    C('lambda3', 'Lambda #3', 'compute', { pos: [4.3, 0.7, -1.6] }, { name: 'Another cook', prop: 'cook', pos: [4.3, -1.6], yaw: -90, face: 'user' }, 'Another concurrent execution during a rush.', 'A concurrent Lambda execution.'),
   ],
   connections: [
-    { id: 'c_user_server', from: 'user', to: 'server', flow: 'request' },
-    { id: 'c_user_lambda', from: 'user', to: 'lambda', flow: 'request' },
-    { id: 'c_user_lambda2', from: 'user', to: 'lambda2', flow: 'request' },
-    { id: 'c_user_lambda3', from: 'user', to: 'lambda3', flow: 'request' },
+    { id: 'c_user_server', from: 'user', to: 'server', flow: 'request', waypoints: [[-4, -0.3]] },
+    { id: 'c_user_lambda', from: 'user', to: 'lambda', flow: 'request', waypoints: [[-4, 0]] },
+    { id: 'c_user_lambda2', from: 'user', to: 'lambda2', flow: 'request', waypoints: [[-4, 0.6]] },
+    { id: 'c_user_lambda3', from: 'user', to: 'lambda3', flow: 'request', waypoints: [[-4, -0.6]] },
   ],
   stages: [
     { title: 'Paying a cook to stand idle', focus: 'server', anim: 'pulse', animConn: 'c_user_server', narration: 'A server runs around the clock and bills every hour — even overnight when no requests come in.', storyNarration: 'The cook stands at the range all night. You pay for every hour, even when the dining room is empty.', concept: 'An always-on server bills whether or not it is working.', blocks: ['user', 'server'], conns: ['c_user_server'] },
