@@ -617,19 +617,33 @@ const dr = {
 
 const containers = {
   id: 'containers-ecs', title: 'Package It in Containers', examDomain: 'Design High-Performing Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3.5, gap: [-2, 2] }],
+    zones: [
+      { id: 'prep', label: 'Packing bench', rect: { x0: -10, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'preptable', pos: [-8.5, 3.6] }, { kind: 'shelving', pos: [-9.4, -3] }, { kind: 'shelving', pos: [-9.4, 0.2] }, { kind: 'signage', pos: [-9.3, -5.4], opts: { accent: 0xf2b25a } },
+        { kind: 'pendant', pos: [-6.5, 0], y: 1.6 }, { kind: 'window', pos: [-9.9, 4.6] }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'dispatch', label: 'Run anywhere', rect: { x0: -3.5, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'shelving', pos: [8, -5.3] }, { kind: 'shelving', pos: [8, 2] }, { kind: 'parcels', pos: [6, -5.2] }, { kind: 'parcels', pos: [5, 4.9] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Pre-pack the recipe and all its kit into identical boxes you can stamp out and run anywhere.',
   scenery: 'open',
   blocks: [
-    C('image', 'Container image', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The meal kit', prop: 'crate', pos: [-6.5, 0], yaw: 0 }, 'App + everything it needs, packed to run identically anywhere.', 'A container image (e.g. in Amazon ECR).'),
+    C('image', 'Container image', 'edge', { pos: [-6.5, 0.7, 0] }, { name: 'The meal kit', prop: 'crate', pos: [-6.5, 0], face: 'task1' }, 'App + everything it needs, packed to run identically anywhere.', 'A container image (e.g. in Amazon ECR).'),
     C('task1', 'Task #1', 'compute', { pos: [-1.5, 0.7, -1.7] }, { name: 'Running kit', prop: 'crate', pos: [-1.5, -1.7], yaw: 0 }, 'One running copy of the image.', 'An ECS task / container.'),
     C('task2', 'Task #2', 'compute', { pos: [-1.5, 0.7, 1.7] }, { name: 'Another kit', prop: 'crate', pos: [-1.5, 1.7], yaw: 0 }, 'Another identical running copy.', 'Another ECS task.'),
     C('task3', 'Task (scaled)', 'compute', { pos: [2.5, 0.7, 0] }, { name: 'Extra kit', prop: 'crate', pos: [2.5, 0], yaw: 0 }, 'One more copy added under load.', 'A task added by service scaling.'),
   ],
   connections: [
-    { id: 'c_image_task1', from: 'image', to: 'task1', flow: 'data' },
-    { id: 'c_image_task2', from: 'image', to: 'task2', flow: 'data' },
-    { id: 'c_image_task3', from: 'image', to: 'task3', flow: 'data' },
+    { id: 'c_image_task1', from: 'image', to: 'task1', flow: 'data', waypoints: [[-3.5, -0.6]] },
+    { id: 'c_image_task2', from: 'image', to: 'task2', flow: 'data', waypoints: [[-3.5, 0.6]] },
+    { id: 'c_image_task3', from: 'image', to: 'task3', flow: 'data', waypoints: [[-3.5, 0]] },
   ],
   stages: [
     { title: 'Pack the recipe + kit', focus: 'image', anim: 'pulse', animConn: 'c_image_task1', narration: 'A container image bundles your app with its dependencies, so it runs the same on any machine.', storyNarration: 'Pre-pack the recipe and every tool and ingredient into one sealed kit — open it anywhere and it’s identical.', concept: 'A container image = a portable, consistent unit.', blocks: ['image', 'task1'], conns: ['c_image_task1'] },
@@ -766,18 +780,32 @@ const orchestrate = {
 
 const scaling = {
   id: 'auto-scaling', title: 'Match Staff to Demand', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3.5, gap: [-1.6, 1.6] }],
+    zones: [
+      { id: 'pass', label: 'The ticket rail', rect: { x0: -10, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'kitchen', label: 'Kitchen crew', rect: { x0: -3.5, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [2, -5.3], y: 1.5 }, { kind: 'potrack', pos: [4.5, -5.3], y: 1.6 }, { kind: 'preptable', pos: [6.8, -5.3] }, { kind: 'shelving', pos: [8, -5.3] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Call in cooks when the tickets pile up, send them home when it’s quiet — pay only for what you need.',
   scenery: 'open',
   blocks: [
-    C('rail', 'Demand', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The tickets', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The load, rising and falling through the day.', 'Demand measured by CPU, requests or queue depth.'),
-    C('asg', 'Auto Scaling group', 'compute', { pos: [-1.5, 0.7, -1.6] }, { name: 'Shift manager', prop: 'host', pos: [-1.5, -1.6], yaw: -90 }, 'Adds or removes cooks to match the load.', 'An Auto Scaling group with a scaling policy.', 'min 2 · desired 2 · max 10\nTarget tracking: avg CPU = 50%\nadd capacity when > 50% for 3 min'),
-    C('c1', 'Instance', 'compute', { pos: [2, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [2, -1.6], yaw: -90 }, 'A baseline worker.', 'An EC2 instance in the group.'),
-    C('c2', 'Instance #2', 'compute', { pos: [3.8, 0.7, -0.2] }, { name: 'Extra cook', prop: 'cook', pos: [3.8, -0.2], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
-    C('c3', 'Instance #3', 'compute', { pos: [4.6, 0.7, 1.8] }, { name: 'Another cook', prop: 'cook', pos: [4.6, 1.8], yaw: -90 }, 'Added when busy.', 'An instance added on scale-out.'),
+    C('rail', 'Demand', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The tickets', prop: 'ticketrail', pos: [-6.5, 0], face: 'asg' }, 'The load, rising and falling through the day.', 'Demand measured by CPU, requests or queue depth.'),
+    C('asg', 'Auto Scaling group', 'compute', { pos: [-1.5, 0.7, -1.6] }, { name: 'Shift manager', prop: 'host', pos: [-1.5, -1.6], yaw: -90, face: 'rail' }, 'Adds or removes cooks to match the load.', 'An Auto Scaling group with a scaling policy.', 'min 2 · desired 2 · max 10\nTarget tracking: avg CPU = 50%\nadd capacity when > 50% for 3 min'),
+    C('c1', 'Instance', 'compute', { pos: [2, 0.7, -1.6] }, { name: 'Cook', prop: 'cook', pos: [2, -1.6], yaw: -90, face: 'asg' }, 'A baseline worker.', 'An EC2 instance in the group.'),
+    C('c2', 'Instance #2', 'compute', { pos: [3.8, 0.7, -0.2] }, { name: 'Extra cook', prop: 'cook', pos: [3.8, -0.2], yaw: -90, face: 'asg' }, 'Added when busy.', 'An instance added on scale-out.'),
+    C('c3', 'Instance #3', 'compute', { pos: [4.6, 0.7, 1.8] }, { name: 'Another cook', prop: 'cook', pos: [4.6, 1.8], yaw: -90, face: 'asg' }, 'Added when busy.', 'An instance added on scale-out.'),
   ],
   connections: [
-    { id: 'c_rail_asg', from: 'rail', to: 'asg', flow: 'data' },
+    { id: 'c_rail_asg', from: 'rail', to: 'asg', flow: 'data', waypoints: [[-3.5, 0]] },
     { id: 'c_asg_c1', from: 'asg', to: 'c1', flow: 'request' },
     { id: 'c_asg_c2', from: 'asg', to: 'c2', flow: 'request' },
     { id: 'c_asg_c3', from: 'asg', to: 'c3', flow: 'request' },
@@ -992,14 +1020,29 @@ const networks = {
 
 const stateless = {
   id: 'keep-it-stateless', title: 'Keep Servers Stateless', examDomain: 'Design Resilient Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3, 0], entrance: [-7.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3, gap: [-1.8, 1.8] }],
+    zones: [
+      { id: 'foh', label: 'Front of house', rect: { x0: -10, z0: -6, x1: -3, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'chair', pos: [-8, 2.9], opts: { color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'diningtable', pos: [-6.5, -3.8], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-6.5, -3.1], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-6.5, -3.8], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'kitchen', label: 'Kitchen line', rect: { x0: -3, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [1.2, -5.3], y: 1.5 }, { kind: 'potrack', pos: [4, -5.3], y: 1.6 }, { kind: 'shelving', pos: [7.5, -5.3] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Don’t keep the order in one cook’s head — put it on the rail so any cook can pick it up.',
   scenery: 'open',
   blocks: [
-    C('user', 'User', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7.5, 0], yaw: 90 }, 'A returning user with a session.', 'A client with session state.'),
-    C('lb', 'Load balancer', 'networking', { pos: [-3, 0.7, 0] }, { name: 'The pass', prop: 'pass', pos: [-3, 0], yaw: -90 }, 'Sends each request to any server.', 'An ALB spreading requests.'),
-    C('srvA', 'Server A', 'compute', { pos: [1, 0.7, -1.6] }, { name: 'Cook A', prop: 'cook', pos: [1, -1.6], yaw: -90 }, 'One interchangeable server.', 'A stateless app instance.'),
-    C('srvB', 'Server B', 'compute', { pos: [1.4, 0.7, 1.6] }, { name: 'Cook B', prop: 'cook', pos: [1.4, 1.6], yaw: -90 }, 'Another interchangeable server.', 'Another instance.'),
+    C('user', 'User', 'generic', { pos: [-7.5, 0.7, 0] }, { name: 'Customer', prop: 'customer', pos: [-7.5, 0], yaw: 90, face: 'lb' }, 'A returning user with a session.', 'A client with session state.'),
+    C('lb', 'Load balancer', 'networking', { pos: [-3, 0.7, 0] }, { name: 'The pass', prop: 'pass', pos: [-3, 0], yaw: -90, face: 'user' }, 'Sends each request to any server.', 'An ALB spreading requests.'),
+    C('srvA', 'Server A', 'compute', { pos: [1, 0.7, -1.6] }, { name: 'Cook A', prop: 'cook', pos: [1, -1.6], yaw: -90, face: 'lb' }, 'One interchangeable server.', 'A stateless app instance.'),
+    C('srvB', 'Server B', 'compute', { pos: [1.4, 0.7, 1.6] }, { name: 'Cook B', prop: 'cook', pos: [1.4, 1.6], yaw: -90, face: 'lb' }, 'Another interchangeable server.', 'Another instance.'),
     C('store', 'Session store', 'database', { pos: [4.5, 0.7, 0] }, { name: 'Shared locker', prop: 'coldroom', pos: [4.5, 0], yaw: -90 }, 'Holds session/state outside the servers.', 'DynamoDB / ElastiCache for sessions.'),
   ],
   connections: [
@@ -1160,19 +1203,33 @@ const storageclass = {
 
 const compute = {
   id: 'choose-compute', title: 'Choose Your Compute', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'pass', label: 'The pass', rect: { x0: -10, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'kitchen', label: 'Kitchen stations', rect: { x0: -3.5, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'extractor', pos: [-1, -5.3], y: 1.5 }, { kind: 'potrack', pos: [2, -5.3], y: 1.6 }, { kind: 'preptable', pos: [5.5, -5.3] }, { kind: 'shelving', pos: [7.8, -5.3] }, { kind: 'shelving', pos: [7.8, 3.5] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'Full-time cooks, on-call cooks who appear per order, or pre-packed kit stations — match it to the work.',
   scenery: 'open',
   blocks: [
-    C('work', 'The work', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'The workload to run.', 'Your workload.'),
-    C('ec2', 'EC2', 'compute', { pos: [-1, 0.7, -1.7] }, { name: 'Full-time cook', prop: 'cook', pos: [-1, -1.7], yaw: -90 }, 'A server you control and run by the hour.', 'EC2; full OS control, pay per running hour.', 't3.micro · Amazon Linux 2023\nOn-Demand $/hr · Savings Plan -72%\nSpot -90% (can be interrupted)'),
-    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-call cook', prop: 'cook', pos: [1.5, 0], yaw: -90 }, 'Runs per event; no servers; pay per use.', 'Lambda; serverless functions.'),
-    C('cont', 'Containers', 'edge', { pos: [3.8, 0.7, 1.7] }, { name: 'Kit station', prop: 'crate', pos: [3.8, 1.7], yaw: 0 }, 'Portable packaged units (ECS/Fargate).', 'Containers on ECS/Fargate.'),
+    C('work', 'The work', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], face: 'lambda' }, 'The workload to run.', 'Your workload.'),
+    C('ec2', 'EC2', 'compute', { pos: [-1, 0.7, -1.7] }, { name: 'Full-time cook', prop: 'cook', pos: [-1, -1.7], yaw: -90, face: 'work' }, 'A server you control and run by the hour.', 'EC2; full OS control, pay per running hour.', 't3.micro · Amazon Linux 2023\nOn-Demand $/hr · Savings Plan -72%\nSpot -90% (can be interrupted)'),
+    C('lambda', 'Lambda', 'compute', { pos: [1.5, 0.7, 0] }, { name: 'On-call cook', prop: 'cook', pos: [1.5, 0], yaw: -90, face: 'work' }, 'Runs per event; no servers; pay per use.', 'Lambda; serverless functions.'),
+    C('cont', 'Containers', 'edge', { pos: [3.8, 0.7, 1.7] }, { name: 'Kit station', prop: 'crate', pos: [3.8, 1.7], yaw: 0, face: 'work' }, 'Portable packaged units (ECS/Fargate).', 'Containers on ECS/Fargate.'),
   ],
   connections: [
-    { id: 'c_work_ec2', from: 'work', to: 'ec2', flow: 'request' },
-    { id: 'c_work_lambda', from: 'work', to: 'lambda', flow: 'request' },
-    { id: 'c_work_cont', from: 'work', to: 'cont', flow: 'request' },
+    { id: 'c_work_ec2', from: 'work', to: 'ec2', flow: 'request', waypoints: [[-3.5, -0.4]] },
+    { id: 'c_work_lambda', from: 'work', to: 'lambda', flow: 'request', waypoints: [[-3.5, 0]] },
+    { id: 'c_work_cont', from: 'work', to: 'cont', flow: 'request', waypoints: [[-3.5, 0.6]] },
   ],
   stages: [
     { title: 'Run your own servers (EC2)', focus: 'ec2', anim: 'pulse', animConn: 'c_work_ec2', narration: 'EC2 gives full control of the OS and instance — best for steady, heavy or special workloads. You manage and pay per hour.', storyNarration: 'Hire full-time cooks: total control of the kitchen, but you pay them for every hour on shift.', concept: 'EC2 = full control, you manage, per-hour.', blocks: ['work', 'ec2'], conns: ['c_work_ec2'] },
@@ -1514,19 +1571,36 @@ const messaging = {
 
 const scaleupout = {
   id: 'scale-up-vs-out', title: 'Scale Up vs Scale Out', examDomain: 'Design Cost-Optimized Architectures',
-  world: 'restaurant', scene: RScene(),
+  world: 'restaurant',
+  anchors: { door: [-3.5, 0], entrance: [-6.5, 0] },
+  scene: {
+    bounds: { w: 20, d: 12, x: -1 },
+    partitions: [{ x: -3.5, gap: [-1.4, 1.4] }],
+    zones: [
+      { id: 'pass', label: 'The pass', rect: { x0: -10, z0: -6, x1: -3.5, z1: 6 }, accent: 0xf2b25a, dressing: [
+        { kind: 'diningtable', pos: [-8, 3.6], opts: { color: 0xccd2d6 } }, { kind: 'chair', pos: [-8, 4.3], yaw: 180, opts: { occupied: true, color: 0xcf3a33 } }, { kind: 'pendant', pos: [-8, 3.6], y: 1.5 },
+        { kind: 'neon', pos: [-7, -5.9], y: 1.7, opts: { accent: 0xff3d6e } }, { kind: 'window', pos: [-9.9, 1.4] }, { kind: 'window', pos: [-9.9, -1.6], opts: { variant: 'night' } }, { kind: 'plant', pos: [-9.4, 5.6] },
+      ] },
+      { id: 'bigstation', label: 'One big oven', rect: { x0: -3.5, z0: -6, x1: 1, z1: 6 }, accent: 0xcf6a3a, dressing: [
+        { kind: 'extractor', pos: [-1, -5.3], y: 1.6 }, { kind: 'potrack', pos: [-1, 4.6], y: 1.6 },
+      ] },
+      { id: 'line', label: 'More cooks', rect: { x0: 1, z0: -6, x1: 9, z1: 6 }, accent: 0x9aa0aa, dressing: [
+        { kind: 'preptable', pos: [4, -5.3] }, { kind: 'shelving', pos: [7.8, -5.3] }, { kind: 'shelving', pos: [7.8, 3.5] }, { kind: 'bin', pos: [8.4, 5.2] }, { kind: 'plant', pos: [8.4, -5.3] },
+      ] },
+    ],
+  },
   summary: 'A bigger oven, or more cooks? Vertical hits a ceiling; horizontal spreads load and survives failures.',
   scenery: 'open',
   blocks: [
-    C('load', 'Load', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], yaw: 0 }, 'Demand on the system.', 'Your workload.'),
-    C('big', 'Scale up', 'compute', { pos: [-1, 0.7, -1.6] }, { name: 'Bigger oven', prop: 'cook', pos: [-1, -1.6], yaw: -90 }, 'One larger instance — more CPU/RAM.', 'Vertical scaling: a bigger instance type.'),
-    C('out1', 'Scale out', 'compute', { pos: [2.5, 0.7, -1.6] }, { name: 'More cooks', prop: 'cook', pos: [2.5, -1.6], yaw: -90 }, 'More instances behind a load balancer.', 'Horizontal scaling: add instances.'),
-    C('out2', 'Scale out', 'compute', { pos: [3, 0.7, 1.6] }, { name: 'More cooks', prop: 'cook', pos: [3, 1.6], yaw: -90 }, 'Another instance.', 'Another instance in the group.'),
+    C('load', 'Load', 'generic', { pos: [-6.5, 0.7, 0] }, { name: 'The orders', prop: 'ticketrail', pos: [-6.5, 0], face: 'out1' }, 'Demand on the system.', 'Your workload.'),
+    C('big', 'Scale up', 'compute', { pos: [-1, 0.7, -1.6] }, { name: 'Bigger oven', prop: 'cook', pos: [-1, -1.6], yaw: -90, face: 'load' }, 'One larger instance — more CPU/RAM.', 'Vertical scaling: a bigger instance type.'),
+    C('out1', 'Scale out', 'compute', { pos: [2.5, 0.7, -1.6] }, { name: 'More cooks', prop: 'cook', pos: [2.5, -1.6], yaw: -90, face: 'load' }, 'More instances behind a load balancer.', 'Horizontal scaling: add instances.'),
+    C('out2', 'Scale out', 'compute', { pos: [3, 0.7, 1.6] }, { name: 'More cooks', prop: 'cook', pos: [3, 1.6], yaw: -90, face: 'load' }, 'Another instance.', 'Another instance in the group.'),
   ],
   connections: [
-    { id: 'c_load_big', from: 'load', to: 'big', flow: 'request' },
-    { id: 'c_load_o1', from: 'load', to: 'out1', flow: 'request' },
-    { id: 'c_load_o2', from: 'load', to: 'out2', flow: 'request' },
+    { id: 'c_load_big', from: 'load', to: 'big', flow: 'request', waypoints: [[-3.5, -0.5]] },
+    { id: 'c_load_o1', from: 'load', to: 'out1', flow: 'request', waypoints: [[-3.5, 0.2]] },
+    { id: 'c_load_o2', from: 'load', to: 'out2', flow: 'request', waypoints: [[-3.5, 0.8]] },
   ],
   stages: [
     { title: 'Scale up: a bigger box', focus: 'big', anim: 'spike', narration: 'Vertical scaling means a larger instance — more CPU and memory. Simple, but it hits a ceiling and is a single point of failure.', storyNarration: 'Buy one giant oven. Powerful — but there’s a biggest oven made, and if it breaks, service stops.', concept: 'Scale up = bigger instance; capped + single point of failure.', blocks: ['load', 'big'], conns: ['c_load_big'] },
