@@ -146,11 +146,12 @@ const CARD = {
 };
 const LEVEL_NAME = { 1: 'Foundational', 2: 'Core', 3: 'Advanced' };
 // The four SAA-C03 exam domains, in order, with a short label, blurb and accent.
+// `weight` = official SAA-C03 scored-content weighting; drives the readiness score and full-exam question mix.
 const DOMAINS = [
-  { key: 'Design Secure Architectures', label: 'Secure architectures', blurb: 'Identity, network boundaries, encryption and edge defense.', accent: '#d15656' },
-  { key: 'Design Resilient Architectures', label: 'Resilient architectures', blurb: 'Decouple, span AZs and regions, recover, and observe.', accent: '#5a8fd1' },
-  { key: 'Design High-Performing Architectures', label: 'High-performing architectures', blurb: 'The right data store, caching, delivery and scale.', accent: '#33b38c' },
-  { key: 'Design Cost-Optimized Architectures', label: 'Cost-optimized architectures', blurb: 'Pay for what you use; right-size and commit.', accent: '#67ad5b' },
+  { key: 'Design Secure Architectures', label: 'Secure architectures', blurb: 'Identity, network boundaries, encryption and edge defense.', accent: '#d15656', weight: 30 },
+  { key: 'Design Resilient Architectures', label: 'Resilient architectures', blurb: 'Decouple, span AZs and regions, recover, and observe.', accent: '#5a8fd1', weight: 26 },
+  { key: 'Design High-Performing Architectures', label: 'High-performing architectures', blurb: 'The right data store, caching, delivery and scale.', accent: '#33b38c', weight: 24 },
+  { key: 'Design Cost-Optimized Architectures', label: 'Cost-optimized architectures', blurb: 'Pay for what you use; right-size and commit.', accent: '#67ad5b', weight: 20 },
 ];
 const meta = (id) => CARD[id] || { icon: '•', accent: '#9ea3a0', level: 2 };
 
@@ -162,6 +163,23 @@ function orderedTopics() {
     .map((x) => x.t);
 }
 const nextTopic = () => orderedTopics().find((t) => masteryOf(t.id) !== 'Mastered') || null;
+
+// ---------- exam readiness ----------
+// Per-topic readiness proxy = best assessment/quiz score so far (0 if never attempted).
+const topicScore = (id) => (progress[id] && progress[id].best) || 0;
+// Overall readiness = average per-topic score within each domain, blended by the domain's exam weight.
+function readiness() {
+  const per = DOMAINS.map((d) => {
+    const ts = COURSE.topics.filter((t) => t.examDomain === d.key);
+    const avg = ts.length ? ts.reduce((s, t) => s + topicScore(t.id), 0) / ts.length : 0;
+    return { d, pct: Math.round(avg) };
+  });
+  const wsum = DOMAINS.reduce((s, d) => s + (d.weight || 0), 0);
+  const overall = Math.round(per.reduce((s, x) => s + x.pct * (x.d.weight || 0), 0) / wsum);
+  const weakest = per.slice().sort((a, b) => a.pct - b.pct)[0];
+  const attempted = COURSE.topics.filter((t) => masteryOf(t.id) !== 'Not started').length;
+  return { overall, per, weakest, attempted, total: COURSE.topics.length };
+}
 
 function makeTopicCard(t) {
   const m = masteryOf(t.id), b = bestOf(t.id), th = meta(t.id);
@@ -190,8 +208,29 @@ function openCourseMap() {
   const mastered = COURSE.topics.filter((t) => masteryOf(t.id) === 'Mastered').length;
   const started = COURSE.topics.filter((t) => masteryOf(t.id) !== 'Not started').length;
 
-  // Overview: overall progress + a Continue/Start CTA + a Mock exam across all topics.
+  // Exam-readiness card: a domain-weighted overall score + per-domain bars + a practice-the-weakest CTA.
   const ov = $('map-overview');
+  const rd = readiness();
+  const rdReady = rd.overall >= 69; // ~720/1000 scaled
+  let rc = $('map-readiness');
+  if (!rc) { rc = document.createElement('section'); rc.id = 'map-readiness'; rc.className = 'readiness-card'; ov.parentNode.insertBefore(rc, ov); }
+  const domRows = rd.per.map((x) =>
+    `<div class="dom-row"><span class="dom-name">${x.d.label}<span class="rd-w"> · ${x.d.weight}%</span></span><span class="dom-mini"><i style="width:${x.pct}%;background:${x.d.accent}"></i></span><span class="dom-score">${x.pct}%</span></div>`).join('');
+  const rdMsg = rd.attempted === 0 ? 'Take a topic assessment or a mock exam to start tracking readiness.'
+    : rdReady ? 'Around the SAA-C03 pass mark — keep sharpening your weak spots.'
+      : 'Below the pass mark — focus your weakest domain next.';
+  rc.innerHTML = `
+    <div class="rd-head">
+      <div class="rd-gauge ${rdReady ? 'ready' : ''}"><b>${rd.overall}<small>%</small></b><span>ready</span></div>
+      <div class="rd-copy"><h2>Exam readiness</h2><p>${rdMsg}</p>
+        <p class="rd-est">Estimated from your topic scores, weighted by official exam domain (Secure 30 · Resilient 26 · High-Performing 24 · Cost 20).</p></div>
+    </div>
+    <div class="dom-rows rd-rows">${domRows}</div>`;
+  if (rd.attempted > 0 && rd.weakest && rd.weakest.pct < 100) {
+    const wb = document.createElement('button'); wb.className = 'rd-practice'; wb.textContent = `Practice ${rd.weakest.d.label} →`;
+    wb.onclick = () => startMockExam(rd.weakest.d.key);
+    rc.appendChild(wb);
+  }
   const fullHist = examHistory.filter((h) => h.scopeKey === 'full');
   const examStat = fullHist.length
     ? `<div class="ov-stat">Mock exam — last <b class="inline">${fullHist[fullHist.length - 1].pct}%</b> · best <b class="inline">${Math.max(...fullHist.map((h) => h.pct))}%</b></div>`
