@@ -213,6 +213,8 @@ button.primary:hover { filter: brightness(1.06); }
 #r-msg .fail { color: #e8a657; font-weight: 800; }
 .primary-exam { border-color: rgba(95,210,154,0.5); color: var(--ink); }
 .primary-exam:hover { border-color: #5fd29a; background: rgba(95,210,154,0.10); }
+.review-btn { border-color: rgba(232,166,87,0.5); color: var(--ink); }
+.review-btn:hover { border-color: #e8a657; background: rgba(232,166,87,0.10); }
 
 /* find / search screen */
 .find-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }

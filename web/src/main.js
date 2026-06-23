@@ -78,6 +78,25 @@ function recordExam(entry) {
   localStorage.setItem(HKEY, JSON.stringify(examHistory));
 }
 
+// ---------- missed questions (localStorage) ----------
+// A question is keyed by topicId#questionIndex; recorded when answered wrong (any mode),
+// removed when later answered correctly. Feeds the spaced-repetition "review weak spots" drill.
+const MKEY = 'learnaws.missed';
+let missed = (() => { try { return JSON.parse(localStorage.getItem(MKEY) || '{}'); } catch { return {}; } })();
+const missKey = (tid, qi) => tid + '#' + qi;
+function markMissed(tid, qi) { missed[missKey(tid, qi)] = Date.now(); localStorage.setItem(MKEY, JSON.stringify(missed)); }
+function clearMissed(tid, qi) { const k = missKey(tid, qi); if (k in missed) { delete missed[k]; localStorage.setItem(MKEY, JSON.stringify(missed)); } }
+function missedItems() {
+  const out = [];
+  for (const k of Object.keys(missed)) {
+    const i = k.lastIndexOf('#'); const tid = k.slice(0, i), qi = +k.slice(i + 1);
+    const t = COURSE.topics.find((x) => x.id === tid); if (!t) continue;
+    const q = t.quiz[qi]; if (!q) continue;
+    out.push({ q, topic: t, qi, ts: missed[k] });
+  }
+  return out.sort((a, b) => a.ts - b.ts); // oldest miss first
+}
+
 // ---------- state ----------
 let world = null, journey = null, topic = null, mode = 'story', showAnalogy = false;
 let inspectorReal = false, selectedId = null;
@@ -254,6 +273,13 @@ function openCourseMap() {
   const exam = document.createElement('button'); exam.textContent = `⚡ Quick mock (${EXAM_LEN} Q)`;
   exam.onclick = () => startMockExam();
   ov.appendChild(exam);
+  const miss = missedItems();
+  if (miss.length) {
+    const rev = document.createElement('button'); rev.className = 'review-btn'; rev.textContent = `🔁 Review weak spots (${miss.length})`;
+    rev.title = 'Replay every question you’ve gotten wrong; a correct answer clears it';
+    rev.onclick = () => startReview();
+    ov.appendChild(rev);
+  }
   const find = document.createElement('button'); find.textContent = '🔎 Find a topic';
   find.title = 'Press / to search from anywhere';
   find.onclick = openFind;
@@ -466,7 +492,7 @@ function startExamTimer(totalSecs) {
 }
 function examPool(domainKey) {
   const topics = domainKey ? COURSE.topics.filter((t) => t.examDomain === domainKey) : COURSE.topics;
-  return topics.flatMap((t) => t.quiz.filter((q) => q.kind !== 'tapfix').map((q) => ({ q, topic: t })));
+  return topics.flatMap((t) => t.quiz.map((q, qi) => ({ q, topic: t, qi })).filter((x) => x.q.kind !== 'tapfix'));
 }
 // domainKey omitted = full mock exam across all domains; provided = focused practice on one domain.
 function startMockExam(domainKey) {
@@ -504,6 +530,17 @@ function startFullExam() {
   $('a-title').textContent = 'Full exam simulation'; $('screen-assess').classList.add('exam');
   examTimed = false; examTimedOut = false;
   startExamTimer(FULL_EXAM_SECS);
+  showScreen('assess'); renderQuestion();
+}
+// Spaced-repetition drill: replay every question you've gotten wrong; answering one correctly clears it.
+function startReview() {
+  const items = missedItems();
+  if (!items.length) { openCourseMap(); return; }
+  for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+  examItems = items; examMode = true; examDomain = null; examKind = 'review';
+  quiz = examItems.map((e) => e.q); qi = 0; correctCount = 0;
+  $('a-title').textContent = 'Review weak spots'; $('screen-assess').classList.add('exam');
+  examTimed = false; examTimedOut = false; stopExamTimer();
   showScreen('assess'); renderQuestion();
 }
 function renderQuestion() {
@@ -549,6 +586,9 @@ function submitAnswer() {
   }
   if (ok) correctCount++;
   if (examMode) examItems[qi].ok = ok;
+  // remember (or clear) this question for the review-weak-spots drill, in any mode
+  const ref = examMode ? examItems[qi] : { topic, qi };
+  if (ref && ref.topic && q.kind !== 'tapfix') { ok ? clearMissed(ref.topic.id, ref.qi) : markMissed(ref.topic.id, ref.qi); }
   answered = true;
   const ex = $('a-explain'); ex.textContent = (ok ? 'Correct. ' : 'Not quite. ') + q.explain; ex.classList.remove('hidden');
   $('a-submit').classList.add('hidden');
@@ -584,6 +624,13 @@ function showExamResults() {
       + ` — ${pct}% correct (${correctCount}/${examItems.length}). Pass mark is 720` + (examTimedOut ? '. ⏱ Time expired.' : '.');
     $('r-mastery').textContent = `Full exam simulation · ${examItems.length} questions · estimated scaled score` + (examTimed && !examTimedOut ? ` · ⏱ ${fmtTime(elapsed)}` : '');
     $('r-retry').textContent = 'New full exam';
+  } else if (examKind === 'review') {
+    const remaining = missedItems().length;
+    $('r-score').textContent = `${correctCount} / ${examItems.length} cleared`;
+    $('r-msg').textContent = remaining === 0 ? '🎉 All caught up — no weak spots left to review.'
+      : `${remaining} question${remaining === 1 ? '' : 's'} still need work.`;
+    $('r-mastery').textContent = `Review weak spots · ${examItems.length} replayed`;
+    $('r-retry').textContent = remaining ? 'Review remaining' : 'Back to map';
   } else {
     $('r-score').textContent = `${pct}%  (${correctCount}/${examItems.length})`;
     const base = ready ? 'On track — you’re around the SAA-C03 pass mark.' : 'Keep studying — aim for ~72%+ across every domain.';
@@ -599,20 +646,22 @@ function showExamResults() {
   }).join('');
   const revisit = [...new Set(examItems.filter((e) => e.ok === false).map((e) => e.topic.title))].slice(0, 5);
   const tip = revisit.length ? `<div class="exam-tip"><b>Revisit:</b> ${revisit.join(' · ')}</div>` : '';
-  // record this attempt, then show a trend of recent attempts of the same scope
-  const scopeKey = examKind === 'full' ? 'full65' : (examDomain || 'full');
-  const scopeLabel = dom ? dom.label : (examKind === 'full' ? 'Full exam' : 'Mock exam');
-  recordExam({ t: Date.now(), scopeKey, scopeLabel, pct, correct: correctCount, total: examItems.length, timed: examTimed, expired: examTimedOut });
-  const hist = examHistory.filter((h) => h.scopeKey === scopeKey);
+  // record this attempt (not the review drill), then show a trend of recent attempts of the same scope
   let histHtml = '';
-  if (hist.length > 1) {
-    const recent = hist.slice(-6);
-    const best = Math.max(...hist.map((h) => h.pct));
-    const prev = hist[hist.length - 2].pct, d = pct - prev;
-    const bars = recent.map((h, i) => `<span class="hist-bar${i === recent.length - 1 ? ' latest' : ''}" title="${h.correct}/${h.total}"><i style="height:${Math.max(h.pct, 3)}%"></i><b>${h.pct}</b></span>`).join('');
-    const delta = d === 0 ? '· no change from last time'
-      : d > 0 ? `· <span class="up">▲ +${d}%</span> from last time` : `· <span class="down">▼ ${d}%</span> from last time`;
-    histHtml = `<h3>Your attempts</h3><div class="hist"><div class="hist-bars">${bars}</div><div class="hist-note">Best <b>${best}%</b> ${delta}</div></div>`;
+  if (examKind !== 'review') {
+    const scopeKey = examKind === 'full' ? 'full65' : (examDomain || 'full');
+    const scopeLabel = dom ? dom.label : (examKind === 'full' ? 'Full exam' : 'Mock exam');
+    recordExam({ t: Date.now(), scopeKey, scopeLabel, pct, correct: correctCount, total: examItems.length, timed: examTimed, expired: examTimedOut });
+    const hist = examHistory.filter((h) => h.scopeKey === scopeKey);
+    if (hist.length > 1) {
+      const recent = hist.slice(-6);
+      const best = Math.max(...hist.map((h) => h.pct));
+      const prev = hist[hist.length - 2].pct, d = pct - prev;
+      const bars = recent.map((h, i) => `<span class="hist-bar${i === recent.length - 1 ? ' latest' : ''}" title="${h.correct}/${h.total}"><i style="height:${Math.max(h.pct, 3)}%"></i><b>${h.pct}</b></span>`).join('');
+      const delta = d === 0 ? '· no change from last time'
+        : d > 0 ? `· <span class="up">▲ +${d}%</span> from last time` : `· <span class="down">▼ ${d}%</span> from last time`;
+      histHtml = `<h3>Your attempts</h3><div class="hist"><div class="hist-bars">${bars}</div><div class="hist-note">Best <b>${best}%</b> ${delta}</div></div>`;
+    }
   }
   $('r-recap').innerHTML = `<h3>By domain</h3><div class="dom-rows">${rows}</div>${tip}${histHtml}`;
   // Offer to drill the weakest domain (only meaningful on a full exam with a clear weak spot).
@@ -664,7 +713,7 @@ $('insp-close').onclick = () => $('inspector').classList.add('hidden');
 $('a-submit').onclick = submitAnswer;
 $('a-next').onclick = nextQuestion;
 $('r-back').onclick = openCourseMap;
-$('r-retry').onclick = () => (examKind === 'full' ? startFullExam() : examMode ? startMockExam(examDomain) : startAssessment());
+$('r-retry').onclick = () => (examKind === 'review' ? startReview() : examKind === 'full' ? startFullExam() : examMode ? startMockExam(examDomain) : startAssessment());
 $('find-map').onclick = openCourseMap;
 $('find-input').oninput = (e) => renderFind(e.target.value);
 $('find-input').onkeydown = (e) => { if (e.key === 'Escape') openCourseMap(); };
