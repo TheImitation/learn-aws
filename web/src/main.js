@@ -83,7 +83,7 @@ let world = null, journey = null, topic = null, mode = 'story', showAnalogy = fa
 let inspectorReal = false, selectedId = null;
 let quiz = null, qi = 0, correctCount = 0, answered = false, picked = new Set(), lastTapped = null;
 let optionOrder = []; // display position → original option index (shuffled per question so the answer isn't always first)
-let examMode = false, examItems = [], examDomain = null; // mock exam / domain practice: pooled questions
+let examMode = false, examItems = [], examDomain = null, examKind = null; // examKind: 'quick' | 'domain' | 'full' | 'review'
 let examTimerId = null, examEndsAt = 0, examStartedAt = 0, examTimed = false, examTimedOut = false; // timed full-exam simulation
 
 function showScreen(name) {
@@ -247,7 +247,11 @@ function openCourseMap() {
     const done = document.createElement('div'); done.className = 'ov-stat'; done.textContent = '🎉 All topics mastered';
     ov.appendChild(done);
   }
-  const exam = document.createElement('button'); exam.textContent = `🎓 Mock exam (${EXAM_LEN} Q)`;
+  const full = document.createElement('button'); full.className = 'primary-exam'; full.textContent = `🎓 Full exam (${FULL_EXAM_LEN} Q · 130 min)`;
+  full.title = 'Real SAA-C03 format: 65 domain-weighted questions, 130-minute clock, scored out of 1000';
+  full.onclick = () => startFullExam();
+  ov.appendChild(full);
+  const exam = document.createElement('button'); exam.textContent = `⚡ Quick mock (${EXAM_LEN} Q)`;
   exam.onclick = () => startMockExam();
   ov.appendChild(exam);
   const find = document.createElement('button'); find.textContent = '🔎 Find a topic';
@@ -432,13 +436,14 @@ function renderInspector() {
 
 // ---------- assessment ----------
 function startAssessment() {
-  examMode = false; examDomain = null; stopExamTimer(); examTimed = false; $('a-title').textContent = 'Assessment'; $('screen-assess').classList.remove('exam');
+  examMode = false; examDomain = null; examKind = null; stopExamTimer(); examTimed = false; $('a-title').textContent = 'Assessment'; $('screen-assess').classList.remove('exam');
   quiz = topic.quiz; qi = 0; correctCount = 0;
   showScreen('assess'); renderQuestion();
 }
 
 // ---------- mock exam (questions pooled from every topic) ----------
 const EXAM_LEN = 20, PRACTICE_LEN = 10, EXAM_SECS_PER_Q = 120; // ~2 min/question, matching the real SAA-C03 pace
+const FULL_EXAM_LEN = 65, FULL_EXAM_SECS = 130 * 60; // real SAA-C03 format: 65 questions, 130 minutes, pass ~720/1000
 const fmtTime = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function stopExamTimer() { if (examTimerId) { clearInterval(examTimerId); examTimerId = null; } $('a-timer').classList.add('hidden'); }
 function startExamTimer(totalSecs) {
@@ -468,12 +473,37 @@ function startMockExam(domainKey) {
   const pool = examPool(domainKey);
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } // shuffle
   examItems = pool.slice(0, Math.min(domainKey ? PRACTICE_LEN : EXAM_LEN, pool.length));
-  examMode = true; examDomain = domainKey || null;
+  examMode = true; examDomain = domainKey || null; examKind = domainKey ? 'domain' : 'quick';
   quiz = examItems.map((e) => e.q); qi = 0; correctCount = 0;
   const dom = domainKey ? DOMAINS.find((d) => d.key === domainKey) : null;
   $('a-title').textContent = dom ? `Practice: ${dom.label}` : 'Mock exam'; $('screen-assess').classList.add('exam');
   examTimed = false; examTimedOut = false;
   if (domainKey) stopExamTimer(); else startExamTimer(examItems.length * EXAM_SECS_PER_Q); // full exam runs on the clock
+  showScreen('assess'); renderQuestion();
+}
+// Full exam: pick `n` questions split across domains by exam weight (largest-remainder), interleaved.
+function weightedExamItems(n) {
+  const wsum = DOMAINS.reduce((s, d) => s + (d.weight || 0), 0);
+  const alloc = DOMAINS.map((d) => { const raw = n * (d.weight || 0) / wsum; return { d, base: Math.floor(raw), frac: raw - Math.floor(raw) }; });
+  let used = alloc.reduce((s, a) => s + a.base, 0);
+  alloc.slice().sort((a, b) => b.frac - a.frac).forEach((a) => { if (used < n) { a.base++; used++; } });
+  const items = [];
+  for (const a of alloc) {
+    const pool = examPool(a.d.key);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    items.push(...pool.slice(0, Math.min(a.base, pool.length)));
+  }
+  for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+  return items;
+}
+// Real SAA-C03 simulation: 65 domain-weighted questions on a 130-minute clock, scored as a scaled estimate.
+function startFullExam() {
+  examItems = weightedExamItems(FULL_EXAM_LEN);
+  examMode = true; examDomain = null; examKind = 'full';
+  quiz = examItems.map((e) => e.q); qi = 0; correctCount = 0;
+  $('a-title').textContent = 'Full exam simulation'; $('screen-assess').classList.add('exam');
+  examTimed = false; examTimedOut = false;
+  startExamTimer(FULL_EXAM_SECS);
   showScreen('assess'); renderQuestion();
 }
 function renderQuestion() {
@@ -545,12 +575,22 @@ function showExamResults() {
   const pct = Math.round((correctCount / examItems.length) * 100);
   const ready = pct >= 72; // SAA-C03 pass mark is ~720/1000
   const dom = examDomain ? DOMAINS.find((d) => d.key === examDomain) : null;
-  $('r-score').textContent = `${pct}%  (${correctCount}/${examItems.length})`;
-  const base = ready ? 'On track — you’re around the SAA-C03 pass mark.' : 'Keep studying — aim for ~72%+ across every domain.';
-  $('r-msg').textContent = examTimedOut ? 'Time’s up. ' + base : base;
   const timeNote = examTimed ? (examTimedOut ? ' · ⏱ time expired' : ` · ⏱ finished in ${fmtTime(elapsed)}`) : '';
-  $('r-mastery').textContent = (dom ? `Practice: ${dom.label}` : 'Mock exam') + ` · ${examItems.length} questions` + timeNote;
-  $('r-retry').textContent = dom ? 'Practice again' : 'New exam';
+  if (examKind === 'full') {
+    const scaled = Math.round(100 + (correctCount / examItems.length) * 900); // estimated 100–1000 scaled score
+    const pass = scaled >= 720;
+    $('r-score').textContent = `${scaled} / 1000`;
+    $('r-msg').innerHTML = (pass ? '<span class="pass">✅ PASS</span>' : '<span class="fail">Not yet</span>')
+      + ` — ${pct}% correct (${correctCount}/${examItems.length}). Pass mark is 720` + (examTimedOut ? '. ⏱ Time expired.' : '.');
+    $('r-mastery').textContent = `Full exam simulation · ${examItems.length} questions · estimated scaled score` + (examTimed && !examTimedOut ? ` · ⏱ ${fmtTime(elapsed)}` : '');
+    $('r-retry').textContent = 'New full exam';
+  } else {
+    $('r-score').textContent = `${pct}%  (${correctCount}/${examItems.length})`;
+    const base = ready ? 'On track — you’re around the SAA-C03 pass mark.' : 'Keep studying — aim for ~72%+ across every domain.';
+    $('r-msg').textContent = examTimedOut ? 'Time’s up. ' + base : base;
+    $('r-mastery').textContent = (dom ? `Practice: ${dom.label}` : 'Mock exam') + ` · ${examItems.length} questions` + timeNote;
+    $('r-retry').textContent = dom ? 'Practice again' : 'New exam';
+  }
   const tally = {};
   examItems.forEach((e) => { const k = e.topic.examDomain; (tally[k] = tally[k] || { ok: 0, total: 0 }).total++; if (e.ok) tally[k].ok++; });
   const rows = DOMAINS.filter((d) => tally[d.key]).map((d) => {
@@ -560,8 +600,9 @@ function showExamResults() {
   const revisit = [...new Set(examItems.filter((e) => e.ok === false).map((e) => e.topic.title))].slice(0, 5);
   const tip = revisit.length ? `<div class="exam-tip"><b>Revisit:</b> ${revisit.join(' · ')}</div>` : '';
   // record this attempt, then show a trend of recent attempts of the same scope
-  const scopeKey = examDomain || 'full';
-  recordExam({ t: Date.now(), scopeKey, scopeLabel: dom ? dom.label : 'Mock exam', pct, correct: correctCount, total: examItems.length, timed: examTimed, expired: examTimedOut });
+  const scopeKey = examKind === 'full' ? 'full65' : (examDomain || 'full');
+  const scopeLabel = dom ? dom.label : (examKind === 'full' ? 'Full exam' : 'Mock exam');
+  recordExam({ t: Date.now(), scopeKey, scopeLabel, pct, correct: correctCount, total: examItems.length, timed: examTimed, expired: examTimedOut });
   const hist = examHistory.filter((h) => h.scopeKey === scopeKey);
   let histHtml = '';
   if (hist.length > 1) {
@@ -623,7 +664,7 @@ $('insp-close').onclick = () => $('inspector').classList.add('hidden');
 $('a-submit').onclick = submitAnswer;
 $('a-next').onclick = nextQuestion;
 $('r-back').onclick = openCourseMap;
-$('r-retry').onclick = () => (examMode ? startMockExam(examDomain) : startAssessment());
+$('r-retry').onclick = () => (examKind === 'full' ? startFullExam() : examMode ? startMockExam(examDomain) : startAssessment());
 $('find-map').onclick = openCourseMap;
 $('find-input').oninput = (e) => renderFind(e.target.value);
 $('find-input').onkeydown = (e) => { if (e.key === 'Escape') openCourseMap(); };

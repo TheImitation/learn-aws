@@ -208,6 +208,12 @@ button.primary:hover { filter: brightness(1.06); }
 .rd-w { color: var(--dim); opacity: .7; }
 .rd-practice { margin-top: 13px; width: 100%; font-size: 13px; }
 
+/* full-exam result PASS/FAIL + home button */
+#r-msg .pass { color: #5fd29a; font-weight: 800; }
+#r-msg .fail { color: #e8a657; font-weight: 800; }
+.primary-exam { border-color: rgba(95,210,154,0.5); color: var(--ink); }
+.primary-exam:hover { border-color: #5fd29a; background: rgba(95,210,154,0.10); }
+
 /* find / search screen */
 .find-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
 .find-head h1 { margin-bottom: 4px; }
