@@ -56,6 +56,19 @@ export class PlayerController {
     return this.cc.getPosition().add(new Vector3(0, -CAPSULE_HEIGHT / 2, 0));
   }
 
+  /** World yaw the character is visually facing (front = +Z). */
+  get facingYaw(): number {
+    return this.root.rotation.y;
+  }
+
+  /** Instantly move the character (feet position). */
+  teleport(feet: Vector3) {
+    this.cc.setPosition(feet.add(new Vector3(0, CAPSULE_HEIGHT / 2, 0)));
+    this.cc.setVelocity(Vector3.Zero());
+    this.airborne = false;
+    this.syncVisual(1 / 60);
+  }
+
   update(dt: number, input: InputState, camForward: Vector3, camRight: Vector3) {
     // Camera-relative movement intent → world-space horizontal direction.
     const intent = camRight.scale(input.move.x).add(camForward.scale(input.move.y));

@@ -6,12 +6,15 @@ import {
   PhysicsShapeType,
   Scene,
   StandardMaterial,
+  TransformNode,
   Vector3,
 } from '@babylonjs/core';
 
 export interface TestYard {
   spawn: Vector3;
   crates: Mesh[]; // dynamic bodies, exposed for verification
+  statusBoard: TransformNode; // demo interactables (Phase 2)
+  toolbox: TransformNode;
 }
 
 const mat = (scene: Scene, name: string, hex: string) => {
@@ -98,5 +101,26 @@ export function buildTestYard(scene: Scene): TestYard {
     new PhysicsAggregate(c, PhysicsShapeType.CYLINDER, { mass: 0.8, friction: 0.5 }, scene);
   }
 
-  return { spawn: new Vector3(0, 0.2, -8), crates };
+  // --- demo interactables: a status-board console and a toolbox ---
+  const screenMat = new StandardMaterial('y-screen', scene);
+  screenMat.diffuseColor = Color3.FromHexString('#0d1017');
+  screenMat.emissiveColor = Color3.FromHexString('#2c6e4f');
+
+  const statusBoard = new TransformNode('statusBoard', scene);
+  statusBoard.position.set(2.5, 0, -6.5);
+  const post = MeshBuilder.CreateBox('sb-post', { width: 0.12, height: 1.0, depth: 0.12 }, scene);
+  post.parent = statusBoard; post.position.y = 0.5; post.material = concrete;
+  const screen = MeshBuilder.CreateBox('sb-screen', { width: 0.9, height: 0.6, depth: 0.06 }, scene);
+  screen.parent = statusBoard; screen.position.y = 1.25; screen.rotation.x = -0.18; screen.material = screenMat;
+  new PhysicsAggregate(post, PhysicsShapeType.BOX, { mass: 0 }, scene);
+
+  const toolbox = new TransformNode('toolbox', scene);
+  toolbox.position.set(-2.5, 0, -6);
+  const tbox = MeshBuilder.CreateBox('tb-box', { width: 0.55, height: 0.3, depth: 0.32 }, scene);
+  tbox.parent = toolbox; tbox.position.y = 0.15; tbox.material = accent;
+  const handle = MeshBuilder.CreateBox('tb-handle', { width: 0.3, height: 0.05, depth: 0.06 }, scene);
+  handle.parent = toolbox; handle.position.y = 0.33; handle.material = concrete;
+  new PhysicsAggregate(tbox, PhysicsShapeType.BOX, { mass: 0 }, scene);
+
+  return { spawn: new Vector3(0, 0.2, -8), crates, statusBoard, toolbox };
 }

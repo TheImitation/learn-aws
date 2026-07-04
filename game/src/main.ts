@@ -15,6 +15,9 @@ import { PlayerController } from './player/controller';
 import { ThirdPersonRig } from './camera/thirdPersonRig';
 import { buildTestYard } from './world/testYard';
 import { DebugHud } from './ui/debugHud';
+import { InteractionSystem } from './interact/interactionSystem';
+import { UiShell, esc } from './ui/uiShell';
+import { Journal } from './ui/journal';
 import { COURSE } from '@content';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
@@ -43,20 +46,83 @@ async function boot() {
   const animator = new EngineerAnimator(parts);
   const rig = new ThirdPersonRig(scene, yard.spawn);
   const hud = new DebugHud();
+  const ui = new UiShell();
+  const journal = new Journal();
+  const interaction = new InteractionSystem();
+
+  // --- Phase 2 demo interactables (replaced by real machines in Phase 3) ---
+  interaction.add({
+    id: 'status-board',
+    node: yard.statusBoard,
+    prompt: 'Read status board',
+    onInteract: () => ui.open({
+      id: 'status-board',
+      kicker: 'Terminal',
+      title: 'Yard status',
+      bodyHtml:
+        `<pre>site: TEST-YARD-01        state: <b>NOMINAL</b>\n` +
+        `player systems ..... ok\ncamera rig ......... ok\nhavok world ........ ok</pre>` +
+        `<div>${esc('Every machine in a mission opens a panel like this one — logs, configs, gauges.')}</div>`,
+      actions: [
+        { label: 'Log to journal', onSelect: () => journal.add('Yard status: all systems nominal.') },
+        { label: 'Close' },
+      ],
+    }),
+  });
+  interaction.add({
+    id: 'toolbox',
+    node: yard.toolbox,
+    prompt: 'Open toolbox',
+    onInteract: () => ui.open({
+      id: 'toolbox',
+      kicker: 'Field kit',
+      title: 'Engineer’s toolbox',
+      bodyHtml: `<div>Multimeter, cable tester, spare route cards. ${esc('You never know what a ticket needs.')}</div>`,
+      actions: [
+        { label: 'Take a note', onSelect: () => journal.add('Toolbox checked — kit complete.') },
+        { label: 'Close' },
+      ],
+    }),
+  });
+
+  const pauseSpec = () => ({
+    id: 'pause',
+    kicker: 'Paused',
+    title: 'On-Call — test yard',
+    bodyHtml: '<div>WASD/stick move · Shift/L3 sprint · Space/Ⓐ jump · E/Ⓧ interact · Tab/Ⓨ journal</div>',
+    actions: [
+      { label: 'Resume' },
+      { label: 'Reset position', onSelect: () => player.teleport(yard.spawn) },
+    ],
+  });
 
   let skipObservableTick = false;
   const tick = (dt: number) => {
     input.update(dt);
-    const { forward, right } = rig.basis();
-    player.update(dt, input.state, forward, right);
-    animator.update(dt, player.planarSpeed, player.grounded, player.yawRate);
-    rig.update(dt, input.state.look, player.position);
+    const st = input.state;
+    if (ui.isOpen) {
+      // Panel mode: player frozen, world keeps simulating, UI consumes navigation.
+      ui.handleNav(st);
+      animator.update(dt, 0, true, 0);
+      ui.setPrompt(null);
+    } else {
+      const { forward, right } = rig.basis();
+      player.update(dt, st, forward, right);
+      animator.update(dt, player.planarSpeed, player.grounded, player.yawRate);
+      rig.update(dt, st.look, player.position);
+      interaction.update(player.position, player.facingYaw);
+      if (st.interact) interaction.tryInteract();
+      else if (st.journal) ui.open(journal.panelSpec());
+      else if (st.pause) ui.open(pauseSpec());
+      const f = interaction.focused;
+      ui.setPrompt(f ? { text: f.prompt, device: st.lastDevice } : null);
+    }
     pe._step(Math.min(dt, 1 / 30));
     hud.update({
       fps: engine.getFps(),
-      device: input.state.lastDevice,
+      device: st.lastDevice,
       pad: input.padConnected,
-      speed: player.planarSpeed,
+      speed: ui.isOpen ? 0 : player.planarSpeed,
       grounded: player.grounded,
     });
   };
@@ -90,6 +156,14 @@ async function boot() {
     cam: () => ({ alpha: +rig.camera.alpha.toFixed(3), beta: +rig.camera.beta.toFixed(3), radius: +rig.camera.radius.toFixed(2) }),
     cratePos: (i: number) => { const c = yard.crates[i]; return c ? { x: +c.position.x.toFixed(2), y: +c.position.y.toFixed(2), z: +c.position.z.toFixed(2) } : null; },
     cc: player.cc, // dev-only: introspection while tuning
+    ui: {
+      isOpen: () => ui.isOpen,
+      id: () => ui.currentId,
+      title: () => ui.currentTitle,
+      focusedLabel: () => ui.focusedLabel,
+    },
+    interactFocus: () => interaction.focused?.id ?? null,
+    journalCount: () => journal.notes.length,
   };
 
   engine.runRenderLoop(() => scene.render());

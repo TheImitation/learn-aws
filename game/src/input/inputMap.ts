@@ -17,6 +17,11 @@ export interface InputState {
   interact: boolean; // edge
   journal: boolean; //  edge
   pause: boolean; //    edge
+  // UI navigation (panels): discrete edges from arrows/WASD, d-pad, and left-stick flicks
+  navX: -1 | 0 | 1;
+  navY: -1 | 0 | 1; //  +1 = down
+  confirm: boolean; //  edge: Enter / E / south button
+  back: boolean; //     edge: Esc / east button
   lastDevice: 'kbm' | 'pad';
 }
 
@@ -29,6 +34,10 @@ export interface DebugInput {
   interact?: boolean;
   journal?: boolean;
   pause?: boolean;
+  navX?: -1 | 0 | 1;
+  navY?: -1 | 0 | 1;
+  confirm?: boolean;
+  back?: boolean;
 }
 
 const DEADZONE = 0.15;
@@ -42,22 +51,23 @@ const dz = (v: number) => {
 };
 
 // Per-pad-type input indices (Babylon enums; Generic assumes the standard mapping).
-interface PadMap { lx: number; ly: number; rx: number; ry: number; south: number; west: number; north: number; east: number; l3: number; start: number }
+interface PadMap { lx: number; ly: number; rx: number; ry: number; south: number; west: number; north: number; east: number; l3: number; start: number; du: number; dd: number; dl: number; dr: number }
 const GENERIC_AXIS_BASE = 17; // standard mapping: 17 buttons (0–16), then axes
 const PAD_MAPS: [DeviceType, PadMap][] = [
-  [DeviceType.Xbox, { lx: XboxInput.LStickXAxis, ly: XboxInput.LStickYAxis, rx: XboxInput.RStickXAxis, ry: XboxInput.RStickYAxis, south: XboxInput.A, west: XboxInput.X, north: XboxInput.Y, east: XboxInput.B, l3: XboxInput.LS, start: XboxInput.Start }],
-  [DeviceType.DualShock, { lx: DualShockInput.LStickXAxis, ly: DualShockInput.LStickYAxis, rx: DualShockInput.RStickXAxis, ry: DualShockInput.RStickYAxis, south: DualShockInput.Cross, west: DualShockInput.Square, north: DualShockInput.Triangle, east: DualShockInput.Circle, l3: DualShockInput.L3, start: DualShockInput.Options }],
-  [DeviceType.Switch, { lx: SwitchInput.LStickXAxis, ly: SwitchInput.LStickYAxis, rx: SwitchInput.RStickXAxis, ry: SwitchInput.RStickYAxis, south: SwitchInput.B, west: SwitchInput.Y, north: SwitchInput.X, east: SwitchInput.A, l3: SwitchInput.LS, start: SwitchInput.Plus }],
-  [DeviceType.Generic, { lx: GENERIC_AXIS_BASE, ly: GENERIC_AXIS_BASE + 1, rx: GENERIC_AXIS_BASE + 2, ry: GENERIC_AXIS_BASE + 3, south: 0, west: 2, north: 3, east: 1, l3: 10, start: 9 }],
+  [DeviceType.Xbox, { lx: XboxInput.LStickXAxis, ly: XboxInput.LStickYAxis, rx: XboxInput.RStickXAxis, ry: XboxInput.RStickYAxis, south: XboxInput.A, west: XboxInput.X, north: XboxInput.Y, east: XboxInput.B, l3: XboxInput.LS, start: XboxInput.Start, du: XboxInput.DPadUp, dd: XboxInput.DPadDown, dl: XboxInput.DPadLeft, dr: XboxInput.DPadRight }],
+  [DeviceType.DualShock, { lx: DualShockInput.LStickXAxis, ly: DualShockInput.LStickYAxis, rx: DualShockInput.RStickXAxis, ry: DualShockInput.RStickYAxis, south: DualShockInput.Cross, west: DualShockInput.Square, north: DualShockInput.Triangle, east: DualShockInput.Circle, l3: DualShockInput.L3, start: DualShockInput.Options, du: DualShockInput.DPadUp, dd: DualShockInput.DPadDown, dl: DualShockInput.DPadLeft, dr: DualShockInput.DPadRight }],
+  [DeviceType.Switch, { lx: SwitchInput.LStickXAxis, ly: SwitchInput.LStickYAxis, rx: SwitchInput.RStickXAxis, ry: SwitchInput.RStickYAxis, south: SwitchInput.B, west: SwitchInput.Y, north: SwitchInput.X, east: SwitchInput.A, l3: SwitchInput.LS, start: SwitchInput.Plus, du: SwitchInput.DPadUp, dd: SwitchInput.DPadDown, dl: SwitchInput.DPadLeft, dr: SwitchInput.DPadRight }],
+  [DeviceType.Generic, { lx: GENERIC_AXIS_BASE, ly: GENERIC_AXIS_BASE + 1, rx: GENERIC_AXIS_BASE + 2, ry: GENERIC_AXIS_BASE + 3, south: 0, west: 2, north: 3, east: 1, l3: 10, start: 9, du: 12, dd: 13, dl: 14, dr: 15 }],
 ];
 
 // Keyboard keyCodes.
-const KEY = { W: 87, A: 65, S: 83, D: 68, SHIFT: 16, SPACE: 32, E: 69, TAB: 9 };
+const KEY = { W: 87, A: 65, S: 83, D: 68, SHIFT: 16, SPACE: 32, E: 69, TAB: 9, ENTER: 13, ESC: 27, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 };
 
 export class InputMap {
   readonly state: InputState = {
     move: { x: 0, y: 0 }, look: { x: 0, y: 0 },
     jump: false, sprint: false, interact: false, journal: false, pause: false,
+    navX: 0, navY: 0, confirm: false, back: false,
     lastDevice: 'kbm',
   };
   padConnected = false;
@@ -66,7 +76,8 @@ export class InputMap {
   private canvas: HTMLCanvasElement;
   private mouseDX = 0;
   private mouseDY = 0;
-  private prev = { jump: false, interact: false, journal: false, pause: false };
+  private prev = { jump: false, interact: false, journal: false, pause: false, confirm: false, back: false };
+  private prevNav = { x: 0, y: 0 }; // digital direction (incl. stick flicks) for edge detection
   private debug: DebugInput | null = null;
 
   constructor(engine: Engine, canvas: HTMLCanvasElement) {
@@ -96,6 +107,7 @@ export class InputMap {
     const s = this.state;
     let mx = 0; let my = 0; let lx = 0; let ly = 0;
     let jump = false; let sprint = false; let interact = false; let journal = false; let pause = false;
+    let confirm = false; let back = false; let navLX = 0; let navLY = 0; // digital nav levels
 
     // --- keyboard ---
     const kb = this.dsm.getDeviceSource(DeviceType.Keyboard);
@@ -107,6 +119,11 @@ export class InputMap {
       if (k(KEY.SHIFT)) sprint = true;
       if (k(KEY.E)) interact = true;
       if (k(KEY.TAB)) journal = true;
+      if (k(KEY.ESC)) pause = true;
+      if (k(KEY.ENTER) || k(KEY.E) || k(KEY.SPACE)) confirm = true;
+      if (k(KEY.ESC)) back = true;
+      navLX = (k(KEY.RIGHT) || k(KEY.D) ? 1 : 0) - (k(KEY.LEFT) || k(KEY.A) ? 1 : 0);
+      navLY = (k(KEY.DOWN) || k(KEY.S) ? 1 : 0) - (k(KEY.UP) || k(KEY.W) ? 1 : 0);
       if (mx || my || jump || sprint || interact || journal) s.lastDevice = 'kbm';
     }
 
@@ -128,12 +145,19 @@ export class InputMap {
       if (Math.hypot(plx, ply) > Math.hypot(mx, my)) { mx = plx; my = -ply; } // stick up = forward
       lx += prx * PAD_LOOK_X * dt;
       ly += pry * PAD_LOOK_Y * dt;
-      if (g(map.south) === 1) jump = true;
+      if (g(map.south) === 1) { jump = true; confirm = true; }
       if (g(map.l3) === 1) sprint = true;
       if (g(map.west) === 1) interact = true;
       if (g(map.north) === 1) journal = true;
       if (g(map.start) === 1) pause = true;
-      if (plx || ply || prx || pry || jump || sprint || interact || journal || pause) s.lastDevice = 'pad';
+      if (g(map.east) === 1) back = true;
+      // digital nav: d-pad, or left-stick flicks past a firm threshold
+      const sx = g(map.lx); const sy = g(map.ly);
+      const dnx = (g(map.dr) === 1 || sx > 0.55 ? 1 : 0) - (g(map.dl) === 1 || sx < -0.55 ? 1 : 0);
+      const dny = (g(map.dd) === 1 || sy > 0.55 ? 1 : 0) - (g(map.du) === 1 || sy < -0.55 ? 1 : 0);
+      if (dnx) navLX = dnx;
+      if (dny) navLY = dny;
+      if (plx || ply || prx || pry || jump || sprint || interact || journal || pause || back) s.lastDevice = 'pad';
       break;
     }
 
@@ -151,6 +175,10 @@ export class InputMap {
       if (d.interact !== undefined) interact = d.interact;
       if (d.journal !== undefined) journal = d.journal;
       if (d.pause !== undefined) pause = d.pause;
+      if (d.confirm !== undefined) confirm = d.confirm;
+      if (d.back !== undefined) back = d.back;
+      if (d.navX !== undefined) navLX = d.navX;
+      if (d.navY !== undefined) navLY = d.navY;
     }
 
     // level → edge for one-shot actions
@@ -161,6 +189,12 @@ export class InputMap {
     s.interact = interact && !this.prev.interact;
     s.journal = journal && !this.prev.journal;
     s.pause = pause && !this.prev.pause;
-    this.prev = { jump, interact, journal, pause };
+    s.confirm = confirm && !this.prev.confirm;
+    s.back = back && !this.prev.back;
+    // nav edges: fire on direction change to a non-zero value (no auto-repeat)
+    s.navX = (navLX !== 0 && navLX !== this.prevNav.x ? navLX : 0) as -1 | 0 | 1;
+    s.navY = (navLY !== 0 && navLY !== this.prevNav.y ? navLY : 0) as -1 | 0 | 1;
+    this.prevNav = { x: navLX, y: navLY };
+    this.prev = { jump, interact, journal, pause, confirm, back };
   }
 }
