@@ -18,6 +18,8 @@ import { DebugHud } from './ui/debugHud';
 import { InteractionSystem } from './interact/interactionSystem';
 import { UiShell, esc } from './ui/uiShell';
 import { Journal } from './ui/journal';
+import { FlowSim } from './sim/flowSim';
+import { internetGate, natAirlock, routeBoard, routerArm, serverRack, statusConsole } from './world/kit';
 import { COURSE } from '@content';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
@@ -85,6 +87,61 @@ async function boot() {
     }),
   });
 
+  // --- Phase 3: flow-sim demo corner (the Patch Night skeleton) ---
+  // Private racks emit update parcels → route table decides → NAT airlock → internet gate.
+  const sim = new FlowSim(scene);
+  let routeMissing = true; // THE fault: private route table has no 0.0.0.0/0 → NAT entry
+  const rackA = serverRack(scene, new Vector3(-6, 0, 18), Math.PI / 2);
+  const rackB = serverRack(scene, new Vector3(-6, 0, 21), Math.PI / 2);
+  const board = routeBoard(scene, new Vector3(-1, 0, 19.5), Math.PI / 2);
+  const nat = natAirlock(scene, new Vector3(3.5, 0, 19.5), Math.PI / 2);
+  const igw = internetGate(scene, new Vector3(8, 0, 19.5), Math.PI / 2);
+  const alb = routerArm(scene, new Vector3(8, 0, 24));
+  const console3 = statusConsole(scene, new Vector3(-1, 0, 15), Math.PI);
+  const kitUpdaters = [rackA, rackB, igw, alb].map((m) => m.update).filter(Boolean) as ((dt: number) => void)[];
+
+  sim.addNode({ id: 'rackA', anchor: rackA.anchor, next: () => 'board' });
+  sim.addNode({ id: 'rackB', anchor: rackB.anchor, next: () => 'board' });
+  sim.addNode({ id: 'board', anchor: board.anchor, next: () => (routeMissing ? 'drop' : 'nat') });
+  sim.addNode({ id: 'nat', anchor: nat.anchor, next: () => 'igw' });
+  sim.addNode({ id: 'igw', anchor: igw.anchor, next: () => 'deliver' });
+
+  const applyFaultVisuals = () => {
+    board.setSlot(0, true); board.setSlot(1, true); board.setSlot(2, !routeMissing);
+    board.setLamp?.(routeMissing ? 'bad' : 'ok');
+    rackA.setLamp?.(routeMissing ? 'bad' : 'ok');
+    rackB.setLamp?.(routeMissing ? 'bad' : 'ok');
+    nat.setLamp?.('ok');
+  };
+  applyFaultVisuals();
+  sim.onOutcome = (o) => { if (o === 'drop') console3.setLamp?.('bad'); };
+
+  const runTrafficTest = (n = 5) => {
+    console3.setLamp?.('off');
+    sim.trafficTest(['rackA', 'rackB'], n);
+  };
+  interaction.add({
+    id: 'traffic-console',
+    node: console3.root,
+    prompt: 'Open traffic console',
+    onInteract: () => {
+      const r = sim.trafficReport;
+      const line = r.total === 0 ? 'No test run yet.'
+        : `last test: ${r.delivered}/${r.total} delivered · ${r.dropped} dropped · ${r.pass === null ? 'running…' : r.pass ? 'PASS' : 'FAIL'}`;
+      ui.open({
+        id: 'traffic-console',
+        kicker: 'Traffic console',
+        title: 'Egress test — private subnet',
+        bodyHtml: `<pre>${esc(line)}\nroute 0.0.0.0/0 → nat: ${routeMissing ? '<b>MISSING</b>' : 'present'}</pre>`,
+        actions: [
+          { label: 'Run traffic test (5 parcels)', onSelect: () => runTrafficTest(5) },
+          { label: routeMissing ? 'Dev: add the missing route' : 'Dev: remove the route', onSelect: () => { routeMissing = !routeMissing; applyFaultVisuals(); } },
+          { label: 'Close' },
+        ],
+      });
+    },
+  });
+
   const pauseSpec = () => ({
     id: 'pause',
     kicker: 'Paused',
@@ -117,6 +174,8 @@ async function boot() {
       const f = interaction.focused;
       ui.setPrompt(f ? { text: f.prompt, device: st.lastDevice } : null);
     }
+    sim.update(dt);
+    for (const u of kitUpdaters) u(dt);
     pe._step(Math.min(dt, 1 / 30));
     hud.update({
       fps: engine.getFps(),
@@ -164,6 +223,13 @@ async function boot() {
     },
     interactFocus: () => interaction.focused?.id ?? null,
     journalCount: () => journal.notes.length,
+    sim: {
+      report: () => sim.trafficReport,
+      active: () => sim.activeTokens,
+      run: (n: number) => runTrafficTest(n),
+      setFault: (b: boolean) => { routeMissing = b; applyFaultVisuals(); },
+      getFault: () => routeMissing,
+    },
   };
 
   engine.runRenderLoop(() => scene.render());
