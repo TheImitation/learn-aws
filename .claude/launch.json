@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["serve.py"],
       "port": 8080
+    },
+    {
+      "name": "game",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "game"],
+      "port": 5173
     }
   ]
 }

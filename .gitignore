@@ -54,6 +54,11 @@ crashlytics-build.properties
 # ---- Stray nested Unity project (accidental duplicate; safe to delete from disk) ----
 /Learn-aws/
 
+# ---- Node / game (Vite) ----
+node_modules/
+game/dist/
+*.local
+
 # ---- OS ----
 .DS_Store
 .DS_Store?
