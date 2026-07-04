@@ -19,6 +19,7 @@ export interface Token {
   outcome: Outcome | null;
   fade: number;
   phase: number;
+  meta: Record<string, boolean>; // breadcrumbs set by nodes (e.g. viaNat) for path-dependent routing
 }
 
 export interface TrafficReport {
@@ -83,7 +84,7 @@ export class FlowSim {
     const t: Token = {
       id: this.nextId++, kind, mesh,
       logical: node.anchor.clone(),
-      at: atId, target: null, outcome: null, fade: 0, phase: Math.random() * 6.28,
+      at: atId, target: null, outcome: null, fade: 0, phase: Math.random() * 6.28, meta: {},
     };
     this.tokens.push(t);
     this.route(t);

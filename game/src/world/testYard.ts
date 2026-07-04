@@ -122,5 +122,5 @@ export function buildTestYard(scene: Scene): TestYard {
   handle.parent = toolbox; handle.position.y = 0.33; handle.material = concrete;
   new PhysicsAggregate(tbox, PhysicsShapeType.BOX, { mass: 0 }, scene);
 
-  return { spawn: new Vector3(0, 0.2, -8), crates, statusBoard, toolbox };
+  return { spawn: new Vector3(0, 0.2, 6), crates, statusBoard, toolbox }; // spawn faces the mission corner
 }
