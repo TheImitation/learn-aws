@@ -142,6 +142,24 @@ export function routerArm(scene: Scene, at: Vector3): Machine {
   };
 }
 
+/** The NOC job-board kiosk: a wide bright board where tickets are taken. */
+export function jobBoardKiosk(scene: Scene, at: Vector3, yaw = 0): Machine {
+  const root = new TransformNode('jobBoard', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const legs = solid(scene, 'jb-legs', '#565d6e');
+  for (const dx of [-0.8, 0.8]) {
+    const leg = MeshBuilder.CreateBox('jb-leg', { width: 0.14, height: 1.35, depth: 0.14 }, scene);
+    leg.parent = root; leg.position.set(dx, 0.675, 0); leg.material = legs;
+    new PhysicsAggregate(leg, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  }
+  const panel = MeshBuilder.CreateBox('jb-panel', { width: 2.1, height: 1.15, depth: 0.08 }, scene);
+  panel.parent = root; panel.position.y = 1.75; panel.material = glow(scene, 'jb-g', '#1d4030');
+  const header = MeshBuilder.CreateBox('jb-head', { width: 2.1, height: 0.16, depth: 0.09 }, scene);
+  header.parent = root; header.position.y = 2.42; header.material = glow(scene, 'jb-h', '#5fd29a');
+  const setLamp = lamp(scene, root, new Vector3(1.15, 2.42, 0));
+  return { root, anchor: at.add(new Vector3(0, 1.5, 0)), setLamp };
+}
+
 /** A big status board with a lamp — the traffic-test console. */
 export function statusConsole(scene: Scene, at: Vector3, yaw = 0): Machine {
   const root = new TransformNode('statusConsole', scene);

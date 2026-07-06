@@ -39,7 +39,7 @@ export class PatchNightMission {
   private sawTestRunning = false;
   private lastFailNote = '';
 
-  constructor(deps: MissionDeps, topic: Topic) {
+  constructor(deps: MissionDeps, topic: Topic, opts: { autoBrief?: boolean } = {}) {
     this.d = deps;
     this.topic = topic;
     this.quiz = new QuizTerminal(deps.ui);
@@ -47,7 +47,7 @@ export class PatchNightMission {
     this.wireSim();
     this.wireInteractables();
     this.applyLamps();
-    this.openBriefing();
+    if (opts.autoBrief ?? true) this.openBriefing();
   }
 
   // ---------------------------------------------------------------- level
@@ -101,7 +101,7 @@ export class PatchNightMission {
   }
 
   // -------------------------------------------------------------- briefing
-  private openBriefing() {
+  openBriefing() {
     this.d.objective.set('Ticket', 'Read the SEV-2 briefing');
     this.d.ui.open({
       id: 'briefing',

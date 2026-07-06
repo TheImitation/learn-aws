@@ -141,6 +141,7 @@ export class UiShell {
   private setFocus(i: number) {
     this.focusIdx = i;
     this.buttons.forEach((b, k) => b.classList.toggle('focus', k === i));
+    this.buttons[i]?.scrollIntoView({ block: 'nearest' }); // long lists (job board domains)
   }
 
   private activate(i: number) {

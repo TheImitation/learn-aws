@@ -19,9 +19,12 @@ import { InteractionSystem } from './interact/interactionSystem';
 import { UiShell, esc } from './ui/uiShell';
 import { Journal } from './ui/journal';
 import { FlowSim } from './sim/flowSim';
-import { routerArm } from './world/kit';
+import { jobBoardKiosk, routerArm } from './world/kit';
 import { ObjectiveBanner } from './ui/objective';
 import { PatchNightMission } from './missions/patchNight';
+import { JobBoard } from './ui/jobBoard';
+import { QuizTerminal } from './ui/quizTerminal';
+import { readiness, recommended, isLocked, unlockedLevel } from './content/meta';
 import { COURSE } from '@content';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
@@ -89,12 +92,32 @@ async function boot() {
     }),
   });
 
-  // --- Phase 4: the vertical-slice mission (topic: private-egress-nat) ---
+  // --- Phase 4/5: the vertical-slice mission + the NOC hub ---
   const sim = new FlowSim(scene);
   const objective = new ObjectiveBanner();
   const alb = routerArm(scene, new Vector3(8, 0, 24)); // decorative neighbour for now
   const topic = COURSE.topics.find((t) => t.id === 'private-egress-nat')!;
-  const mission = new PatchNightMission({ scene, sim, ui, journal, interaction, objective }, topic);
+  const mission = new PatchNightMission({ scene, sim, ui, journal, interaction, objective }, topic, { autoBrief: false });
+  objective.set('NOC', 'Take a ticket at the job board');
+
+  const quizTerminal = new QuizTerminal(ui);
+  const board = new JobBoard(ui, journal, quizTerminal, COURSE.topics, {
+    'private-egress-nat': {
+      topicId: 'private-egress-nat',
+      inProgress: () => mission.step !== 'briefing' && mission.step !== 'done',
+      done: () => mission.step === 'done',
+      start: () => mission.openBriefing(),
+      statusLine: () => mission.step,
+    },
+  });
+  const kiosk = jobBoardKiosk(scene, new Vector3(3, 0, 8.5), Math.PI);
+  kiosk.setLamp?.('ok');
+  interaction.add({
+    id: 'job-board',
+    node: kiosk.root,
+    prompt: 'Open job board',
+    onInteract: () => board.open(),
+  });
 
   const pauseSpec = () => ({
     id: 'pause',
@@ -189,6 +212,13 @@ async function boot() {
       objective: () => objective.text,
       quiz: () => topic.quiz, // dev-only: lets scripted E2E answer correctly
     },
+    board: {
+      readiness: () => readiness(COURSE.topics),
+      recommended: () => recommended(COURSE.topics)?.id ?? null,
+      unlockedLevel: (domainKey: string) => unlockedLevel(COURSE.topics, domainKey),
+      isLocked: (id: string) => { const t = COURSE.topics.find((x) => x.id === id); return t ? isLocked(COURSE.topics, t) : null; },
+    },
+    topicQuiz: (id: string) => COURSE.topics.find((t) => t.id === id)?.quiz ?? null,
   };
 
   engine.runRenderLoop(() => scene.render());
