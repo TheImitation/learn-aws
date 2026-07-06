@@ -67,6 +67,15 @@ export class FlowSim {
   get activeTokens() { return this.tokens.length; }
   get trafficReport(): TrafficReport { return { ...this.report }; }
 
+  /** Tear down the whole graph and any in-flight tokens (called between missions). */
+  clear() {
+    for (const t of this.tokens) t.mesh.dispose();
+    this.tokens = [];
+    this.queue = [];
+    this.nodes.clear();
+    this.report = { running: false, total: 0, resolved: 0, delivered: 0, dropped: 0, pass: null };
+  }
+
   /** Launch a scored test: n tokens spawned round-robin from the given sources. */
   trafficTest(fromIds: string[], n: number, spacing = 0.45) {
     this.report = { running: true, total: n, resolved: 0, delivered: 0, dropped: 0, pass: null };

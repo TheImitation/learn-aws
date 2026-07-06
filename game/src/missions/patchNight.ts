@@ -1,22 +1,10 @@
-import { Scene, Vector3 } from '@babylonjs/core';
+import { Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import { recordProgress } from '../core/progress';
-import { InteractionSystem } from '../interact/interactionSystem';
-import { FlowSim } from '../sim/flowSim';
 import { internetGate, natAirlock, routeBoard, serverRack, statusConsole } from '../world/kit';
-import { Journal } from '../ui/journal';
-import { ObjectiveBanner } from '../ui/objective';
 import { QuizTerminal } from '../ui/quizTerminal';
-import { esc, UiShell } from '../ui/uiShell';
-
-export interface MissionDeps {
-  scene: Scene;
-  sim: FlowSim;
-  ui: UiShell;
-  journal: Journal;
-  interaction: InteractionSystem;
-  objective: ObjectiveBanner;
-}
+import { esc } from '../ui/uiShell';
+import type { MissionDeps } from './manager';
 
 export type MissionStep = 'briefing' | 'investigate' | 'fix' | 'verify' | 'signoff' | 'done';
 type RouteChoice = 'nat' | 'igw' | 'vgw' | 'localnat' | null;
@@ -36,10 +24,11 @@ export class PatchNightMission {
   private quiz: QuizTerminal;
   private updaters: ((dt: number) => void)[] = [];
   private machines!: ReturnType<PatchNightMission['buildLevel']>;
+  private interactableIds: string[] = [];
   private sawTestRunning = false;
   private lastFailNote = '';
 
-  constructor(deps: MissionDeps, topic: Topic, opts: { autoBrief?: boolean } = {}) {
+  constructor(deps: MissionDeps, topic: Topic) {
     this.d = deps;
     this.topic = topic;
     this.quiz = new QuizTerminal(deps.ui);
@@ -47,18 +36,23 @@ export class PatchNightMission {
     this.wireSim();
     this.wireInteractables();
     this.applyLamps();
-    if (opts.autoBrief ?? true) this.openBriefing();
+  }
+
+  dispose() {
+    for (const id of this.interactableIds) this.d.interaction.remove(id);
+    for (const m of Object.values(this.machines)) m.root.dispose();
   }
 
   // ---------------------------------------------------------------- level
   private buildLevel() {
     const s = this.d.scene;
-    const rackA = serverRack(s, new Vector3(-6, 0, 18), Math.PI / 2);
-    const rackB = serverRack(s, new Vector3(-6, 0, 21), Math.PI / 2);
-    const board = routeBoard(s, new Vector3(-1, 0, 19.5), Math.PI / 2);
-    const nat = natAirlock(s, new Vector3(3.5, 0, 19.5), Math.PI / 2);
-    const igw = internetGate(s, new Vector3(8, 0, 19.5), Math.PI / 2);
-    const term = statusConsole(s, new Vector3(-1, 0, 15), Math.PI);
+    const o = this.d.origin;
+    const rackA = serverRack(s, o.add(new Vector3(-6, 0, 3)), Math.PI / 2);
+    const rackB = serverRack(s, o.add(new Vector3(-6, 0, 6)), Math.PI / 2);
+    const board = routeBoard(s, o.add(new Vector3(-1, 0, 4.5)), Math.PI / 2);
+    const nat = natAirlock(s, o.add(new Vector3(3.5, 0, 4.5)), Math.PI / 2);
+    const igw = internetGate(s, o.add(new Vector3(8, 0, 4.5)), Math.PI / 2);
+    const term = statusConsole(s, o.add(new Vector3(-1, 0, 0)), Math.PI);
     for (const m of [rackA, rackB, igw]) if (m.update) this.updaters.push(m.update);
     return { rackA, rackB, board, nat, igw, term };
   }
@@ -92,12 +86,13 @@ export class PatchNightMission {
   private wireInteractables() {
     const { interaction } = this.d;
     const m = this.machines;
-    interaction.add({ id: 'probe-rack', node: m.rackA.root, prompt: 'Inspect app rack', onInteract: () => this.probeRack() });
-    interaction.add({ id: 'probe-rack-b', node: m.rackB.root, prompt: 'Inspect app rack', onInteract: () => this.probeRack() });
-    interaction.add({ id: 'route-board', node: m.board.root, prompt: 'Inspect route table', onInteract: () => this.openBoard() });
-    interaction.add({ id: 'probe-nat', node: m.nat.root, prompt: 'Inspect NAT gateway', onInteract: () => this.probeNat() });
-    interaction.add({ id: 'probe-igw', node: m.igw.root, prompt: 'Inspect internet gateway', onInteract: () => this.probeIgw() });
-    interaction.add({ id: 'field-terminal', node: m.term.root, prompt: 'Open field terminal', onInteract: () => this.openTerminal() });
+    const add = (spec: Parameters<typeof interaction.add>[0]) => { this.interactableIds.push(spec.id); interaction.add(spec); };
+    add({ id: 'probe-rack', node: m.rackA.root, prompt: 'Inspect app rack', onInteract: () => this.probeRack() });
+    add({ id: 'probe-rack-b', node: m.rackB.root, prompt: 'Inspect app rack', onInteract: () => this.probeRack() });
+    add({ id: 'route-board', node: m.board.root, prompt: 'Inspect route table', onInteract: () => this.openBoard() });
+    add({ id: 'probe-nat', node: m.nat.root, prompt: 'Inspect NAT gateway', onInteract: () => this.probeNat() });
+    add({ id: 'probe-igw', node: m.igw.root, prompt: 'Inspect internet gateway', onInteract: () => this.probeIgw() });
+    add({ id: 'field-terminal', node: m.term.root, prompt: 'Open field terminal', onInteract: () => this.openTerminal() });
   }
 
   // -------------------------------------------------------------- briefing
@@ -309,7 +304,10 @@ export class PatchNightMission {
           kicker: 'INC-4021 · resolved',
           title: `🎉 Ticket closed — ${pct}%`,
           bodyHtml: `<div>${esc(`Mastery: ${rec.mastery} · best ${rec.best}%. Patches are flowing through the NAT. The fleet stays private.`)}</div>`,
-          actions: [{ label: 'Done' }],
+          actions: [
+            { label: '↩ Return to NOC', onSelect: () => this.d.onReturn() },
+            { label: 'Stay on site' },
+          ],
         });
       } else {
         this.d.ui.open({

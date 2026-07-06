@@ -19,9 +19,11 @@ import { InteractionSystem } from './interact/interactionSystem';
 import { UiShell, esc } from './ui/uiShell';
 import { Journal } from './ui/journal';
 import { FlowSim } from './sim/flowSim';
-import { jobBoardKiosk, routerArm } from './world/kit';
+import { jobBoardKiosk } from './world/kit';
 import { ObjectiveBanner } from './ui/objective';
 import { PatchNightMission } from './missions/patchNight';
+import { CheckoutDownMission } from './missions/checkoutDown';
+import { MissionManager } from './missions/manager';
 import { JobBoard } from './ui/jobBoard';
 import { QuizTerminal } from './ui/quizTerminal';
 import { readiness, recommended, isLocked, unlockedLevel } from './content/meta';
@@ -92,23 +94,31 @@ async function boot() {
     }),
   });
 
-  // --- Phase 4/5: the vertical-slice mission + the NOC hub ---
+  // --- Phase 5/6: the NOC hub + the mission site (manager-owned) ---
   const sim = new FlowSim(scene);
   const objective = new ObjectiveBanner();
-  const alb = routerArm(scene, new Vector3(8, 0, 24)); // decorative neighbour for now
-  const topic = COURSE.topics.find((t) => t.id === 'private-egress-nat')!;
-  const mission = new PatchNightMission({ scene, sim, ui, journal, interaction, objective }, topic, { autoBrief: false });
   objective.set('NOC', 'Take a ticket at the job board');
 
+  const manager = new MissionManager(
+    { scene, sim, ui, journal, interaction, objective },
+    COURSE.topics,
+    (feet) => player.teleport(feet),
+    yard.spawn.clone(),
+  );
+  manager.register('private-egress-nat', (deps, topic) => new PatchNightMission(deps, topic));
+  manager.register('ha-web-app', (deps, topic) => new CheckoutDownMission(deps, topic));
+
+  const missionHook = (id: string) => ({
+    topicId: id,
+    inProgress: () => manager.currentId === id && manager.step !== 'briefing' && manager.step !== 'done',
+    done: () => manager.currentId === id && manager.step === 'done',
+    start: () => manager.start(id),
+    statusLine: () => manager.step ?? '',
+  });
   const quizTerminal = new QuizTerminal(ui);
   const board = new JobBoard(ui, journal, quizTerminal, COURSE.topics, {
-    'private-egress-nat': {
-      topicId: 'private-egress-nat',
-      inProgress: () => mission.step !== 'briefing' && mission.step !== 'done',
-      done: () => mission.step === 'done',
-      start: () => mission.openBriefing(),
-      statusLine: () => mission.step,
-    },
+    'private-egress-nat': missionHook('private-egress-nat'),
+    'ha-web-app': missionHook('ha-web-app'),
   });
   const kiosk = jobBoardKiosk(scene, new Vector3(3, 0, 8.5), Math.PI);
   kiosk.setLamp?.('ok');
@@ -152,8 +162,7 @@ async function boot() {
       ui.setPrompt(f ? { text: f.prompt, device: st.lastDevice } : null);
     }
     sim.update(dt);
-    mission.update(dt);
-    alb.update?.(dt);
+    manager.update(dt);
     pe._step(Math.min(dt, 1 / 30));
     hud.update({
       fps: engine.getFps(),
@@ -206,11 +215,11 @@ async function boot() {
       active: () => sim.activeTokens,
     },
     mission: {
-      step: () => mission.step,
-      probes: () => mission.probes.size,
-      routeChoice: () => mission.routeChoice,
+      id: () => manager.currentId,
+      step: () => manager.step,
       objective: () => objective.text,
-      quiz: () => topic.quiz, // dev-only: lets scripted E2E answer correctly
+      origin: { x: manager.origin.x, y: manager.origin.y, z: manager.origin.z },
+      start: (id: string) => manager.start(id),
     },
     board: {
       readiness: () => readiness(COURSE.topics),

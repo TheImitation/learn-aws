@@ -142,6 +142,69 @@ export function routerArm(scene: Scene, at: Vector3): Machine {
   };
 }
 
+/** A database as a stacked-cylinder tower with a status lamp. */
+export function dbTower(scene: Scene, at: Vector3): Machine {
+  const root = new TransformNode('db', scene);
+  root.position.copyFrom(at);
+  const m = solid(scene, 'db-m', '#4b3f68');
+  for (let i = 0; i < 3; i++) {
+    const disc = MeshBuilder.CreateCylinder('db-d', { diameter: 1.0, height: 0.42, tessellation: 18 }, scene);
+    disc.parent = root; disc.position.y = 0.25 + i * 0.5; disc.material = m;
+    if (i === 0) new PhysicsAggregate(disc, PhysicsShapeType.CYLINDER, { mass: 0 }, scene);
+  }
+  const setLamp = lamp(scene, root, new Vector3(0, 1.75, 0));
+  return { root, anchor: at.add(new Vector3(0, 1.0, 0)), setLamp };
+}
+
+/** The chaos-drill lever: pull it to fail an Availability Zone. */
+export function chaosLever(scene: Scene, at: Vector3, yaw = 0): Machine & { setPulled: (p: boolean) => void } {
+  const root = new TransformNode('chaos', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const base = MeshBuilder.CreateBox('ch-base', { width: 0.6, height: 0.5, depth: 0.45 }, scene);
+  base.parent = root; base.position.y = 0.25; base.material = solid(scene, 'ch-b', '#5a2330');
+  new PhysicsAggregate(base, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  const arm = MeshBuilder.CreateBox('ch-arm', { width: 0.08, height: 0.7, depth: 0.08 }, scene);
+  arm.parent = root; arm.position.y = 0.75; arm.rotation.x = -0.55;
+  arm.material = solid(scene, 'ch-a', '#c8cdd8');
+  const knob = MeshBuilder.CreateSphere('ch-k', { diameter: 0.18, segments: 8 }, scene);
+  knob.parent = arm; knob.position.y = 0.35; knob.material = glow(scene, 'ch-k', '#e85f5f');
+  const setLamp = lamp(scene, root, new Vector3(0.36, 0.62, 0));
+  return {
+    root, anchor: at.add(new Vector3(0, 0.8, 0)), setLamp,
+    setPulled: (p) => { arm.rotation.x = p ? 0.55 : -0.55; },
+  };
+}
+
+/** An Availability-Zone floor plate; recolors when the AZ is failed. */
+export function azPlate(scene: Scene, at: Vector3, w: number, d: number, label: 'A' | 'B'): { root: TransformNode; setState: (s: 'ok' | 'dead') => void } {
+  const root = new TransformNode('az' + label, scene);
+  root.position.copyFrom(at);
+  const m = new StandardMaterial('az-m' + label, scene);
+  const OK = label === 'A' ? '#27405c' : '#2b4c3a';
+  m.diffuseColor = Color3.FromHexString(OK);
+  m.specularColor = Color3.Black();
+  m.alpha = 0.85;
+  const plate = MeshBuilder.CreateBox('az-p', { width: w, height: 0.06, depth: d }, scene);
+  plate.parent = root; plate.position.y = 0.03; plate.material = m;
+  return { root, setState: (s) => m.diffuseColor.copyFrom(Color3.FromHexString(s === 'ok' ? OK : '#5c2727')) };
+}
+
+/** Where the users come from: a warm arch spilling request-bots. */
+export function crowdGate(scene: Scene, at: Vector3, yaw = 0): Machine {
+  const root = new TransformNode('crowd', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const frame = solid(scene, 'cg-f', '#565d6e');
+  for (const dx of [-0.7, 0.7]) {
+    const col = MeshBuilder.CreateBox('cg-c', { width: 0.16, height: 1.9, depth: 0.16 }, scene);
+    col.parent = root; col.position.set(dx, 0.95, 0); col.material = frame;
+    new PhysicsAggregate(col, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  }
+  const lintel = MeshBuilder.CreateBox('cg-l', { width: 1.7, height: 0.16, depth: 0.16 }, scene);
+  lintel.parent = root; lintel.position.y = 1.95; lintel.material = glow(scene, 'cg-g', '#e8c257');
+  const setLamp = lamp(scene, root, new Vector3(0, 2.14, 0));
+  return { root, anchor: at.add(new Vector3(0, 1.1, 0)), setLamp };
+}
+
 /** The NOC job-board kiosk: a wide bright board where tickets are taken. */
 export function jobBoardKiosk(scene: Scene, at: Vector3, yaw = 0): Machine {
   const root = new TransformNode('jobBoard', scene);
