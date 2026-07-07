@@ -242,6 +242,34 @@ export function conveyor(scene: Scene, start: Vector3, length: number): Machine 
   };
 }
 
+/** A badge-controlled door: frame + sliding panel + lamp. The mission slides the
+ *  panel (openness 0..1) when a credential is accepted; denied tokens bounce. */
+export function badgeDoor(scene: Scene, at: Vector3, yaw: number, accentHex: string): Machine & {
+  setOpenness: (k: number) => void;
+} {
+  const root = new TransformNode('badgeDoor', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const frame = solid(scene, 'bd-f', '#565d6e');
+  for (const dx of [-0.75, 0.75]) {
+    const col = MeshBuilder.CreateBox('bd-c', { width: 0.2, height: 2.0, depth: 0.24 }, scene);
+    col.parent = root; col.position.set(dx, 1.0, 0); col.material = frame;
+    new PhysicsAggregate(col, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  }
+  const lintel = MeshBuilder.CreateBox('bd-l', { width: 1.7, height: 0.2, depth: 0.24 }, scene);
+  lintel.parent = root; lintel.position.y = 2.1; lintel.material = frame;
+  const accent = MeshBuilder.CreateBox('bd-a', { width: 1.7, height: 0.06, depth: 0.26 }, scene);
+  accent.parent = root; accent.position.y = 2.24; accent.material = glow(scene, 'bd-g', accentHex);
+  const panel = MeshBuilder.CreateBox('bd-p', { width: 1.3, height: 1.9, depth: 0.08 }, scene);
+  panel.parent = root; panel.position.y = 0.95; panel.material = solid(scene, 'bd-pm', '#2b3040');
+  const setLamp = lamp(scene, root, new Vector3(0.9, 1.55, 0));
+  return {
+    root,
+    anchor: at.add(new Vector3(0, 1.1, 0)),
+    setLamp,
+    setOpenness: (k) => { panel.position.y = 0.95 + k * 1.75; }, // slides up into the lintel
+  };
+}
+
 /** The dead-letter bin: an open-top container poison parcels get tossed into. */
 export function dlqBin(scene: Scene, at: Vector3): Machine {
   const root = new TransformNode('dlq', scene);

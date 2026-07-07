@@ -38,6 +38,7 @@ const BOB = 0.05;
  *  each node decides the next hop — mission faults live inside those decisions. */
 export class FlowSim {
   onOutcome?: (o: Outcome) => void;
+  onTokenResolved?: (t: Token, o: Outcome) => void; // per-token hook (missions score custom tests by kind)
 
   private scene: Scene;
   private nodes = new Map<string, SimNodeSpec>();
@@ -167,5 +168,6 @@ export class FlowSim {
       }
     }
     this.onOutcome?.(outcome);
+    this.onTokenResolved?.(t, outcome);
   }
 }
