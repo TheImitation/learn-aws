@@ -205,6 +205,62 @@ export function crowdGate(scene: Scene, at: Vector3, yaw = 0): Machine {
   return { root, anchor: at.add(new Vector3(0, 1.1, 0)), setLamp };
 }
 
+/** A physical conveyor belt (axis +X, no yaw): parcels ride it as real Havok bodies.
+ *  Returns the spawn point, the belt AABB for the drive force, and the end X. */
+export function conveyor(scene: Scene, start: Vector3, length: number): Machine & {
+  spawnPoint: Vector3;
+  belt: { minX: number; maxX: number; z: number; halfZ: number; topY: number };
+} {
+  const root = new TransformNode('conveyor', scene);
+  root.position.copyFrom(start);
+  const frame = solid(scene, 'cv-f', '#565d6e');
+  const beltM = solid(scene, 'cv-b', '#2b3040');
+  const railM = solid(scene, 'cv-r', '#3d4456');
+
+  const topY = 0.55;
+  const belt = MeshBuilder.CreateBox('cv-belt', { width: length, height: 0.12, depth: 1.15 }, scene);
+  belt.parent = root; belt.position.set(length / 2, topY - 0.06, 0); belt.material = beltM;
+  new PhysicsAggregate(belt, PhysicsShapeType.BOX, { mass: 0, friction: 0.05 }, scene);
+  for (const dz of [-0.66, 0.66]) {
+    const rail = MeshBuilder.CreateBox('cv-rail', { width: length, height: 0.3, depth: 0.08 }, scene);
+    rail.parent = root; rail.position.set(length / 2, topY + 0.12, dz); rail.material = railM;
+    new PhysicsAggregate(rail, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  }
+  // end stop: parcels queue against it
+  const stop = MeshBuilder.CreateBox('cv-stop', { width: 0.08, height: 0.34, depth: 1.15 }, scene);
+  stop.parent = root; stop.position.set(length + 0.06, topY + 0.14, 0); stop.material = railM;
+  new PhysicsAggregate(stop, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  for (let x = 0.4; x < length; x += 2.6) {
+    const leg = MeshBuilder.CreateBox('cv-leg', { width: 0.14, height: topY - 0.12, depth: 0.9 }, scene);
+    leg.parent = root; leg.position.set(x, (topY - 0.12) / 2, 0); leg.material = frame;
+  }
+  return {
+    root,
+    anchor: start.add(new Vector3(length / 2, 1.0, 0)),
+    spawnPoint: start.add(new Vector3(0.35, topY + 0.65, 0)),
+    belt: { minX: start.x - 0.3, maxX: start.x + length + 0.3, z: start.z, halfZ: 0.75, topY: start.y + topY },
+  };
+}
+
+/** The dead-letter bin: an open-top container poison parcels get tossed into. */
+export function dlqBin(scene: Scene, at: Vector3): Machine {
+  const root = new TransformNode('dlq', scene);
+  root.position.copyFrom(at);
+  const m = solid(scene, 'dlq-m', '#6e3b3b');
+  const mkWall = (w: number, d: number, x: number, z: number) => {
+    const wall = MeshBuilder.CreateBox('dlq-w', { width: w, height: 0.8, depth: d }, scene);
+    wall.parent = root; wall.position.set(x, 0.4, z); wall.material = m;
+    new PhysicsAggregate(wall, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  };
+  const floor = MeshBuilder.CreateBox('dlq-f', { width: 1.3, height: 0.08, depth: 1.3 }, scene);
+  floor.parent = root; floor.position.y = 0.04; floor.material = m;
+  new PhysicsAggregate(floor, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  mkWall(1.3, 0.08, 0, -0.65); mkWall(1.3, 0.08, 0, 0.65);
+  mkWall(0.08, 1.3, -0.65, 0); mkWall(0.08, 1.3, 0.65, 0);
+  const setLamp = lamp(scene, root, new Vector3(0, 1.05, 0.65));
+  return { root, anchor: at.add(new Vector3(0, 0.8, 0)), setLamp };
+}
+
 /** The NOC job-board kiosk: a wide bright board where tickets are taken. */
 export function jobBoardKiosk(scene: Scene, at: Vector3, yaw = 0): Machine {
   const root = new TransformNode('jobBoard', scene);
