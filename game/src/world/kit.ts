@@ -270,6 +270,28 @@ export function shelfUnit(scene: Scene, at: Vector3, yaw: number, accentHex: str
   return { root, anchor: at.add(new Vector3(0, 1.2, 0)), setLamp };
 }
 
+/** An in-memory cache node: compact bright unit on a stand — RAM-fast, glowing hot.
+ *  `dim` renders the standby-replica variant (cooler strip, no pulse). */
+export function cacheNode(scene: Scene, at: Vector3, yaw = 0, dim = false): Machine {
+  const root = new TransformNode('cache', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const stand = MeshBuilder.CreateBox('ca-s', { width: 0.7, height: 0.5, depth: 0.7 }, scene);
+  stand.parent = root; stand.position.y = 0.25; stand.material = solid(scene, 'ca-sm', '#2a2e3a');
+  new PhysicsAggregate(stand, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  const body = MeshBuilder.CreateBox('ca-b', { width: 0.62, height: 0.55, depth: 0.62 }, scene);
+  body.parent = root; body.position.y = 0.78; body.material = solid(scene, 'ca-bm', '#3b2f4d');
+  const strip = MeshBuilder.CreateBox('ca-g', { width: 0.66, height: 0.1, depth: 0.66 }, scene);
+  strip.parent = root; strip.position.y = 0.78;
+  const gm = glow(scene, 'ca-gm', dim ? '#6e5a8a' : '#e857b1');
+  strip.material = gm;
+  const setLamp = lamp(scene, root, new Vector3(0, 1.18, 0));
+  let t = Math.random() * 10;
+  return {
+    root, anchor: at.add(new Vector3(0, 0.95, 0)), setLamp,
+    update: dim ? undefined : (dt) => { t += dt; gm.emissiveColor.r = 0.75 + Math.sin(t * 11) * 0.16; },
+  };
+}
+
 /** A badge-controlled door: frame + sliding panel + lamp. The mission slides the
  *  panel (openness 0..1) when a credential is accepted; denied tokens bounce. */
 export function badgeDoor(scene: Scene, at: Vector3, yaw: number, accentHex: string): Machine & {
