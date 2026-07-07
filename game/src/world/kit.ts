@@ -242,6 +242,34 @@ export function conveyor(scene: Scene, start: Vector3, length: number): Machine 
   };
 }
 
+/** A storage shelf unit: uprights, three shelf boards, a few stored crates, and an
+ *  accent strip. `dark` styles it as the deep vault. */
+export function shelfUnit(scene: Scene, at: Vector3, yaw: number, accentHex: string, dark = false): Machine {
+  const root = new TransformNode('shelf', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const frame = solid(scene, 'sh-f', dark ? '#20242e' : '#565d6e');
+  const boardM = solid(scene, 'sh-b', dark ? '#191c24' : '#3d4456');
+  const crateM = solid(scene, 'sh-c', dark ? '#2b2431' : '#7a6242');
+  for (const dx of [-1.1, 1.1]) {
+    const up = MeshBuilder.CreateBox('sh-u', { width: 0.12, height: 2.1, depth: 0.7 }, scene);
+    up.parent = root; up.position.set(dx, 1.05, 0); up.material = frame;
+    new PhysicsAggregate(up, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  }
+  for (let i = 0; i < 3; i++) {
+    const board = MeshBuilder.CreateBox('sh-s', { width: 2.3, height: 0.06, depth: 0.7 }, scene);
+    board.parent = root; board.position.y = 0.45 + i * 0.65; board.material = boardM;
+  }
+  // a few stored crates
+  for (const [dx, dy] of [[-0.7, 0], [0.15, 0], [0.75, 0], [-0.3, 1], [0.5, 1], [0.1, 2]] as const) {
+    const c = MeshBuilder.CreateBox('sh-crate', { size: 0.42 }, scene);
+    c.parent = root; c.position.set(dx, 0.72 + dy * 0.65, 0); c.material = crateM;
+  }
+  const strip = MeshBuilder.CreateBox('sh-a', { width: 2.3, height: 0.07, depth: 0.72 }, scene);
+  strip.parent = root; strip.position.y = 2.16; strip.material = glow(scene, 'sh-g', accentHex);
+  const setLamp = lamp(scene, root, new Vector3(1.25, 2.2, 0));
+  return { root, anchor: at.add(new Vector3(0, 1.2, 0)), setLamp };
+}
+
 /** A badge-controlled door: frame + sliding panel + lamp. The mission slides the
  *  panel (openness 0..1) when a credential is accepted; denied tokens bounce. */
 export function badgeDoor(scene: Scene, at: Vector3, yaw: number, accentHex: string): Machine & {

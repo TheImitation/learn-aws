@@ -25,6 +25,7 @@ import { PatchNightMission } from './missions/patchNight';
 import { CheckoutDownMission } from './missions/checkoutDown';
 import { OrdersVanishingMission } from './missions/ordersVanishing';
 import { LeakedKeyMission } from './missions/leakedKey';
+import { StorageBillMission } from './missions/storageBill';
 import { MissionManager } from './missions/manager';
 import { JobBoard } from './ui/jobBoard';
 import { QuizTerminal } from './ui/quizTerminal';
@@ -111,6 +112,7 @@ async function boot() {
   manager.register('ha-web-app', (deps, topic) => new CheckoutDownMission(deps, topic));
   manager.register('decouple-with-queue-sqs', (deps, topic) => new OrdersVanishingMission(deps, topic));
   manager.register('secure-access-iam', (deps, topic) => new LeakedKeyMission(deps, topic));
+  manager.register('right-storage-class', (deps, topic) => new StorageBillMission(deps, topic));
 
   const missionHook = (id: string) => ({
     topicId: id,
@@ -125,6 +127,7 @@ async function boot() {
     'ha-web-app': missionHook('ha-web-app'),
     'decouple-with-queue-sqs': missionHook('decouple-with-queue-sqs'),
     'secure-access-iam': missionHook('secure-access-iam'),
+    'right-storage-class': missionHook('right-storage-class'),
   });
   const kiosk = jobBoardKiosk(scene, new Vector3(3, 0, 8.5), Math.PI);
   kiosk.setLamp?.('ok');
