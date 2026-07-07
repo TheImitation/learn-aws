@@ -90,7 +90,13 @@ export abstract class MissionBase {
   dispose() {
     for (const id of this.interactableIds) this.d.interaction.remove(id);
     for (const m of this.ownedMachines) m.root.dispose();
+    this.d.alarm.clear();
     this.onDispose?.();
+  }
+
+  /** Dev/e2e state snapshot; subclasses extend with their own fields. */
+  e2e(): Record<string, unknown> {
+    return { step: this.step, probes: [...this.probes] };
   }
 
   // ------------------------------------------------------------------ briefing

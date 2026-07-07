@@ -1,46 +1,66 @@
-import { Color3, MeshBuilder, StandardMaterial, TransformNode, Vector3 } from '@babylonjs/core';
+import { Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
-import { cacheNode, crowdGate, dbTower, routeBoard, serverRack, statusConsole, type Machine } from '../world/kit';
+import {
+  aimPointer, crowdGate, dbTower, moduleBox, serverRack, socketRing, statusConsole,
+  strobeBeacon, supplyPallet, type CarryModule,
+} from '../world/kit';
+import type { Carryable } from '../interact/carry';
+import { Socket } from '../interact/sockets';
 import { esc } from '../ui/uiShell';
 import { MissionBase, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
 import type { MissionStep } from './patchNight';
 
-type Prov = 'none' | 'replicas' | 'memcached' | 'redis';
 type Beat = 'load' | 'drill';
 
 const SLA = 50; // p99 ms
-// Flash-sale outcome per provisioning choice: p99 latency, primary CPU, added monthly cost.
-const METRICS: Record<Prov, { p99: number; cpu: number; cost: number; note: string }> = {
-  none: { p99: 220, cpu: 97, cost: 0, note: 'every read goes to the database' },
-  replicas: { p99: 88, cpu: 54, cost: 310, note: 'reads spread across replicas — each one still disk-bound' },
-  memcached: { p99: 6, cpu: 21, cost: 38, note: 'hot set served from memory (cache-aside)' },
-  redis: { p99: 7, cpu: 22, cost: 76, note: 'hot set from memory · replica standing by' },
-};
 const BEATS: { id: Beat; label: string }[] = [
   { id: 'load', label: 'flash-sale load test' },
   { id: 'drill', label: 'failover drill (kill the cache node)' },
 ];
 
-/** Flagship 6 (High-Performing): SEV-2 "Flash-Sale Meltdown" — 90% of reads hit ~40 hot
- *  SKUs straight on the DB; p99 blows the 50 ms SLA. Fix: ElastiCache in front (cache-aside).
- *  Traps: read replicas spread load but stay disk-bound (SLA still missed, priciest option);
- *  Memcached passes the load test and then loses everything in the failover drill —
- *  replication + automatic failover is Redis territory. */
+interface ModuleDef {
+  id: string;
+  kind: string;
+  label: string;
+  spot: [number, number]; // pallet slot (origin-relative x,z)
+  visual: Parameters<typeof moduleBox>[2];
+}
+
+const MODULES: ModuleDef[] = [
+  { id: 'mod-mem', kind: 'cache-mem', label: 'Memcached node', spot: [-7.3, -3.15], visual: { hex: '#2e6e80', glowHex: '#57c7e3' } },
+  { id: 'mod-redis', kind: 'cache-redis', label: 'Redis primary', spot: [-6.5, -3.15], visual: { hex: '#8a3030', glowHex: '#ff8080' } },
+  { id: 'mod-redis-rep', kind: 'cache-redis-rep', label: 'Redis standby replica', spot: [-5.7, -3.15], visual: { hex: '#5e2a2a', glowHex: '#c96a6a' } },
+  { id: 'mod-rep1', kind: 'replica', label: 'Postgres read replica', spot: [-7.1, -4.05], visual: { hex: '#4b3f68', glowHex: '#8f7ae6', cyl: true, w: 0.6, h: 0.62 } },
+  { id: 'mod-rep2', kind: 'replica', label: 'Postgres read replica', spot: [-6.2, -4.05], visual: { hex: '#4b3f68', glowHex: '#8f7ae6', cyl: true, w: 0.6, h: 0.62 } },
+  { id: 'mod-bypass', kind: 'bypass', label: 'Debug bypass kit', spot: [-5.3, -4.05], visual: { hex: '#8a7a22', glowHex: '#e8d657', h: 0.34 } },
+];
+
+/** Flagship 6 (High-Performing), tangible edition: the fix is PHYSICAL. Carry
+ *  modules from the delivery pallet, socket them (wrong bays refuse, the insecure
+ *  bypass kit trips the security klaxon), and swing the read-path pointer so the
+ *  app actually asks the cache (cache-aside is application-side). Traps: read
+ *  replicas stay disk-bound; Memcached passes load and dies in the failover
+ *  drill; a lone Redis primary without its standby dies the same way. */
 export class FlashSaleMission extends MissionBase {
-  private provision: Prov = 'none';
-  private beatsPassed = new Set<Beat>();
+  private aimedAt: 'db' | 'cache' = 'db';
   private primaryDead = false;
+  private beatsPassed = new Set<Beat>();
   private test: { beat: Beat; total: number; resolved: number } | null = null;
-  private prov: Machine[] = [];
+  private lastP99: string = '—';
+  private modules = new Map<string, Carryable>();
+  private bay!: Socket;
+  private standby!: Socket;
+  private pens: Socket[] = [];
   private m!: {
     gate: ReturnType<typeof crowdGate>;
     api: ReturnType<typeof serverRack>;
     db: ReturnType<typeof dbTower>;
-    bay: TransformNode;
-    board: ReturnType<typeof routeBoard>;
+    pointer: ReturnType<typeof aimPointer>;
     term: ReturnType<typeof statusConsole>;
   };
+  private angDb = 0;
+  private angCache = 0;
 
   constructor(deps: MissionDeps, topic: Topic) {
     super(deps, topic);
@@ -50,27 +70,51 @@ export class FlashSaleMission extends MissionBase {
     this.applyLamps();
   }
 
-  protected onUpdate(dt: number) { for (const p of this.prov) p.update?.(dt); }
+  protected onUpdate(dt: number) {
+    this.bay.update(dt);
+    this.standby.update(dt);
+    for (const p of this.pens) p.update(dt);
+  }
+
   protected onDispose() {
-    this.clearProvision();
+    // if the engineer walks off site still holding a module, take it back
+    const held = this.d.carry.held;
+    if (held && this.modules.has(held.id)) this.d.carry.release();
     this.d.sim.onTokenResolved = undefined;
+  }
+
+  e2e() {
+    const mods: Record<string, { x: number; z: number; socketed: boolean }> = {};
+    for (const [id, c] of this.modules) {
+      const p = c.root.getAbsolutePosition();
+      mods[id] = { x: +p.x.toFixed(2), z: +p.z.toFixed(2), socketed: this.isSocketed(id) };
+    }
+    return {
+      ...super.e2e(),
+      aimedAt: this.aimedAt,
+      bay: this.bay.occupant?.kind ?? null,
+      standby: this.standby.occupant !== null,
+      replicas: this.pens.filter((p) => p.occupant).length,
+      primaryDead: this.primaryDead,
+      mods,
+    };
   }
 
   protected ticket(): TicketInfo {
     return {
       incident: 'INC-7031', reporter: 'storefront', sev: 'SEV-2', title: 'Flash-Sale Meltdown',
       bodyHtml:
-        `<div>${esc('Tonight’s flash sale starts at 20:00 and the catalog is already on its knees: a handful of sale items drives almost every read, each one straight into the RDS primary. Marketing will not move the sale; the DBA will not approve a data-model change.')}</div>` +
+        `<div>${esc('Tonight’s flash sale starts at 20:00 and the catalog is already on its knees: a handful of sale items drives almost every read, each one straight into the RDS primary. Marketing will not move the sale; the DBA will not approve a data-model change. Procurement dropped a pallet of equipment on site.')}</div>` +
         `<pre>p99 read latency .... 220 ms   (SLA: ${SLA} ms)\ndb primary CPU ...... 97%\ntraffic ............. 90% of reads → ~40 SKUs\nconstraint .......... same data model, tight budget</pre>`,
-      hint: 'Probe the machines, diagnose at the field terminal, provision at the board. The load test AND the failover drill must both pass.',
+      hint: 'Probe the machines, diagnose at the field terminal, then get your hands dirty: carry modules to sockets and aim the read path. Load test AND failover drill must pass.',
     };
   }
 
   protected objectiveFor(step: MissionStep): [string, string] {
     const next = BEATS.find((b) => !this.beatsPassed.has(b.id));
     switch (step) {
-      case 'investigate': return ['Investigate', `Probe the site (${this.probes.size}/4) · diagnose at the field terminal`];
-      case 'fix': return ['Fix', 'Provision the fix at the board'];
+      case 'investigate': return ['Investigate', `Probe the site (${Math.min(this.probes.size, 4)}/4) · diagnose at the field terminal`];
+      case 'fix': return ['Fix', 'Carry a module from the pallet to a socket · aim the read path'];
       case 'verify': return ['Verify', next ? `Run the ${next.label} at the field terminal` : 'All tests passed'];
       case 'signoff': return ['Sign-off', 'Close the ticket at the field terminal (quiz)'];
       case 'done': return ['Resolved', 'INC-7031 closed — hot reads served from memory.'];
@@ -79,7 +123,7 @@ export class FlashSaleMission extends MissionBase {
   }
 
   protected summaryText(): string {
-    return 'Symptom: a small hot set of repeated reads hammered the RDS primary (p99 220 ms vs 50 ms SLA). Fix: ElastiCache for Redis in front of the DB, cache-aside — miss reads the DB once and populates, repeats come from memory. p99 6–7 ms, primary CPU 97→22%, and the replicated cache survived the node-kill drill via automatic failover (Memcached would have lost the whole hot set).';
+    return 'Symptom: a small hot set of repeated reads hammered the RDS primary (p99 220 ms vs 50 ms SLA). Fix: ElastiCache for Redis with a standby replica in front of the DB, read path aimed at the cache (cache-aside is application-side) — miss reads the DB once and populates, repeats come from memory. p99 7 ms, primary CPU 97→22%, and the node-kill drill failed over automatically. Memcached or a lone primary loses the whole hot set instead.';
   }
 
   // ------------------------------------------------------------------ level
@@ -90,51 +134,133 @@ export class FlashSaleMission extends MissionBase {
       gate: this.own(crowdGate(s, o.add(new Vector3(-8, 0, 0)), Math.PI / 2)),
       api: this.own(serverRack(s, o.add(new Vector3(-3, 0, 0)), Math.PI / 2)),
       db: this.own(dbTower(s, o.add(new Vector3(3, 0, 1.8)))),
-      bay: this.buildBay(o.add(new Vector3(3, 0, -2.2))),
-      board: this.own(routeBoard(s, o.add(new Vector3(-3, 0, -6.5)), 0)),
+      pointer: this.own(aimPointer(s, o.add(new Vector3(0, 0, -0.6)))),
       term: this.own(statusConsole(s, o.add(new Vector3(-7, 0, -6.5)), Math.PI)),
+    };
+    this.own(supplyPallet(s, o.add(new Vector3(-6.5, 0, -3.6))));
+
+    // pointer target angles (front = +Z yaw convention)
+    const px = 0, pz = -0.6;
+    this.angDb = Math.atan2(3 - px, 1.8 - pz);
+    this.angCache = Math.atan2(3 - px, -2.2 - pz);
+    this.m.pointer.setAngle(this.angDb);
+
+    // alarm strobes on two corners
+    for (const [bx, bz] of [[-8.5, 6.5], [8.5, -6.5]] as const) {
+      const b = strobeBeacon(s, o.add(new Vector3(bx, 0, bz)));
+      this.ownNode(b.root);
+      this.d.alarm.bindBeacon(b.setLevel);
+    }
+
+    // sockets: cache bay, standby bay, replica pen ×2 (interactable at the ring)
+    const mkSocket = (id: string, label: string, at: Vector3, accepts: Socket['spec']['accepts']) => {
+      const ring = socketRing(s, at);
+      this.ownNode(ring.root);
+      const socket = new Socket({ id, label, at, ring, accepts, onChange: () => this.onLayoutChange() });
+      this.reg({
+        id, node: ring.root, radius: 1.9,
+        prompt: () => {
+          const held = this.d.carry.held;
+          if (held && this.modules.has(held.id)) return `Plug ${held.label} into the ${label}`;
+          if (socket.occupant) return `Take out ${socket.occupant.label}`;
+          return `Inspect ${label}`;
+        },
+        onInteract: () => this.socketInteract(socket),
+      });
+      return socket;
+    };
+    this.bay = mkSocket('so-bay', 'cache bay', o.add(new Vector3(3, 0, -2.2)), (k) => this.acceptsBay(k));
+    this.standby = mkSocket('so-standby', 'standby bay', o.add(new Vector3(4.6, 0, -3.2)), (k) => this.acceptsStandby(k));
+    this.pens = [
+      mkSocket('so-pen1', 'replica pen', o.add(new Vector3(5.1, 0, 0.7)), (k) => this.acceptsPen(k)),
+      mkSocket('so-pen2', 'replica pen', o.add(new Vector3(5.1, 0, 2.9)), (k) => this.acceptsPen(k)),
+    ];
+
+    // the pallet cargo: carryable modules with real bodies
+    for (const def of MODULES) {
+      const mod: CarryModule = moduleBox(s, o.add(new Vector3(def.spot[0], 0.24, def.spot[1])), def.visual);
+      this.own(mod);
+      this.modules.set(def.id, {
+        id: def.id, kind: def.kind, label: def.label,
+        root: mod.root, halfHeight: mod.halfHeight,
+        killBody: mod.killBody, makeBody: mod.makeBody,
+      });
+    }
+  }
+
+  // ------------------------------------------------------------ socket rules
+  private acceptsBay(kind: string) {
+    if (kind === 'cache-mem' || kind === 'cache-redis') return { ok: true as const };
+    if (kind === 'cache-redis-rep') return { ok: false as const, reason: 'That’s the standby replica — the PRIMARY goes here. The standby has its own bay behind.' };
+    if (kind === 'replica') return { ok: false as const, reason: 'That’s a disk-bound Postgres engine. This bay feeds a MEMORY module — it would just be a slower, weirder database.' };
+    return {
+      ok: false as const,
+      reason: 'BLOCKED: the debug bypass would expose the database port to the public internet. Fast, and fired-by-Friday insecure.',
+      alarm: 'SECURITY — PUBLIC PORT EXPOSURE ATTEMPT',
     };
   }
 
-  /** The empty expansion bay: a marked plinth with power + network stubbed in. */
-  private buildBay(at: Vector3): TransformNode {
-    const s = this.d.scene;
-    const root = new TransformNode('bay', s);
-    root.position.copyFrom(at);
-    const padM = new StandardMaterial('bay-pm', s);
-    padM.diffuseColor = Color3.FromHexString('#262b38');
-    padM.specularColor = new Color3(0.05, 0.05, 0.05);
-    const edgeM = new StandardMaterial('bay-em', s);
-    edgeM.emissiveColor = Color3.FromHexString('#3f77c2');
-    edgeM.diffuseColor = Color3.Black();
-    const pad = MeshBuilder.CreateBox('bay-p', { width: 1.6, height: 0.1, depth: 1.6 }, s);
-    pad.parent = root; pad.position.y = 0.05; pad.material = padM;
-    const edge = MeshBuilder.CreateBox('bay-e', { width: 1.72, height: 0.04, depth: 1.72 }, s);
-    edge.parent = root; edge.position.y = 0.02; edge.material = edgeM;
-    this.ownNode(root);
-    return root;
+  private acceptsStandby(kind: string) {
+    if (kind === 'cache-redis-rep') {
+      if (this.bay.occupant?.kind !== 'cache-redis') return { ok: false as const, reason: 'A standby FOLLOWS a Redis primary — socket the primary in the cache bay first.' };
+      return { ok: true as const };
+    }
+    if (kind === 'cache-mem') return { ok: false as const, reason: 'Memcached has no replication — there is no standby for it. That’s the whole point (and the whole problem).' };
+    if (kind === 'cache-redis') return { ok: false as const, reason: 'That’s the primary — it belongs in the main cache bay.' };
+    if (kind === 'replica') return { ok: false as const, reason: 'Postgres replicas live in the replica pen by the database.' };
+    return {
+      ok: false as const,
+      reason: 'BLOCKED: the debug bypass would expose the database port to the public internet.',
+      alarm: 'SECURITY — PUBLIC PORT EXPOSURE ATTEMPT',
+    };
   }
 
+  private acceptsPen(kind: string) {
+    if (kind === 'replica') return { ok: true as const };
+    if (kind.startsWith('cache-')) return { ok: false as const, reason: 'Memory modules don’t speak Postgres replication — the pen is for database read replicas.' };
+    return {
+      ok: false as const,
+      reason: 'BLOCKED: the debug bypass would expose the database port to the public internet.',
+      alarm: 'SECURITY — PUBLIC PORT EXPOSURE ATTEMPT',
+    };
+  }
+
+  /** Any physical change (plug/unplug/aim) invalidates test results. */
+  private onLayoutChange() {
+    this.primaryDead = false;
+    if (this.beatsPassed.size) this.d.toast.show('Layout changed — test results reset.', 'info', 2);
+    this.beatsPassed.clear();
+    if (this.step === 'fix') this.step = 'verify';
+    this.applyLamps();
+    this.refreshObjective();
+  }
+
+  private state() {
+    return {
+      cacheKind: this.bay.occupant?.kind ?? null,
+      standby: this.standby.occupant !== null,
+      replicas: this.pens.filter((p) => p.occupant).length,
+    };
+  }
+
+  // -------------------------------------------------------------------- sim
   private wireSim() {
     const { sim } = this.d;
     const o = this.d.origin;
-    const cacheUp = () => (this.provision === 'memcached' || this.provision === 'redis') && !this.primaryDead;
     sim.addNode({ id: 'gate', anchor: this.m.gate.anchor, next: () => 'api' });
     sim.addNode({
       id: 'api', anchor: this.m.api.anchor,
       next: (t) => {
-        if (this.provision === 'redis' && this.primaryDead) return 'rep'; // automatic failover
-        if (!cacheUp()) return 'dbm';
-        return t.id % 5 === 0 ? 'dbm' : 'cache'; // ~20% miss theater: miss → DB once, then cached
+        if (this.aimedAt !== 'cache') return 'dbm';
+        const s = this.state();
+        if (!s.cacheKind) return 'cache'; // aimed at an empty bay: tokens die at the socket
+        if (this.primaryDead) return s.standby && s.cacheKind === 'cache-redis' ? 'rep' : 'dbm';
+        return t.id % 5 === 0 ? 'dbm' : 'cache'; // ~20% miss theater — miss reads DB once, then populates
       },
     });
-    sim.addNode({ id: 'cache', anchor: o.add(new Vector3(3, 0.95, -2.2)), next: () => 'deliver' });
-    sim.addNode({ id: 'rep', anchor: o.add(new Vector3(4.4, 0.95, -3.1)), next: () => 'deliver' });
-    // the herd: with the (unreplicated) cache dead mid-drill, reads time out at the saturated primary
-    sim.addNode({
-      id: 'dbm', anchor: this.m.db.anchor,
-      next: () => (this.test?.beat === 'drill' && this.primaryDead && this.provision === 'memcached' ? 'drop' : 'deliver'),
-    });
+    sim.addNode({ id: 'cache', anchor: o.add(new Vector3(3, 0.95, -2.2)), next: () => (this.bay.occupant && !this.primaryDead ? 'deliver' : 'drop') });
+    sim.addNode({ id: 'rep', anchor: o.add(new Vector3(4.6, 0.95, -3.2)), next: () => (this.standby.occupant ? 'deliver' : 'drop') });
+    sim.addNode({ id: 'dbm', anchor: this.m.db.anchor, next: () => (this.test?.beat === 'drill' && this.primaryDead ? 'drop' : 'deliver') });
     sim.onTokenResolved = () => {
       const t = this.test;
       if (!t) return;
@@ -147,46 +273,13 @@ export class FlashSaleMission extends MissionBase {
     };
   }
 
-  // ------------------------------------------------------------ provisioning
-  private clearProvision() {
-    for (const p of this.prov) p.root.dispose();
-    this.prov = [];
-  }
-
-  private applyProvision() {
-    this.clearProvision();
-    this.primaryDead = false;
-    const s = this.d.scene;
-    const o = this.d.origin;
-    if (this.provision === 'replicas') {
-      for (const dz of [-1.4, 1.4]) {
-        const r = dbTower(s, o.add(new Vector3(4.8, 0, 1.8 + dz)));
-        r.setLamp?.('ok');
-        this.prov.push(r);
-      }
-    } else if (this.provision === 'memcached') {
-      const c = cacheNode(s, o.add(new Vector3(3, 0, -2.2)));
-      c.setLamp?.('ok');
-      this.prov.push(c);
-    } else if (this.provision === 'redis') {
-      const p = cacheNode(s, o.add(new Vector3(3, 0, -2.2)));
-      const r = cacheNode(s, o.add(new Vector3(4.4, 0, -3.1)), 0, true);
-      p.setLamp?.('ok'); r.setLamp?.('ok');
-      this.prov.push(p, r);
-    }
-    this.applyLamps();
-  }
-
   private applyLamps() {
     const good = this.step === 'signoff' || this.step === 'done';
     this.m.gate.setLamp?.(good ? 'ok' : 'off');
     this.m.api.setLamp?.('ok');
     this.m.db.setLamp?.(good || this.beatsPassed.has('load') ? 'ok' : 'bad');
     this.m.term.setLamp?.(good ? 'ok' : 'off');
-    this.m.board.setLamp?.(good ? 'ok' : this.provision === 'none' ? 'bad' : 'ok');
-    this.m.board.setSlot(0, this.provision === 'memcached' || this.provision === 'redis'); // cache in front
-    this.m.board.setSlot(1, this.provision === 'redis'); //                                   replicated / failover
-    this.m.board.setSlot(2, this.provision === 'replicas'); //                                DB read replicas
+    this.m.pointer.setLamp?.(this.aimedAt === 'cache' ? 'ok' : 'off');
   }
 
   // ------------------------------------------------------------ interactables
@@ -195,9 +288,108 @@ export class FlashSaleMission extends MissionBase {
     this.reg({ id: 'fs-gate', node: m.gate.root, prompt: 'Inspect the shoppers', onInteract: () => this.probeGate() });
     this.reg({ id: 'fs-api', node: m.api.root, prompt: 'Inspect catalog-api', onInteract: () => this.probeApi() });
     this.reg({ id: 'fs-db', node: m.db.root, prompt: 'Inspect catalog-db', onInteract: () => this.probeDb() });
-    this.reg({ id: 'fs-bay', node: m.bay, prompt: 'Inspect expansion bay', onInteract: () => this.probeBay() });
-    this.reg({ id: 'fs-board', node: m.board.root, prompt: 'Provisioning board', onInteract: () => this.openBoard() });
     this.reg({ id: 'fs-term', node: m.term.root, prompt: 'Open field terminal', onInteract: () => this.openTerminal() });
+    this.reg({
+      id: 'fs-aim', node: m.pointer.root, radius: 1.9,
+      prompt: () => (this.step === 'fix' || this.step === 'verify' ? 'Grab the read-path pointer' : 'Inspect read-path pointer'),
+      onInteract: () => this.onPointer(),
+    });
+
+    // carryable modules (pickable once the diagnosis is in)
+    for (const c of this.modules.values()) {
+      this.reg({
+        id: c.id, node: c.root, radius: 1.8,
+        prompt: `Pick up ${c.label}`,
+        enabled: () => (this.step === 'fix' || this.step === 'verify') && !this.d.carry.held && !this.isSocketed(c.id),
+        onInteract: () => { this.d.carry.pickup(c); this.d.toast.show(`${c.label} — heavy. Find it a socket.`, 'info', 2.2); },
+      });
+    }
+  }
+
+  private isSocketed(id: string) {
+    return this.bay.occupant?.id === id || this.standby.occupant?.id === id || this.pens.some((p) => p.occupant?.id === id);
+  }
+
+  // ---------------------------------------------------------------- pointer
+  private onPointer() {
+    if (this.step !== 'fix' && this.step !== 'verify') {
+      this.probed('aim', 'Read-path pointer: hard-aimed at catalog-db. The app never asks anything else — cache-aside is the APP’s decision.');
+      this.d.ui.open({
+        id: 'fs-probe-aim', kicker: 'Read path', title: 'app → catalog-db',
+        bodyHtml: `<div>${esc('The catalog app’s read path is a physical pointer here, and it aims straight at the database. Whatever gets provisioned, the APP decides what it asks first — caching is not magic interception.')}</div>`,
+        actions: [{ label: 'Close' }],
+      });
+      return;
+    }
+    let ang = this.m.pointer.getAngle();
+    this.d.grab.begin({
+      prompt: '◀ ▶ aim the read path · E/Ⓧ lock',
+      step: (dt, mx) => {
+        ang = Math.min(2.6, Math.max(0.3, ang + mx * 1.7 * dt));
+        this.m.pointer.setAngle(ang);
+      },
+      release: () => this.lockAim(ang),
+    });
+  }
+
+  private lockAim(ang: number) {
+    const targets: { id: 'db' | 'cache'; at: number; label: string }[] = [
+      { id: 'db', at: this.angDb, label: 'catalog-db' },
+      { id: 'cache', at: this.angCache, label: 'the cache bay' },
+    ];
+    let best: (typeof targets)[number] | null = null;
+    for (const t of targets) if (Math.abs(ang - t.at) < 0.3 && (!best || Math.abs(ang - t.at) < Math.abs(ang - best.at))) best = t;
+    if (!best) {
+      this.m.pointer.setAngle(this.aimedAt === 'db' ? this.angDb : this.angCache);
+      this.d.toast.show('Not lined up with anything — read path unchanged.', 'bad', 2.4);
+      return;
+    }
+    this.m.pointer.setAngle(best.at);
+    if (best.id !== this.aimedAt) {
+      this.aimedAt = best.id;
+      this.d.journal.add(`Read path re-aimed: app → ${best.label}.`);
+      this.onLayoutChange();
+    }
+    this.d.toast.show(`Read path locked → ${best.label}.`, 'ok', 2.2);
+  }
+
+  // ---------------------------------------------------------------- sockets
+  private socketInteract(so: Socket) {
+    const held = this.d.carry.held;
+    if (held) {
+      if (!this.modules.has(held.id)) return;
+      const v = so.canPlug(held.kind);
+      if (v.ok) {
+        const c = this.d.carry.release()!;
+        so.put(c);
+        this.d.toast.show(`${c.label} seated — ${so.spec.label} online.`, 'ok', 2.4);
+        this.d.journal.add(`Socketed: ${c.label} → ${so.spec.label}.`);
+      } else {
+        this.d.toast.show(v.reason, 'bad', 3.4);
+        if (v.alarm) {
+          this.d.alarm.raise(v.alarm, 5);
+          this.d.journal.add(`SECURITY ALARM: tried to socket the ${held.label} — public port exposure blocked.`);
+        }
+      }
+      return;
+    }
+    if (so.occupant) {
+      const c = so.takeOut()!;
+      this.d.carry.take(c);
+      this.d.toast.show(`${c.label} removed from the ${so.spec.label}.`, 'info', 2);
+      return;
+    }
+    this.d.ui.open({
+      id: `${so.spec.id}-info`, kicker: 'Socket', title: so.spec.label,
+      bodyHtml: `<div>${esc(this.socketBlurb(so))}</div>`,
+      actions: [{ label: 'Close' }],
+    });
+  }
+
+  private socketBlurb(so: Socket) {
+    if (so === this.bay) return 'The cache bay: memory modules only. Whatever sits here answers the hot set at RAM speed — IF the read path actually asks it.';
+    if (so === this.standby) return 'The standby bay: a Redis replica keeps a live copy of the primary’s memory. When the primary dies, this one is promoted automatically.';
+    return 'The replica pen: rack Postgres read replicas here to spread read load across more disk-bound engines.';
   }
 
   // ---------------------------------------------------------------- probes
@@ -228,57 +420,16 @@ export class FlashSaleMission extends MissionBase {
     });
   }
 
-  private probeBay() {
-    this.probed('bay', 'Expansion bay: power + network stubbed in next to the DB — room for one module.');
-    this.d.ui.open({
-      id: 'fs-probe-bay', kicker: 'Expansion bay', title: 'Empty slot, live feeds',
-      bodyHtml: `<div>${esc('A prepared pad beside the database: power, network, service discovery — waiting for whatever module you provision at the board.')}</div>`,
-      actions: [{ label: 'Close' }],
-    });
-  }
-
-  // ------------------------------------------------------------------ board
-  private openBoard() {
-    if (this.step !== 'fix' && this.step !== 'verify') {
-      this.probed('board', 'Provisioning board: nothing provisioned — every read rides straight to the primary.');
-      this.d.ui.open({
-        id: 'fs-board-probe', kicker: 'Provisioning', title: 'Nothing provisioned',
-        bodyHtml: `<div>${esc('The read path is app → database, full stop. Diagnose at the field terminal first.')}</div>`,
-        actions: [{ label: 'Close' }],
-      });
-      return;
-    }
-    const pick = (p: Prov, label: string, journal: string) => ({
-      label,
-      onSelect: () => {
-        this.provision = p;
-        this.beatsPassed.clear();
-        if (this.step === 'fix') this.step = 'verify';
-        this.d.journal.add(journal);
-        this.applyProvision();
-        this.refreshObjective();
-      },
-    });
-    this.d.ui.open({
-      id: 'fs-board', kicker: 'Provisioning', title: 'Choose the fix',
-      bodyHtml: `<div>${esc('One module in the bay (or scale the DB itself). The load test must hold the 50 ms SLA — and the failover drill kills a node while the sale runs.')}</div>`,
-      actions: [
-        pick('replicas', 'Provision 2× RDS read replicas (scale the database out for reads)',
-          'Provisioned: 2× read replicas — read traffic spread across three disk-bound instances.'),
-        pick('memcached', 'Install ElastiCache — Memcached (simplest, cheapest cache)',
-          'Provisioned: Memcached — cache-aside: miss reads the DB once and populates; repeats hit memory. No replication.'),
-        pick('redis', 'Install ElastiCache — Redis, replicated with automatic failover',
-          'Provisioned: Redis (replicated) — cache-aside + a standby replica; failover is automatic.'),
-        pick('none', 'Leave as-is (ride out the sale)', 'Provisioned: nothing. Brave.'),
-        { label: 'Cancel' },
-      ],
-    });
-  }
-
   // --------------------------------------------------------- field terminal
   private openTerminal() {
-    const c = METRICS[this.provision];
+    const s = this.state();
     const beatsLine = BEATS.map((b) => `${this.beatsPassed.has(b.id) ? '✓' : '·'} ${b.label}`).join('\n');
+    const layout =
+      `read path ......... app → ${this.aimedAt === 'cache' ? 'cache bay' : 'catalog-db'}\n` +
+      `cache bay ......... ${this.bay.occupant?.label ?? 'EMPTY'}\n` +
+      `standby bay ....... ${this.standby.occupant?.label ?? '—'}\n` +
+      `replica pen ....... ${s.replicas ? `${s.replicas} racked` : 'empty'}\n` +
+      `last p99 .......... ${this.lastP99}`;
     const actions = [];
     if (this.step === 'investigate') {
       actions.push({ label: 'Run flash-sale load test — see the damage', closes: true, onSelect: () => this.runLoad() });
@@ -296,7 +447,7 @@ export class FlashSaleMission extends MissionBase {
     actions.push({ label: 'Close' });
     this.d.ui.open({
       id: 'fs-terminal', kicker: 'Field terminal · INC-7031', title: 'Read-path health',
-      bodyHtml: `<pre>step: ${this.step.toUpperCase()}\np99 read latency .... ${c.p99} ms   (SLA ${SLA} ms)\ndb primary CPU ...... ${c.cpu}%\nadded cost .......... +$${c.cost}/mo\n(${esc(c.note)})\n\n${esc(beatsLine)}</pre>`,
+      bodyHtml: `<pre>step: ${this.step.toUpperCase()}\n${esc(layout)}\n\n${esc(beatsLine)}</pre>`,
       actions,
     });
   }
@@ -307,8 +458,8 @@ export class FlashSaleMission extends MissionBase {
       correct: {
         label: 'A tiny hot set is read over and over, straight from the DB every time — serve repeats from an in-memory cache (cache-aside)',
         journal: 'Diagnosis confirmed: repeated hot-set reads belong in memory, not on the primary’s disks.',
-        confirmBody: 'The slow-query log said it plainly: the same forty items, four thousand times a minute, answered from disk every single time. Put memory in front — a cache miss reads the DB once and populates; every repeat is served in microseconds. Provision at the board.',
-        actionLabel: 'To the board →',
+        confirmBody: 'The slow-query log said it plainly: the same forty items, four thousand times a minute, answered from disk every single time. Put memory in front — and remember cache-aside is the APP’s job: socket a module AND aim the read path at it.',
+        actionLabel: 'To the pallet →',
       },
       wrongs: [
         { label: 'The app tier is under-provisioned — add more catalog-api racks', rebuttal: 'App CPU is 31% and its threads are WAITING on the database. More waiters don’t make the kitchen faster.' },
@@ -327,57 +478,80 @@ export class FlashSaleMission extends MissionBase {
   }
 
   private onLoadDone() {
-    const c = METRICS[this.provision];
-    const table = `<pre>p99 read latency .... ${c.p99} ms   (SLA ${SLA} ms)\ndb primary CPU ...... ${c.cpu}%\nadded cost .......... +$${c.cost}/mo\n(${esc(c.note)})</pre>`;
+    const s = this.state();
+    const verdict = this.loadVerdict(s);
+    this.lastP99 = verdict.p99;
+    const table = `<pre>p99 read latency .... ${verdict.p99}   (SLA ${SLA} ms)\ndb primary CPU ...... ${verdict.cpu}\n(${esc(verdict.note)})</pre>`;
     if (this.step === 'investigate' || this.step === 'fix') {
-      this.d.journal.add(`Baseline load test: p99 ${c.p99} ms against a ${SLA} ms SLA — the DB answers every read from disk.`);
-      this.d.ui.open({ id: 'fs-load-info', kicker: 'Load test', title: `p99 ${c.p99} ms — SLA is ${SLA} ms`, bodyHtml: table, actions: [{ label: 'Ouch. Close' }] });
+      this.d.journal.add(`Baseline load test: p99 ${verdict.p99} against a ${SLA} ms SLA.`);
+      this.d.ui.open({ id: 'fs-load-info', kicker: 'Load test', title: `p99 ${verdict.p99} — SLA is ${SLA} ms`, bodyHtml: table, actions: [{ label: 'Ouch. Close' }] });
       return;
     }
     if (this.step !== 'verify') return;
-    if (c.p99 <= SLA) {
+    if (verdict.pass) {
       this.beatsPassed.add('load');
       this.applyLamps();
       this.refreshObjective();
-      this.d.journal.add(`Load test PASSED: p99 ${c.p99} ms — repeats served from memory; miss → DB once → populate.`);
+      this.d.journal.add(`Load test PASSED: p99 ${verdict.p99} — repeats served from memory; miss → DB once → populate.`);
+      if (s.replicas > 0) this.d.toast.show('The Postgres replicas are idle overhead now (+$310/mo) — consider wheeling them back.', 'info', 3.5);
       this.d.ui.open({
-        id: 'fs-load-pass', kicker: 'Load test', title: `✔ p99 ${c.p99} ms — SLA holds`,
-        bodyHtml: table + `<div>${esc('Cache-aside at work: the first read of each SKU missed and hit the DB once; every repeat came from memory. Set a TTL so prices don’t go stale. One test left: nodes fail — drill it.')}</div>`,
+        id: 'fs-load-pass', kicker: 'Load test', title: `✔ p99 ${verdict.p99} — SLA holds`,
+        bodyHtml: table + `<div>${esc('Cache-aside at work: first read of each SKU missed and hit the DB once; every repeat came from memory. Set a TTL so prices don’t go stale. One test left: nodes fail — drill it.')}</div>`,
         actions: [{ label: 'Next: the failover drill →' }],
       });
     } else {
-      const note = this.provision === 'replicas'
-        ? 'Better throughput, same physics: every read still hits a disk-bound engine, so p99 stays ~88 ms — and replication lag serves stale prices mid-sale. It’s also the priciest option on the board. The hot set belongs in MEMORY.'
-        : 'Every read still lands on the primary’s disks. Nothing changed.';
-      this.beatFailed('load test', note);
-      this.d.ui.open({ id: 'fs-load-fail', kicker: 'Load test', title: `✘ p99 ${c.p99} ms — SLA is ${SLA} ms`, bodyHtml: table + `<div>${esc(note)}</div>`, actions: [{ label: 'Back to the board →' }] });
+      this.beatFailed('load test', verdict.note);
+      this.d.ui.open({ id: 'fs-load-fail', kicker: 'Load test', title: `✘ p99 ${verdict.p99} — SLA is ${SLA} ms`, bodyHtml: table + `<div>${esc(verdict.note)}</div>`, actions: [{ label: 'Back to work →' }] });
     }
+  }
+
+  private loadVerdict(s: { cacheKind: string | null; standby: boolean; replicas: number }) {
+    if (this.aimedAt === 'cache') {
+      if (!s.cacheKind) {
+        return { pass: false, p99: 'timeouts', cpu: '97%', note: 'The read path points at an EMPTY bay — every read burned its timeout, then fell back to the drowning primary. Socket a memory module.' };
+      }
+      const mem = s.cacheKind === 'cache-mem';
+      return { pass: true, p99: mem ? '6 ms' : '7 ms', cpu: mem ? '21%' : '22%', note: 'hot set served from memory (cache-aside)' };
+    }
+    if (s.cacheKind) {
+      return { pass: false, p99: '220 ms', cpu: '97%', note: 'A cache is seated — and completely IDLE. Cache-aside is application-side: the app asks what the READ PATH points at. Grab the pointer and aim it at the cache bay.' };
+    }
+    if (s.replicas > 0) {
+      return { pass: false, p99: '88 ms', cpu: '54%', note: 'Better throughput, same physics: every read still hits a disk-bound engine, so p99 stays ~88 ms — and replication lag serves stale prices mid-sale. Priciest option on the pallet, too. The hot set belongs in MEMORY.' };
+    }
+    return { pass: false, p99: '220 ms', cpu: '97%', note: 'every read goes to the database' };
   }
 
   private runDrill() {
     this.m.term.setLamp?.('off');
     this.primaryDead = true;
-    this.prov[0]?.setLamp?.('bad');
+    this.bay.markBad();
     this.d.journal.add('Failover drill: killing the cache node mid-sale…');
+    this.d.toast.show('Drill: the cache primary just went dark.', 'bad', 2.5);
     this.test = { beat: 'drill', total: 6, resolved: 0 };
     for (let i = 0; i < 6; i++) this.schedule(0.4 + i * 0.3, () => this.d.sim.spawn('gate', 'read'));
   }
 
   private onDrillDone() {
     if (this.step !== 'verify') return;
-    if (this.provision === 'redis') {
+    const s = this.state();
+    if (s.cacheKind === 'cache-redis' && s.standby) {
       this.primaryDead = false;
-      this.prov[0]?.setLamp?.('ok');
-      this.d.journal.add('Failover drill PASSED: replica promoted automatically (~14 s); ElastiCache is already replacing the dead node.');
+      this.bay.spec.ring.setState('ok');
+      this.d.journal.add('Failover drill PASSED: standby promoted automatically (~14 s); ElastiCache is already replacing the dead node.');
       this.allBeatsPassed(
         '✔ Node lost, nobody noticed',
-        'The primary died and the replica was promoted automatically — p99 blipped to 9 ms and settled. ElastiCache replaces the failed node on its own. That replication + automatic failover (plus persistence, sorted sets, pub/sub) is exactly what Redis adds over Memcached. Close the ticket at the field terminal.',
+        'The primary died and the standby was promoted automatically — p99 blipped to 9 ms and settled. ElastiCache replaces the failed node on its own. That replication + automatic failover (plus persistence, sorted sets, pub/sub) is exactly what Redis adds over Memcached. Close the ticket at the field terminal.',
         'Load test and failover drill both passed — replicated Redis cache-aside in front of the DB.',
       );
       this.applyLamps();
     } else {
-      this.beatFailed('failover drill',
-        'The Memcached node died and took the ENTIRE hot set with it — no replication, no persistence, no failover. Every read became a miss and the thundering herd hit the primary at 97% CPU again. If the cache must survive node loss, you need Redis with a replica and automatic failover.');
+      this.d.alarm.raise('DATABASE OVERLOAD — CACHE LOST', 5);
+      const note = s.cacheKind === 'cache-mem'
+        ? 'The Memcached node died and took the ENTIRE hot set with it — no replication, no persistence, no failover. Every read became a miss and the thundering herd hit the primary at 97% CPU. If the cache must survive node loss, you need Redis with a standby.'
+        : 'Your Redis primary died with NO standby behind it — nothing to promote, so the herd hit the primary. Carry the standby replica to its bay and drill again.';
+      this.d.journal.add('SITE ALARM: database overload — the herd hit the primary when the cache died.');
+      this.beatFailed('failover drill', note);
     }
   }
 }

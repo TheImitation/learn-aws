@@ -2,8 +2,12 @@ import { Scene, Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import { FlowSim } from '../sim/flowSim';
 import { InteractionSystem } from '../interact/interactionSystem';
+import { CarrySystem } from '../interact/carry';
+import { GrabControl } from '../interact/grab';
+import { AlarmSystem } from '../fx/alarm';
 import { Journal } from '../ui/journal';
 import { ObjectiveBanner } from '../ui/objective';
+import { Toaster } from '../ui/toast';
 import { UiShell } from '../ui/uiShell';
 import { buildMissionPad } from '../world/missionPad';
 
@@ -16,6 +20,10 @@ export interface MissionDeps {
   journal: Journal;
   interaction: InteractionSystem;
   objective: ObjectiveBanner;
+  carry: CarrySystem;
+  grab: GrabControl;
+  alarm: AlarmSystem;
+  toast: Toaster;
   origin: Vector3;
   onReturn: () => void; // "Return to NOC"
 }
@@ -25,6 +33,7 @@ export interface ActiveMission {
   update(dt: number): void;
   dispose(): void;
   openBriefing(): void;
+  e2e?(): Record<string, unknown>; // dev/e2e state snapshot
 }
 
 export type MissionFactory = (deps: MissionDeps, topic: Topic) => ActiveMission;
@@ -53,6 +62,7 @@ export class MissionManager {
   has(id: string) { return this.factories.has(id); }
   get currentId() { return this.current?.id ?? null; }
   get step() { return this.current?.mission.step ?? null; }
+  get mission(): ActiveMission | null { return this.current?.mission ?? null; }
 
   /** Start (or resume) a mission: fresh tickets rebuild the site; the current
    *  ticket just teleports you back to it. */

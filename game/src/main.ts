@@ -15,9 +15,13 @@ import { PlayerController } from './player/controller';
 import { ThirdPersonRig } from './camera/thirdPersonRig';
 import { buildTestYard } from './world/testYard';
 import { DebugHud } from './ui/debugHud';
-import { InteractionSystem } from './interact/interactionSystem';
+import { InteractionSystem, promptText } from './interact/interactionSystem';
+import { CarrySystem } from './interact/carry';
+import { GrabControl } from './interact/grab';
+import { AlarmSystem } from './fx/alarm';
 import { UiShell, esc } from './ui/uiShell';
 import { Journal } from './ui/journal';
+import { Toaster } from './ui/toast';
 import { FlowSim } from './sim/flowSim';
 import { jobBoardKiosk } from './world/kit';
 import { ObjectiveBanner } from './ui/objective';
@@ -62,6 +66,10 @@ async function boot() {
   const ui = new UiShell();
   const journal = new Journal();
   const interaction = new InteractionSystem();
+  const carry = new CarrySystem(parts.root);
+  const grab = new GrabControl();
+  const alarm = new AlarmSystem();
+  const toaster = new Toaster();
 
   // --- Phase 2 demo interactables (replaced by real machines in Phase 3) ---
   interaction.add({
@@ -104,7 +112,7 @@ async function boot() {
   objective.set('NOC', 'Take a ticket at the job board');
 
   const manager = new MissionManager(
-    { scene, sim, ui, journal, interaction, objective },
+    { scene, sim, ui, journal, interaction, objective, carry, grab, alarm, toast: toaster },
     COURSE.topics,
     (feet) => player.teleport(feet),
     yard.spawn.clone(),
@@ -161,18 +169,33 @@ async function boot() {
       ui.handleNav(st);
       animator.update(dt, 0, true, 0);
       ui.setPrompt(null);
+    } else if (grab.active) {
+      // Hands on a mechanism: move axis steers it, interact releases.
+      grab.tick(dt, st);
+      animator.update(dt, 0, true, 0);
+      rig.update(dt, st.look, player.position);
+      ui.setPrompt(grab.active ? { text: grab.prompt, device: st.lastDevice } : null);
     } else {
       const { forward, right } = rig.basis();
       player.update(dt, st, forward, right);
       animator.update(dt, player.planarSpeed, player.grounded, player.yawRate);
       rig.update(dt, st.look, player.position);
       interaction.update(player.position, player.facingYaw);
-      if (st.interact) interaction.tryInteract();
-      else if (st.journal) ui.open(journal.panelSpec());
+      if (st.interact) {
+        // focused interactable wins; on empty ground, put the carried module down
+        if (!interaction.tryInteract() && carry.held) carry.drop(player.position, player.facingYaw);
+      } else if (st.journal) ui.open(journal.panelSpec());
       else if (st.pause) ui.open(pauseSpec());
       const f = interaction.focused;
-      ui.setPrompt(f ? { text: f.prompt, device: st.lastDevice } : null);
+      ui.setPrompt(
+        f ? { text: promptText(f), device: st.lastDevice }
+          : carry.held ? { text: `Put down ${carry.held.label}`, device: st.lastDevice }
+          : null,
+      );
     }
+    carry.update(dt);
+    alarm.update(dt);
+    toaster.update(dt);
     sim.update(dt);
     manager.update(dt);
     pe._step(Math.min(dt, 1 / 30));
@@ -222,6 +245,10 @@ async function boot() {
     },
     interactFocus: () => interaction.focused?.id ?? null,
     journalCount: () => journal.notes.length,
+    carry: () => carry.held?.id ?? null,
+    toasts: () => toaster.current,
+    alarmActive: () => alarm.isActive,
+    grabActive: () => grab.active,
     sim: {
       report: () => sim.trafficReport,
       active: () => sim.activeTokens,
@@ -232,6 +259,7 @@ async function boot() {
       objective: () => objective.text,
       origin: { x: manager.origin.x, y: manager.origin.y, z: manager.origin.z },
       start: (id: string) => manager.start(id),
+      debug: () => manager.mission?.e2e?.() ?? null,
     },
     board: {
       readiness: () => readiness(COURSE.topics),

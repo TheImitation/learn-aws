@@ -270,6 +270,134 @@ export function shelfUnit(scene: Scene, at: Vector3, yaw: number, accentHex: str
   return { root, anchor: at.add(new Vector3(0, 1.2, 0)), setLamp };
 }
 
+/** A carryable equipment module: chunky body with a carry handle and a glow
+ *  stripe. Owns its Havok body lifecycle — carried/socketed modules are
+ *  kinematic (body killed), dropped modules get a fresh dynamic body. */
+export interface CarryModule extends Machine {
+  root: Mesh;
+  halfHeight: number;
+  killBody: () => void;
+  makeBody: () => void;
+}
+
+export function moduleBox(
+  scene: Scene,
+  at: Vector3,
+  opts: { hex: string; glowHex: string; w?: number; h?: number; d?: number; cyl?: boolean },
+): CarryModule {
+  const w = opts.w ?? 0.55, h = opts.h ?? 0.5, d = opts.d ?? 0.55;
+  const body = opts.cyl
+    ? MeshBuilder.CreateCylinder('mod', { diameter: w, height: h, tessellation: 14 }, scene)
+    : MeshBuilder.CreateBox('mod', { width: w, height: h, depth: d }, scene);
+  body.position.set(at.x, at.y + h / 2, at.z);
+  body.material = solid(scene, 'mod-m', opts.hex);
+  const strip = opts.cyl
+    ? MeshBuilder.CreateCylinder('mod-g', { diameter: w + 0.04, height: 0.07, tessellation: 14 }, scene)
+    : MeshBuilder.CreateBox('mod-g', { width: w + 0.04, height: 0.07, depth: d + 0.04 }, scene);
+  strip.parent = body; strip.position.y = 0; strip.material = glow(scene, 'mod-gm', opts.glowHex);
+  for (const dx of [-0.12, 0.12]) {
+    const post = MeshBuilder.CreateBox('mod-hp', { width: 0.05, height: 0.14, depth: 0.05 }, scene);
+    post.parent = body; post.position.set(dx, h / 2 + 0.07, 0); post.material = solid(scene, 'mod-hm', '#c8cdd8');
+  }
+  const bar = MeshBuilder.CreateBox('mod-hb', { width: 0.34, height: 0.05, depth: 0.06 }, scene);
+  bar.parent = body; bar.position.y = h / 2 + 0.14; bar.material = solid(scene, 'mod-hm2', '#c8cdd8');
+  let agg: PhysicsAggregate | null = new PhysicsAggregate(body, PhysicsShapeType.BOX, { mass: 6 }, scene);
+  return {
+    root: body,
+    anchor: at.add(new Vector3(0, h, 0)),
+    halfHeight: h / 2,
+    killBody: () => { agg?.dispose(); agg = null; },
+    makeBody: () => { if (!agg) agg = new PhysicsAggregate(body, PhysicsShapeType.BOX, { mass: 6 }, scene); },
+  };
+}
+
+const RING_COLORS = { empty: '#3f77c2', ok: '#5fd29a', bad: '#e85f5f' };
+
+/** A floor socket ring: glowing circle + corner post; recolors on plug/reject. */
+export function socketRing(scene: Scene, at: Vector3): { root: TransformNode; anchor: Vector3; setState: (s: 'empty' | 'ok' | 'bad') => void } {
+  const root = new TransformNode('socket', scene);
+  root.position.copyFrom(at);
+  const pad = MeshBuilder.CreateCylinder('so-p', { diameter: 1.15, height: 0.05, tessellation: 24 }, scene);
+  pad.parent = root; pad.position.y = 0.025; pad.material = solid(scene, 'so-pm', '#262b38');
+  const ring = MeshBuilder.CreateTorus('so-r', { diameter: 1.15, thickness: 0.07, tessellation: 28 }, scene);
+  ring.parent = root; ring.position.y = 0.06;
+  const rm = glow(scene, 'so-rm', RING_COLORS.empty);
+  ring.material = rm;
+  const post = MeshBuilder.CreateBox('so-post', { width: 0.1, height: 0.55, depth: 0.1 }, scene);
+  post.parent = root; post.position.set(0.72, 0.27, 0); post.material = solid(scene, 'so-postm', '#3a3f4c');
+  const tip = MeshBuilder.CreateSphere('so-tip', { diameter: 0.14, segments: 8 }, scene);
+  tip.parent = root; tip.position.set(0.72, 0.6, 0);
+  const tm = glow(scene, 'so-tm', RING_COLORS.empty);
+  tip.material = tm;
+  return {
+    root, anchor: at.add(new Vector3(0, 0.6, 0)),
+    setState: (s) => {
+      rm.emissiveColor.copyFrom(Color3.FromHexString(RING_COLORS[s]));
+      tm.emissiveColor.copyFrom(Color3.FromHexString(RING_COLORS[s]));
+    },
+  };
+}
+
+/** An alarm strobe on a pole; `setLevel(0..1)` drives the red pulse. */
+export function strobeBeacon(scene: Scene, at: Vector3): { root: TransformNode; setLevel: (k: number) => void } {
+  const root = new TransformNode('strobe', scene);
+  root.position.copyFrom(at);
+  const pole = MeshBuilder.CreateCylinder('st-p', { diameter: 0.09, height: 1.7, tessellation: 8 }, scene);
+  pole.parent = root; pole.position.y = 0.85; pole.material = solid(scene, 'st-pm', '#3a3f4c');
+  const dome = MeshBuilder.CreateSphere('st-d', { diameter: 0.3, segments: 10 }, scene);
+  dome.parent = root; dome.position.y = 1.8;
+  const dm = glow(scene, 'st-dm', '#5a1f1f');
+  dome.material = dm;
+  const red = Color3.FromHexString('#ff4040');
+  return {
+    root,
+    setLevel: (k) => dm.emissiveColor.copyFrom(red.scale(0.12 + Math.max(0, Math.min(1, k)) * 0.88)),
+  };
+}
+
+/** The read-path pointer: an arrow arm on a pedestal that the engineer grabs and
+ *  swings to aim one machine at another ("line it up"). */
+export function aimPointer(scene: Scene, at: Vector3): Machine & { setAngle: (rad: number) => void; getAngle: () => number } {
+  const root = new TransformNode('aim', scene);
+  root.position.copyFrom(at);
+  const ped = MeshBuilder.CreateCylinder('aim-p', { diameter: 0.5, height: 0.95, tessellation: 12 }, scene);
+  ped.parent = root; ped.position.y = 0.475; ped.material = solid(scene, 'aim-pm', '#2a2e3a');
+  new PhysicsAggregate(ped, PhysicsShapeType.CYLINDER, { mass: 0 }, scene);
+  const pivot = new TransformNode('aim-pivot', scene);
+  pivot.parent = root; pivot.position.y = 1.0;
+  const arm = MeshBuilder.CreateBox('aim-a', { width: 0.12, height: 0.07, depth: 1.15 }, scene);
+  arm.parent = pivot; arm.position.z = 0.45; arm.material = glow(scene, 'aim-am', '#e8a657');
+  const head = MeshBuilder.CreateBox('aim-h', { width: 0.3, height: 0.075, depth: 0.3 }, scene);
+  head.parent = pivot; head.position.z = 1.05; head.rotation.y = Math.PI / 4;
+  head.material = glow(scene, 'aim-hm', '#e8a657');
+  const setLamp = lamp(scene, root, new Vector3(0, 1.14, 0));
+  return {
+    root, anchor: at.add(new Vector3(0, 1.0, 0)), setLamp,
+    setAngle: (rad) => { pivot.rotation.y = rad; },
+    getAngle: () => pivot.rotation.y,
+  };
+}
+
+/** A delivery pallet: wooden slats on runners — where mission modules arrive. */
+export function supplyPallet(scene: Scene, at: Vector3, yaw = 0): Machine {
+  const root = new TransformNode('pallet', scene);
+  root.position.copyFrom(at); root.rotation.y = yaw;
+  const wood = solid(scene, 'pl-w', '#6e5a3e');
+  const dark = solid(scene, 'pl-d', '#54432c');
+  for (const dz of [-0.65, 0, 0.65]) {
+    const slat = MeshBuilder.CreateBox('pl-s', { width: 2.6, height: 0.07, depth: 0.5 }, scene);
+    slat.parent = root; slat.position.set(0, 0.18, dz); slat.material = wood;
+  }
+  for (const dx of [-1.05, 1.05]) {
+    const run = MeshBuilder.CreateBox('pl-r', { width: 0.35, height: 0.15, depth: 1.9 }, scene);
+    run.parent = root; run.position.set(dx, 0.075, 0); run.material = dark;
+  }
+  const top = MeshBuilder.CreateBox('pl-c', { width: 2.6, height: 0.22, depth: 1.9 }, scene);
+  top.parent = root; top.position.y = 0.11; top.visibility = 0;
+  new PhysicsAggregate(top, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  return { root, anchor: at.add(new Vector3(0, 0.6, 0)) };
+}
+
 /** An in-memory cache node: compact bright unit on a stand — RAM-fast, glowing hot.
  *  `dim` renders the standby-replica variant (cooler strip, no pulse). */
 export function cacheNode(scene: Scene, at: Vector3, yaw = 0, dim = false): Machine {

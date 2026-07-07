@@ -3,11 +3,13 @@ import { AbstractMesh, Color3, TransformNode, Vector3 } from '@babylonjs/core';
 export interface Interactable {
   id: string;
   node: TransformNode;
-  prompt: string; //          "Read status board"
+  prompt: string | (() => string); // "Read status board" — or context-sensitive
   radius?: number; //         interaction range (default 2.2)
   onInteract: () => void;
   enabled?: () => boolean;
 }
+
+export const promptText = (i: Interactable) => (typeof i.prompt === 'string' ? i.prompt : i.prompt());
 
 const DEFAULT_RADIUS = 2.2;
 const FACING_DOT = 0.25; //   how directly the player must face it
