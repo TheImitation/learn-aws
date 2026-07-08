@@ -25,12 +25,7 @@ import { Toaster } from './ui/toast';
 import { FlowSim } from './sim/flowSim';
 import { jobBoardKiosk } from './world/kit';
 import { ObjectiveBanner } from './ui/objective';
-import { PatchNightMission } from './missions/patchNight';
-import { CheckoutDownMission } from './missions/checkoutDown';
-import { OrdersVanishingMission } from './missions/ordersVanishing';
-import { LeakedKeyMission } from './missions/leakedKey';
-import { StorageBillMission } from './missions/storageBill';
-import { FlashSaleMission } from './missions/flashSale';
+import { MISSIONS } from './missions/registry';
 import { MissionManager } from './missions/manager';
 import { JobBoard } from './ui/jobBoard';
 import { QuizTerminal } from './ui/quizTerminal';
@@ -117,12 +112,7 @@ async function boot() {
     (feet) => player.teleport(feet),
     yard.spawn.clone(),
   );
-  manager.register('private-egress-nat', (deps, topic) => new PatchNightMission(deps, topic));
-  manager.register('ha-web-app', (deps, topic) => new CheckoutDownMission(deps, topic));
-  manager.register('decouple-with-queue-sqs', (deps, topic) => new OrdersVanishingMission(deps, topic));
-  manager.register('secure-access-iam', (deps, topic) => new LeakedKeyMission(deps, topic));
-  manager.register('right-storage-class', (deps, topic) => new StorageBillMission(deps, topic));
-  manager.register('cache-hot-items', (deps, topic) => new FlashSaleMission(deps, topic));
+  for (const [id, factory] of Object.entries(MISSIONS)) manager.register(id, factory);
 
   const missionHook = (id: string) => ({
     topicId: id,
@@ -132,14 +122,8 @@ async function boot() {
     statusLine: () => manager.step ?? '',
   });
   const quizTerminal = new QuizTerminal(ui);
-  const board = new JobBoard(ui, journal, quizTerminal, COURSE.topics, {
-    'private-egress-nat': missionHook('private-egress-nat'),
-    'ha-web-app': missionHook('ha-web-app'),
-    'decouple-with-queue-sqs': missionHook('decouple-with-queue-sqs'),
-    'secure-access-iam': missionHook('secure-access-iam'),
-    'right-storage-class': missionHook('right-storage-class'),
-    'cache-hot-items': missionHook('cache-hot-items'),
-  });
+  const board = new JobBoard(ui, journal, quizTerminal, COURSE.topics,
+    Object.fromEntries(Object.keys(MISSIONS).map((id) => [id, missionHook(id)])));
   const kiosk = jobBoardKiosk(scene, new Vector3(3, 0, 8.5), Math.PI);
   kiosk.setLamp?.('ok');
   interaction.add({
