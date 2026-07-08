@@ -7,6 +7,7 @@ import { StorageBillMission } from './storageBill';
 import { FlashSaleMission } from './flashSale';
 import { SpecMission, type MissionSpec } from './spec';
 import { DNS_ROUTING_SPEC, MULTIAZ_SPEC, VPC_ENDPOINTS_SPEC } from './specs/pilots';
+import { DETECT_SPEC, KMS_SPEC, SECRETS_SPEC, SG_VS_NACL_SPEC, SSM_SPEC } from './specs/secure';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -22,4 +23,9 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'multiaz-vs-replicas': spec(MULTIAZ_SPEC),
   'vpc-endpoints': spec(VPC_ENDPOINTS_SPEC),
   'dns-routing-route53': spec(DNS_ROUTING_SPEC),
+  'sg-vs-nacl': spec(SG_VS_NACL_SPEC),
+  'encrypt-with-kms': spec(KMS_SPEC),
+  'manage-secrets': spec(SECRETS_SPEC),
+  'detect-threats': spec(DETECT_SPEC),
+  'ssm-session': spec(SSM_SPEC),
 };
