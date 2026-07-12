@@ -12,6 +12,8 @@ import {
   CLOUDTRAIL_SPEC, COGNITO_SPEC, COMPLIANT_SPEC, CONNECT_SPEC, EDGE_SPEC, HYBRID_SPEC,
   NET_BOUNDARIES_SPEC,
 } from './specs/secure2';
+import { CLOUDWATCH_SPEC, DR_SPEC, SNS_SPEC, STATELESS_SPEC, STEPFN_SPEC } from './specs/resilient';
+import { BACKUP_SPEC, CFN_SPEC, EVENTBRIDGE_SPEC, MIGRATE_SPEC, PICKMSG_SPEC } from './specs/resilient2';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -39,4 +41,14 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'user-signin-cognito': spec(COGNITO_SPEC),
   'audit-cloudtrail': spec(CLOUDTRAIL_SPEC),
   'stay-compliant': spec(COMPLIANT_SPEC),
+  'monitor-cloudwatch': spec(CLOUDWATCH_SPEC),
+  'fan-out-sns': spec(SNS_SPEC),
+  'disaster-recovery': spec(DR_SPEC),
+  'orchestrate-step-functions': spec(STEPFN_SPEC),
+  'keep-it-stateless': spec(STATELESS_SPEC),
+  'route-events-eventbridge': spec(EVENTBRIDGE_SPEC),
+  'iac-cloudformation': spec(CFN_SPEC),
+  'pick-messaging': spec(PICKMSG_SPEC),
+  'centralize-backups': spec(BACKUP_SPEC),
+  'migrate-data': spec(MIGRATE_SPEC),
 };
