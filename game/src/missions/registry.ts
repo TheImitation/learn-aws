@@ -16,6 +16,9 @@ import { CLOUDWATCH_SPEC, DR_SPEC, SNS_SPEC, STATELESS_SPEC, STEPFN_SPEC } from 
 import { BACKUP_SPEC, CFN_SPEC, EVENTBRIDGE_SPEC, MIGRATE_SPEC, PICKMSG_SPEC } from './specs/resilient2';
 import { APIGW_SPEC, BLOCKFILE_SPEC, CDN_SPEC, ECS_SPEC, PANTRY_SPEC } from './specs/hp';
 import { ATHENA_SPEC, AURORA_SPEC, GA_SPEC, KINESIS_SPEC, S3PROTECT_SPEC } from './specs/hp2';
+import {
+  ASG_SPEC, BILLWATCH_SPEC, COMPUTE_SPEC, LAMBDA_SPEC, ORG_SPEC, PURCHASE_SPEC, SCALEUPOUT_SPEC,
+} from './specs/cost';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -63,4 +66,11 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'stream-data-kinesis': spec(KINESIS_SPEC),
   'global-accelerator': spec(GA_SPEC),
   's3-protection': spec(S3PROTECT_SPEC),
+  'go-serverless-lambda': spec(LAMBDA_SPEC),
+  'optimise-cost': spec(PURCHASE_SPEC),
+  'auto-scaling': spec(ASG_SPEC),
+  'watch-the-bill': spec(BILLWATCH_SPEC),
+  'choose-compute': spec(COMPUTE_SPEC),
+  'scale-up-vs-out': spec(SCALEUPOUT_SPEC),
+  'govern-accounts': spec(ORG_SPEC),
 };
