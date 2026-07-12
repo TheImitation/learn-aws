@@ -8,6 +8,10 @@ import { FlashSaleMission } from './flashSale';
 import { SpecMission, type MissionSpec } from './spec';
 import { DNS_ROUTING_SPEC, MULTIAZ_SPEC, VPC_ENDPOINTS_SPEC } from './specs/pilots';
 import { DETECT_SPEC, KMS_SPEC, SECRETS_SPEC, SG_VS_NACL_SPEC, SSM_SPEC } from './specs/secure';
+import {
+  CLOUDTRAIL_SPEC, COGNITO_SPEC, COMPLIANT_SPEC, CONNECT_SPEC, EDGE_SPEC, HYBRID_SPEC,
+  NET_BOUNDARIES_SPEC,
+} from './specs/secure2';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -28,4 +32,11 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'manage-secrets': spec(SECRETS_SPEC),
   'detect-threats': spec(DETECT_SPEC),
   'ssm-session': spec(SSM_SPEC),
+  'network-boundaries-vpc': spec(NET_BOUNDARIES_SPEC),
+  'protect-the-edge': spec(EDGE_SPEC),
+  'connect-networks': spec(CONNECT_SPEC),
+  'hybrid-connectivity': spec(HYBRID_SPEC),
+  'user-signin-cognito': spec(COGNITO_SPEC),
+  'audit-cloudtrail': spec(CLOUDTRAIL_SPEC),
+  'stay-compliant': spec(COMPLIANT_SPEC),
 };
