@@ -1,4 +1,5 @@
 import { TransformNode, Vector3 } from '@babylonjs/core';
+import { sfx } from '../core/sfx';
 
 /** A physical module the engineer can pick up, carry overhead, and put down.
  *  `killBody`/`makeBody` toggle the Havok body: carried and socketed items are
@@ -28,6 +29,7 @@ export class CarrySystem {
 
   pickup(c: Carryable) {
     if (this.held) return;
+    sfx.pickup();
     c.killBody();
     c.root.parent = this.anchor;
     c.root.position.set(0, 0, 0);
@@ -40,6 +42,7 @@ export class CarrySystem {
   drop(playerFeet: Vector3, facingYaw: number) {
     const c = this.held;
     if (!c) return;
+    sfx.drop();
     this.held = null;
     c.root.parent = null;
     c.root.position.set(
@@ -61,6 +64,7 @@ export class CarrySystem {
   /** Take an already-placed module straight into the hands (socket take-out). */
   take(c: Carryable) {
     if (this.held) return;
+    sfx.unplug();
     c.killBody();
     c.root.parent = this.anchor;
     c.root.position.set(0, 0, 0);

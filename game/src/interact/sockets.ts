@@ -1,4 +1,5 @@
 import { Vector3 } from '@babylonjs/core';
+import { sfx } from '../core/sfx';
 import type { Carryable } from './carry';
 
 export type SocketVerdict =
@@ -36,6 +37,7 @@ export class Socket {
 
   /** Snap an accepted (already released) module onto the pad. */
   put(c: Carryable) {
+    sfx.plug();
     this.occupant = c;
     c.root.position.set(this.spec.at.x, this.spec.at.y + c.halfHeight + 0.05, this.spec.at.z);
     c.root.rotation.set(0, 0, 0);
@@ -64,6 +66,7 @@ export class Socket {
   }
 
   private refuse(v: SocketVerdict): SocketVerdict {
+    sfx.refuse();
     this.flash = 0.9;
     this.spec.ring.setState('bad');
     return v;

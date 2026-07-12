@@ -6,6 +6,7 @@ import {
 } from '../world/kit';
 import type { Carryable } from '../interact/carry';
 import { Socket } from '../interact/sockets';
+import { sfx } from '../core/sfx';
 import { esc } from '../ui/uiShell';
 import { MissionBase, type DiagnosisSpec, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
@@ -388,6 +389,7 @@ export class SpecMission extends MissionBase {
           return;
         }
         m.setAngle!(best.angle);
+        sfx.dialLock();
         if (best.id !== this.dialPos.get(def.id)) {
           this.dialPos.set(def.id, best.id);
           this.d.journal.add(`Dial locked: ${best.label}.`);
@@ -435,6 +437,7 @@ export class SpecMission extends MissionBase {
             else this.d.toast.show('The lever is for the verification drill — later.', 'info', 2.2);
             return;
           }
+          sfx.lever();
           m.setPulled!(true);
           const beat = this.spec.beats.find((b) => b.id === def.beat)!;
           this.d.toast.show(`${beat.label} — lever pulled.`, 'bad', 2.2);

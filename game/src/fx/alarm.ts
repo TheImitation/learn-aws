@@ -1,3 +1,5 @@
+import { sfx } from '../core/sfx';
+
 /** Site-wide visual alarm: pulsing red vignette + warning label, plus any beacon
  *  lamps the current mission binds. Raised by insecure actions (security klaxon)
  *  or as a consequence (overload). Tick-driven; missions must clear on dispose. */
@@ -7,6 +9,7 @@ export class AlarmSystem {
   private beacons: ((level: number) => void)[] = [];
   private remaining = 0;
   private t = 0;
+  private pulseIn = 0;
   label = '';
 
   constructor() {
@@ -48,6 +51,8 @@ export class AlarmSystem {
     if (this.remaining <= 0) return;
     this.remaining -= dt;
     this.t += dt;
+    this.pulseIn -= dt;
+    if (this.pulseIn <= 0 && this.remaining > 0) { sfx.alarmPulse(); this.pulseIn = 0.9; }
     const level = this.remaining > 0 ? 0.55 + Math.sin(this.t * 9) * 0.45 : 0;
     this.vignette.style.opacity = String((0.35 + level * 0.65).toFixed(2));
     for (const b of this.beacons) b(level);

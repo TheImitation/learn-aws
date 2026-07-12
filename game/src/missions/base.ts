@@ -1,5 +1,6 @@
 import type { Topic } from '@content';
 import { recordProgress } from '../core/progress';
+import { sfx } from '../core/sfx';
 import { QuizTerminal } from '../ui/quizTerminal';
 import { esc, type PanelAction } from '../ui/uiShell';
 import type { Machine } from '../world/kit';
@@ -89,7 +90,9 @@ export abstract class MissionBase {
 
   dispose() {
     for (const id of this.interactableIds) this.d.interaction.remove(id);
-    for (const m of this.ownedMachines) m.root.dispose();
+    // (false, true): recurse children AND dispose their materials/textures —
+    // plain dispose() leaks one set of materials into the scene per mission.
+    for (const m of this.ownedMachines) (m.root as { dispose(a?: boolean, b?: boolean): void }).dispose(false, true);
     this.d.alarm.clear();
     this.onDispose?.();
   }
@@ -202,6 +205,7 @@ export abstract class MissionBase {
       if (passed) {
         this.step = 'done';
         this.refreshObjective();
+        sfx.resolved();
         onGood?.();
         this.d.journal.add(`${t.incident} closed. Sign-off ${pct}% — mastery recorded.`);
         this.d.ui.open({

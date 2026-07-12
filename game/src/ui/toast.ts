@@ -1,3 +1,5 @@
+import { sfx } from '../core/sfx';
+
 const TONES = {
   info: { border: '#57c7e3', glow: 'rgba(87,199,227,0.25)' },
   ok: { border: '#5fd29a', glow: 'rgba(95,210,154,0.25)' },
@@ -27,6 +29,9 @@ export class Toaster {
   }
 
   show(text: string, tone: ToastTone = 'info', seconds = 2.8) {
+    if (tone === 'ok') sfx.toastOk();
+    else if (tone === 'bad') sfx.toastBad();
+    else sfx.toastInfo();
     const t = TONES[tone];
     const el = document.createElement('div');
     el.style.cssText =

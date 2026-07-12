@@ -6,6 +6,7 @@ import {
   SwitchInput,
   XboxInput,
 } from '@babylonjs/core';
+import { OPTIONS } from '../core/options';
 
 /** Abstract per-frame input, device-agnostic. Movement is intent (magnitude ≤ 1);
  *  look is the camera delta for THIS frame in radians (sensitivity already applied). */
@@ -40,14 +41,14 @@ export interface DebugInput {
   back?: boolean;
 }
 
-const DEADZONE = 0.15;
-const MOUSE_SENS = 0.0022; // rad per px
+const MOUSE_SENS = 0.0022; // rad per px, before the user sensitivity multiplier
 const PAD_LOOK_X = 2.6; //    rad per second at full deflection
 const PAD_LOOK_Y = 1.8;
 
 const dz = (v: number) => {
+  const d = OPTIONS.deadzone;
   const m = Math.abs(v);
-  return m < DEADZONE ? 0 : (Math.sign(v) * (m - DEADZONE)) / (1 - DEADZONE);
+  return m < d ? 0 : (Math.sign(v) * (m - d)) / (1 - d);
 };
 
 // Per-pad-type input indices (Babylon enums; Generic assumes the standard mapping).
@@ -115,12 +116,12 @@ export class InputMap {
       const k = (c: number) => kb.getInput(c) === 1;
       mx += (k(KEY.D) ? 1 : 0) - (k(KEY.A) ? 1 : 0);
       my += (k(KEY.W) ? 1 : 0) - (k(KEY.S) ? 1 : 0);
-      if (k(KEY.SPACE)) jump = true;
-      if (k(KEY.SHIFT)) sprint = true;
-      if (k(KEY.E)) interact = true;
-      if (k(KEY.TAB)) journal = true;
+      if (k(OPTIONS.keyJump)) jump = true;
+      if (k(OPTIONS.keySprint)) sprint = true;
+      if (k(OPTIONS.keyInteract)) interact = true;
+      if (k(OPTIONS.keyJournal)) journal = true;
       if (k(KEY.ESC)) pause = true;
-      if (k(KEY.ENTER) || k(KEY.E) || k(KEY.SPACE)) confirm = true;
+      if (k(KEY.ENTER) || k(OPTIONS.keyInteract) || k(OPTIONS.keyJump)) confirm = true;
       if (k(KEY.ESC)) back = true;
       navLX = (k(KEY.RIGHT) || k(KEY.D) ? 1 : 0) - (k(KEY.LEFT) || k(KEY.A) ? 1 : 0);
       navLY = (k(KEY.DOWN) || k(KEY.S) ? 1 : 0) - (k(KEY.UP) || k(KEY.W) ? 1 : 0);
@@ -128,8 +129,8 @@ export class InputMap {
     }
 
     // --- mouse (accumulated deltas under pointer lock) ---
-    lx += this.mouseDX * MOUSE_SENS;
-    ly += this.mouseDY * MOUSE_SENS;
+    lx += this.mouseDX * MOUSE_SENS * OPTIONS.sensitivity;
+    ly += this.mouseDY * MOUSE_SENS * OPTIONS.sensitivity;
     if (this.mouseDX || this.mouseDY) s.lastDevice = 'kbm';
     this.mouseDX = 0; this.mouseDY = 0;
 
@@ -143,8 +144,8 @@ export class InputMap {
       const plx = dz(g(map.lx)); const ply = dz(g(map.ly));
       const prx = dz(g(map.rx)); const pry = dz(g(map.ry));
       if (Math.hypot(plx, ply) > Math.hypot(mx, my)) { mx = plx; my = -ply; } // stick up = forward
-      lx += prx * PAD_LOOK_X * dt;
-      ly += pry * PAD_LOOK_Y * dt;
+      lx += prx * PAD_LOOK_X * OPTIONS.sensitivity * dt;
+      ly += pry * PAD_LOOK_Y * OPTIONS.sensitivity * dt;
       if (g(map.south) === 1) { jump = true; confirm = true; }
       if (g(map.l3) === 1) sprint = true;
       if (g(map.west) === 1) interact = true;
@@ -161,9 +162,10 @@ export class InputMap {
       break;
     }
 
-    // clamp move intent to the unit disc
+    // clamp move intent to the unit disc; apply invert-Y to the vertical look
     const mlen = Math.hypot(mx, my);
     if (mlen > 1) { mx /= mlen; my /= mlen; }
+    if (OPTIONS.invertY) ly = -ly;
 
     // --- debug override (scripted verification) ---
     if (this.debug) {

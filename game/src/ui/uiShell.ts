@@ -1,3 +1,5 @@
+import { keyName, OPTIONS } from '../core/options';
+import { sfx } from '../core/sfx';
 import type { InputState } from '../input/inputMap';
 
 export interface PanelAction {
@@ -110,7 +112,9 @@ export class UiShell {
     });
     this.overlay.appendChild(panel);
     this.overlay.classList.add('open');
-    this.setFocus(0);
+    this.focusIdx = -1; // so setFocus(0) counts as a change without a tick sound
+    this.setFocus(0, true);
+    sfx.open();
   }
 
   close() {
@@ -128,17 +132,18 @@ export class UiShell {
       this.setFocus((this.focusIdx + input.navY + this.buttons.length) % this.buttons.length);
     }
     if (input.confirm) this.activate(this.focusIdx);
-    else if (input.back || input.pause) this.close();
+    else if (input.back || input.pause) { sfx.close(); this.close(); }
   }
 
   setPrompt(p: { text: string; device: 'kbm' | 'pad' } | null) {
     if (!p) { this.chip.classList.remove('show'); return; }
-    this.chipKey.textContent = p.device === 'pad' ? 'X' : 'E';
+    this.chipKey.textContent = p.device === 'pad' ? 'X' : keyName(OPTIONS.keyInteract);
     this.chipText.textContent = p.text;
     this.chip.classList.add('show');
   }
 
-  private setFocus(i: number) {
+  private setFocus(i: number, silent = false) {
+    if (!silent && i !== this.focusIdx) sfx.focus();
     this.focusIdx = i;
     this.buttons.forEach((b, k) => b.classList.toggle('focus', k === i));
     this.buttons[i]?.scrollIntoView({ block: 'nearest' }); // long lists (job board domains)
@@ -148,6 +153,7 @@ export class UiShell {
     const spec = this.current;
     const action = spec?.actions[i];
     if (!spec || !action) return;
+    sfx.confirm();
     action.onSelect?.();
     // close unless the action explicitly keeps the panel (and nothing else was opened meanwhile)
     if ((action.closes ?? true) && this.current === spec) this.close();

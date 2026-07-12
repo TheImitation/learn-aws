@@ -22,6 +22,9 @@ import { AlarmSystem } from './fx/alarm';
 import { UiShell, esc } from './ui/uiShell';
 import { Journal } from './ui/journal';
 import { Toaster } from './ui/toast';
+import { openOptionsPanel } from './ui/optionsPanel';
+import { wireAudioUnlock } from './core/sfx';
+import { OPTIONS } from './core/options';
 import { FlowSim } from './sim/flowSim';
 import { jobBoardKiosk } from './world/kit';
 import { ObjectiveBanner } from './ui/objective';
@@ -136,13 +139,15 @@ async function boot() {
   const pauseSpec = () => ({
     id: 'pause',
     kicker: 'Paused',
-    title: 'On-Call — test yard',
+    title: `On-Call — profile ${OPTIONS.profile}`,
     bodyHtml: '<div>WASD/stick move · Shift/L3 sprint · Space/Ⓐ jump · E/Ⓧ interact · Tab/Ⓨ journal</div>',
     actions: [
       { label: 'Resume' },
+      { label: 'Options…', closes: false, onSelect: () => openOptionsPanel(ui, (t) => toaster.show(t, 'info', 4)) },
       { label: 'Reset position', onSelect: () => player.teleport(yard.spawn) },
     ],
   });
+  wireAudioUnlock();
 
   let skipObservableTick = false;
   const tick = (dt: number) => {
