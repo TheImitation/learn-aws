@@ -1,6 +1,7 @@
 import {
   CharacterSupportedState,
   PhysicsCharacterController,
+  PhysicsRaycastResult,
   Scalar,
   Scene,
   TransformNode,
@@ -34,6 +35,9 @@ export class PlayerController {
   private wakeTimer = 0;
   private wakeImpulse = new Vector3();
   private wakeAt = new Vector3();
+  private prevFeet = new Vector3();
+  private blockedTime = 0;
+  private stepRay = new PhysicsRaycastResult();
 
   constructor(scene: Scene, spawn: Vector3, visualRoot: TransformNode) {
     this.spawn = spawn.clone();
@@ -66,6 +70,8 @@ export class PlayerController {
     this.cc.setPosition(feet.add(new Vector3(0, CAPSULE_HEIGHT / 2, 0)));
     this.cc.setVelocity(Vector3.Zero());
     this.airborne = false;
+    this.blockedTime = 0;
+    this.prevFeet.copyFrom(feet);
     this.syncVisual(1 / 60);
   }
 
@@ -97,6 +103,7 @@ export class PlayerController {
         this.grounded = false;
       } else {
         vel.y = GROUND_STICK;
+        this.stairAssist(dt, intent, targetSpeed, vel);
       }
     } else {
       // limited air control; gravity handled manually (official CC pattern)
@@ -110,6 +117,7 @@ export class PlayerController {
 
     this.planarSpeed = Math.hypot(vel.x, vel.z);
     this.wakeNearbyBodies(dt);
+    this.prevFeet.copyFrom(this.position);
 
     // Fell off the yard → respawn.
     if (this.cc.getPosition().y < KILL_Y) {
@@ -118,6 +126,35 @@ export class PlayerController {
     }
 
     this.syncVisual(dt, vel);
+  }
+
+  /** Havok's CC only mounts steps with momentum: at walking-stick speeds the solver
+   *  pins the capsule against a riser and kills the velocity (verified live — z froze
+   *  at the first step below ~0.8 input). Detect "pushing but not moving", confirm the
+   *  obstacle is knee-high with clear space above (two forward raycasts), and pop the
+   *  capsule over it — the same momentum mechanism that already works at full speed. */
+  private stairAssist(dt: number, intent: Vector3, targetSpeed: number, vel: Vector3) {
+    if (targetSpeed < 0.5) { this.blockedTime = 0; return; }
+    const feet = this.position;
+    const moved = Math.hypot(feet.x - this.prevFeet.x, feet.z - this.prevFeet.z) / Math.max(dt, 1e-4);
+    if (moved < Math.min(0.35, targetSpeed * 0.3)) this.blockedTime += dt;
+    else this.blockedTime = 0;
+    if (this.blockedTime < 0.08) return;
+    const pe = this.scene.getPhysicsEngine() as unknown as {
+      raycastToRef?: (f: Vector3, t: Vector3, r: PhysicsRaycastResult) => void;
+    } | null;
+    if (!pe?.raycastToRef) return;
+    const reach = CAPSULE_RADIUS + 0.35;
+    // shin ray: is something actually blocking us?
+    const lowFrom = feet.add(new Vector3(0, 0.12, 0));
+    pe.raycastToRef(lowFrom, lowFrom.add(intent.scale(reach)), this.stepRay);
+    if (!this.stepRay.hasHit) return;
+    // headroom ray just above maxStepHeight: is the obstacle low enough to mount?
+    const highFrom = feet.add(new Vector3(0, this.cc.maxStepHeight + 0.15, 0));
+    pe.raycastToRef(highFrom, highFrom.add(intent.scale(reach)), this.stepRay);
+    if (this.stepRay.hasHit) return; // a wall, not a step
+    vel.y = 2.4; // clears ~0.29 m; forward velocity carries the capsule onto the tread
+    this.blockedTime = 0;
   }
 
   /** Sleeping dynamic bodies ignore character contacts entirely (verified live) — nudge
@@ -145,7 +182,10 @@ export class PlayerController {
     this.root.position.set(p.x, p.y - CAPSULE_HEIGHT / 2 - 0.04, p.z); // -0.04: keepDistance hover
     if (vel && this.planarSpeed > 0.4) {
       const targetYaw = Math.atan2(vel.x, vel.z); // front = +Z, matching v1's convention
-      const newYaw = Scalar.LerpAngle(this.root.rotation.y, targetYaw, Math.min(1, 12 * dt));
+      // Shortest signed arc, in RADIANS. (Scalar.LerpAngle wraps at 360/180 —
+      // it is degree-based, and fed radians it spins the long way round.)
+      const delta = Scalar.NormalizeRadians(targetYaw - this.root.rotation.y);
+      const newYaw = Scalar.NormalizeRadians(this.root.rotation.y + delta * Math.min(1, 12 * dt));
       this.yawRate = dt > 0 ? Scalar.NormalizeRadians(newYaw - this.lastYaw) / dt : 0;
       this.root.rotation.y = newYaw;
       this.lastYaw = newYaw;
