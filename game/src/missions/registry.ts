@@ -14,6 +14,8 @@ import {
 } from './specs/secure2';
 import { CLOUDWATCH_SPEC, DR_SPEC, SNS_SPEC, STATELESS_SPEC, STEPFN_SPEC } from './specs/resilient';
 import { BACKUP_SPEC, CFN_SPEC, EVENTBRIDGE_SPEC, MIGRATE_SPEC, PICKMSG_SPEC } from './specs/resilient2';
+import { APIGW_SPEC, BLOCKFILE_SPEC, CDN_SPEC, ECS_SPEC, PANTRY_SPEC } from './specs/hp';
+import { ATHENA_SPEC, AURORA_SPEC, GA_SPEC, KINESIS_SPEC, S3PROTECT_SPEC } from './specs/hp2';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -51,4 +53,14 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'pick-messaging': spec(PICKMSG_SPEC),
   'centralize-backups': spec(BACKUP_SPEC),
   'migrate-data': spec(MIGRATE_SPEC),
+  'store-serve-content': spec(CDN_SPEC),
+  'pick-the-pantry': spec(PANTRY_SPEC),
+  'block-vs-file-storage': spec(BLOCKFILE_SPEC),
+  'containers-ecs': spec(ECS_SPEC),
+  'api-front-door': spec(APIGW_SPEC),
+  'analyse-the-data': spec(ATHENA_SPEC),
+  'aurora-database': spec(AURORA_SPEC),
+  'stream-data-kinesis': spec(KINESIS_SPEC),
+  'global-accelerator': spec(GA_SPEC),
+  's3-protection': spec(S3PROTECT_SPEC),
 };
