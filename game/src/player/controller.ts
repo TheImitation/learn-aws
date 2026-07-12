@@ -37,6 +37,8 @@ export class PlayerController {
   private wakeAt = new Vector3();
   private prevFeet = new Vector3();
   private blockedTime = 0;
+  private stepping = 0; //        remaining stair-pop window (reported as grounded)
+  private unsupportedTime = 0; // coyote-grace clock: airborne only past 0.12 s
   private stepRay = new PhysicsRaycastResult();
 
   constructor(scene: Scene, spawn: Vector3, visualRoot: TransformNode) {
@@ -71,6 +73,8 @@ export class PlayerController {
     this.cc.setVelocity(Vector3.Zero());
     this.airborne = false;
     this.blockedTime = 0;
+    this.stepping = 0;
+    this.unsupportedTime = 0;
     this.prevFeet.copyFrom(feet);
     this.syncVisual(1 / 60);
   }
@@ -86,21 +90,37 @@ export class PlayerController {
     const supported = support.supportedState === CharacterSupportedState.SUPPORTED;
 
     const vel = this.cc.getVelocity().clone();
-    // State transitions: leave the ground on jump or ledge; land only when falling onto support.
+    // Stepping window (stair-assist pop): counts as GROUNDED — the walk animation
+    // keeps playing and planar control stays direct; only the vertical is ballistic.
+    if (this.stepping > 0) {
+      if (supported && vel.y <= 0.1) this.stepping = 0; // landed on the tread
+      else this.stepping -= dt;
+    }
+    // State transitions: leave the ground on jump, or after ~0.12 s of unsupported
+    // FALLING (coyote grace). Rising without support while grounded can only be a
+    // stair pop — jumps flip airborne explicitly — so ascent never ticks the clock.
+    if (supported) this.unsupportedTime = 0;
+    else if (this.airborne || vel.y <= 0.1) this.unsupportedTime += dt;
     if (this.airborne) {
       if (supported && vel.y <= 0.1) this.airborne = false;
-    } else if (!supported) {
+    } else if (this.unsupportedTime > 0.12 && this.stepping <= 0) {
       this.airborne = true;
     }
     this.grounded = !this.airborne;
 
-    if (this.grounded) {
+    if (this.grounded && !input.jump && (this.stepping > 0 || (!supported && vel.y > 0.1))) {
+      // mid-pop (assist or momentum): full planar drive up the step, ballistic vertical
+      vel.x = intent.x * targetSpeed;
+      vel.z = intent.z * targetSpeed;
+      vel.y += GRAVITY.y * dt;
+    } else if (this.grounded) {
       vel.x = intent.x * targetSpeed;
       vel.z = intent.z * targetSpeed;
       if (input.jump) {
         vel.y = JUMP_SPEED;
         this.airborne = true;
         this.grounded = false;
+        this.stepping = 0;
       } else {
         vel.y = GROUND_STICK;
         this.stairAssist(dt, intent, targetSpeed, vel);
@@ -154,6 +174,7 @@ export class PlayerController {
     pe.raycastToRef(highFrom, highFrom.add(intent.scale(reach)), this.stepRay);
     if (this.stepRay.hasHit) return; // a wall, not a step
     vel.y = 2.4; // clears ~0.29 m; forward velocity carries the capsule onto the tread
+    this.stepping = 0.45; // stays "grounded" for the pop's arc (early-exit on landing)
     this.blockedTime = 0;
   }
 
