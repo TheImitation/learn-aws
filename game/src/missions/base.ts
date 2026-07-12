@@ -5,7 +5,8 @@ import { QuizTerminal } from '../ui/quizTerminal';
 import { esc, type PanelAction } from '../ui/uiShell';
 import type { Machine } from '../world/kit';
 import type { MissionDeps } from './manager';
-import type { MissionStep } from './patchNight';
+
+export type MissionStep = 'briefing' | 'investigate' | 'fix' | 'verify' | 'signoff' | 'done';
 
 export interface TicketInfo {
   incident: string; // "INC-4620"

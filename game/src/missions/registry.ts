@@ -1,11 +1,9 @@
 import type { MissionFactory } from './manager';
-import { PatchNightMission } from './patchNight';
-import { CheckoutDownMission } from './checkoutDown';
 import { OrdersVanishingMission } from './ordersVanishing';
-import { LeakedKeyMission } from './leakedKey';
 import { StorageBillMission } from './storageBill';
 import { FlashSaleMission } from './flashSale';
 import { SpecMission, type MissionSpec } from './spec';
+import { CHECKOUT_SPEC, IAM_SPEC, PATCH_NIGHT_SPEC } from './specs/flagships';
 import { DNS_ROUTING_SPEC, MULTIAZ_SPEC, VPC_ENDPOINTS_SPEC } from './specs/pilots';
 import { DETECT_SPEC, KMS_SPEC, SECRETS_SPEC, SG_VS_NACL_SPEC, SSM_SPEC } from './specs/secure';
 import {
@@ -25,10 +23,10 @@ const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMissio
 /** Every playable field mission, keyed by topic id. Bespoke flagships first;
  *  everything after them is declarative (MissionSpec + SpecMission). */
 export const MISSIONS: Record<string, MissionFactory> = {
-  'private-egress-nat': (deps, topic) => new PatchNightMission(deps, topic),
-  'ha-web-app': (deps, topic) => new CheckoutDownMission(deps, topic),
+  'private-egress-nat': spec(PATCH_NIGHT_SPEC),
+  'ha-web-app': spec(CHECKOUT_SPEC),
   'decouple-with-queue-sqs': (deps, topic) => new OrdersVanishingMission(deps, topic),
-  'secure-access-iam': (deps, topic) => new LeakedKeyMission(deps, topic),
+  'secure-access-iam': spec(IAM_SPEC),
   'right-storage-class': (deps, topic) => new StorageBillMission(deps, topic),
   'cache-hot-items': (deps, topic) => new FlashSaleMission(deps, topic),
   'multiaz-vs-replicas': spec(MULTIAZ_SPEC),

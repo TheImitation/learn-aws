@@ -5,7 +5,8 @@ import { conveyor, crowdGate, dlqBin, serverRack, statusConsole, type Machine } 
 import { QuizTerminal } from '../ui/quizTerminal';
 import { esc } from '../ui/uiShell';
 import type { MissionDeps } from './manager';
-import type { MissionStep } from './patchNight';
+import type { MissionStep } from './base';
+
 
 type Provision = 'none' | 'queue' | 'bigworker' | 'retry' | 'cache';
 type Beat = 'burst' | 'flash' | 'poison';

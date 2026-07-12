@@ -2,9 +2,9 @@ import { Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import { crowdGate, routeBoard, shelfUnit, statusConsole } from '../world/kit';
 import { esc } from '../ui/uiShell';
-import { MissionBase, type TicketInfo } from './base';
+import { MissionBase, type MissionStep, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
-import type { MissionStep } from './patchNight';
+
 
 type Policy = 'none' | 'tiered' | 'allda' | 'allia';
 type Beat = 'bill' | 'audit';

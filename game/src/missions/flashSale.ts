@@ -7,9 +7,9 @@ import {
 import type { Carryable } from '../interact/carry';
 import { Socket } from '../interact/sockets';
 import { esc } from '../ui/uiShell';
-import { MissionBase, type TicketInfo } from './base';
+import { MissionBase, type MissionStep, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
-import type { MissionStep } from './patchNight';
+
 
 type Beat = 'load' | 'drill';
 

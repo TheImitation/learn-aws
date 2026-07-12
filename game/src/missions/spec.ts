@@ -1,16 +1,17 @@
 import { Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import {
-  aimPointer, azPlate, chaosLever, crowdGate, dbTower, internetGate, moduleBox, natAirlock,
-  routerArm, serverRack, shelfUnit, socketRing, statusConsole, strobeBeacon, supplyPallet, type Machine,
+  aimPointer, azPlate, badgeDoor, chaosLever, crowdGate, dbTower, internetGate, moduleBox,
+  natAirlock, routerArm, serverRack, shelfUnit, socketRing, statusConsole, strobeBeacon,
+  supplyPallet, type Machine,
 } from '../world/kit';
 import type { Carryable } from '../interact/carry';
 import { Socket } from '../interact/sockets';
 import { sfx } from '../core/sfx';
 import { esc } from '../ui/uiShell';
-import { MissionBase, type DiagnosisSpec, type TicketInfo } from './base';
+import { MissionBase, type DiagnosisSpec, type MissionStep, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
-import type { MissionStep } from './patchNight';
+
 
 /* ------------------------------------------------------------------ schema */
 
@@ -18,7 +19,7 @@ export type V2 = [number, number]; // origin-relative x,z
 
 export type MachineKind =
   | 'crowdGate' | 'serverRack' | 'dbTower' | 'statusConsole' | 'natAirlock'
-  | 'internetGate' | 'shelfUnit' | 'azPlate' | 'aimPointer' | 'chaosLever' | 'routerArm';
+  | 'internetGate' | 'shelfUnit' | 'azPlate' | 'aimPointer' | 'chaosLever' | 'routerArm' | 'badgeDoor';
 
 export interface MachineDef {
   id: string;
@@ -227,6 +228,7 @@ export class SpecMission extends MissionBase {
         case 'aimPointer': m = aimPointer(s, at); break;
         case 'chaosLever': m = chaosLever(s, at, yaw); break;
         case 'routerArm': m = routerArm(s, at); break;
+        case 'badgeDoor': m = badgeDoor(s, at, yaw, String(a[0] ?? '#57c7e3')); break;
         case 'azPlate': {
           const p = azPlate(s, at, Number(a[0] ?? 6), Number(a[1] ?? 6), String(a[2] ?? 'A') as 'A' | 'B');
           m = { root: p.root, anchor: at.add(new Vector3(0, 0.6, 0)), setState: p.setState };
