@@ -100,7 +100,15 @@ export class PlayerController {
     // FALLING (coyote grace). Rising without support while grounded can only be a
     // stair pop — jumps flip airborne explicitly — so ascent never ticks the clock.
     if (supported) this.unsupportedTime = 0;
-    else if (this.airborne || vel.y <= 0.1) this.unsupportedTime += dt;
+    else if (this.airborne || vel.y <= 0.1) {
+      this.unsupportedTime += dt;
+      // Stair-descent snap: sailing over treads loses support for longer than any
+      // sane grace window at speed — but a tread is always just below. If ground
+      // lies within reach, hold the clock: this is a step down, not a fall.
+      if (!this.airborne && this.unsupportedTime > 0.1 && this.groundWithin(0.55)) {
+        this.unsupportedTime = 0.1;
+      }
+    }
     if (this.airborne) {
       if (supported && vel.y <= 0.1) this.airborne = false;
     } else if (this.unsupportedTime > 0.12 && this.stepping <= 0) {
@@ -121,9 +129,20 @@ export class PlayerController {
         this.airborne = true;
         this.grounded = false;
         this.stepping = 0;
-      } else {
-        vel.y = GROUND_STICK;
+      } else if (supported) {
+        // Follow the support surface: project the planar drive onto the slope so
+        // descents hug the ramp (a constant stick can't keep up past ~11° at walk
+        // speed and the capsule skips). Flat ground and stair treads give 0.
+        const n = support.averageSurfaceNormal;
+        let follow = 0;
+        if (n && n.y > 0.35) follow = -(vel.x * n.x + vel.z * n.z) / n.y;
+        vel.y = Scalar.Clamp(follow, -6, 3) + GROUND_STICK;
         this.stairAssist(dt, intent, targetSpeed, vel);
+      } else {
+        // grace-fall (stepping down a tread or off a small edge): let gravity
+        // accumulate so the capsule catches the lower surface within the grace
+        // window instead of floating down at the constant stick speed.
+        vel.y = Math.min(vel.y, 0) + GRAVITY.y * dt;
       }
     } else {
       // limited air control; gravity handled manually (official CC pattern)
@@ -176,6 +195,18 @@ export class PlayerController {
     vel.y = 2.4; // clears ~0.29 m; forward velocity carries the capsule onto the tread
     this.stepping = 0.45; // stays "grounded" for the pop's arc (early-exit on landing)
     this.blockedTime = 0;
+  }
+
+  /** Is there ground within `dist` below the feet? (stair-descent snap probe) */
+  private groundWithin(dist: number): boolean {
+    const pe = this.scene.getPhysicsEngine() as unknown as {
+      raycastToRef?: (f: Vector3, t: Vector3, r: PhysicsRaycastResult) => void;
+    } | null;
+    if (!pe?.raycastToRef) return false;
+    const feet = this.position;
+    const from = feet.add(new Vector3(0, 0.1, 0));
+    pe.raycastToRef(from, from.add(new Vector3(0, -(dist + 0.1), 0)), this.stepRay);
+    return this.stepRay.hasHit;
   }
 
   /** Sleeping dynamic bodies ignore character contacts entirely (verified live) — nudge
