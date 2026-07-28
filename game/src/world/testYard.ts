@@ -9,6 +9,7 @@ import {
   TransformNode,
   Vector3,
 } from '@babylonjs/core';
+import { gridFloorMat } from './textures';
 
 export interface TestYard {
   spawn: Vector3;
@@ -27,7 +28,9 @@ const mat = (scene: Scene, name: string, hex: string) => {
 /** Phase 1 test yard: flat ground, ramps to a platform, stairs, pillars for camera
  *  occlusion, pushable crates, slalom cones. Everything gets a Havok body. */
 export function buildTestYard(scene: Scene): TestYard {
-  const floor = mat(scene, 'y-floor', '#2a2e3a');
+  const floor = gridFloorMat(scene, 'y-floor', 60, 60, {
+    base: '#252a37', line: '#3a4258', bold: '#4a5570', scuff: true,
+  });
   const concrete = mat(scene, 'y-conc', '#565d6e');
   const accent = mat(scene, 'y-accent', '#cf3a33');
   const wood = mat(scene, 'y-wood', '#b8863f');

@@ -7,13 +7,14 @@ import {
   StandardMaterial,
   Vector3,
 } from '@babylonjs/core';
+import { gridFloorMat } from './textures';
 
 /** The standing mission site: a walled pad away from the hub where each accepted
  *  ticket builds its diorama (machines are per-mission; the pad is permanent). */
 export function buildMissionPad(scene: Scene, origin: Vector3) {
-  const floor = new StandardMaterial('mp-floor', scene);
-  floor.diffuseColor = Color3.FromHexString('#242a38');
-  floor.specularColor = Color3.Black();
+  const floor = gridFloorMat(scene, 'mp-floor', 34, 30, {
+    base: '#20242f', line: '#343c52', bold: '#455066', scuff: true,
+  });
   const wallM = new StandardMaterial('mp-wall', scene);
   wallM.diffuseColor = Color3.FromHexString('#3d4456');
   wallM.specularColor = Color3.Black();

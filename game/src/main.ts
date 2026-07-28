@@ -8,6 +8,7 @@ import {
   Vector3,
 } from '@babylonjs/core';
 import { initPhysics } from './core/physicsInit';
+import { buildAtmosphere } from './core/atmosphere';
 import { InputMap, type DebugInput } from './input/inputMap';
 import { buildEngineer } from './player/engineerMesh';
 import { EngineerAnimator } from './player/animator';
@@ -60,6 +61,7 @@ async function boot() {
   const player = new PlayerController(scene, yard.spawn, parts.root);
   const animator = new EngineerAnimator(parts);
   const rig = new ThirdPersonRig(scene, yard.spawn);
+  buildAtmosphere(scene, sun, hemi, rig.camera);
   const hud = new DebugHud();
   const ui = new UiShell();
   const journal = new Journal();
