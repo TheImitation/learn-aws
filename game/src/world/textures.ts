@@ -48,7 +48,7 @@ export function gridTexture(scene: Scene, name: string, opts: GridOpts): Dynamic
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, size - 2, size - 2);
   ctx.globalAlpha = 1;
-  tex.update(false);
+  tex.update();
   return tex;
 }
 
@@ -69,8 +69,48 @@ export function hazardTexture(scene: Scene, name: string, a = '#c9a13b', b = '#2
     ctx.lineTo(x + w, size);
     ctx.fill();
   }
-  tex.update(false);
+  tex.update();
   return tex;
+}
+
+/** A material whose surface is drawn by a canvas callback (signs, dashboards).
+ *  Emissive mode = self-lit signage that feeds the glow layer. */
+export function drawnMat(
+  scene: Scene, name: string,
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
+  wpx = 512, hpx = 256, emissive = true,
+): StandardMaterial {
+  const tex = new DynamicTexture(name + '-tex', { width: wpx, height: hpx }, scene, true);
+  const ctx = tex.getContext() as CanvasRenderingContext2D;
+  draw(ctx, wpx, hpx);
+  tex.update();
+  const m = new StandardMaterial(name, scene);
+  if (emissive) {
+    m.emissiveTexture = tex;
+    m.diffuseColor = Color3.Black();
+    m.disableLighting = true;
+  } else {
+    m.diffuseTexture = tex;
+  }
+  m.specularColor = Color3.Black();
+  return m;
+}
+
+/** Redrawable variant for live dashboards — returns the material and a redraw(). */
+export function liveMat(
+  scene: Scene, name: string, wpx: number, hpx: number,
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
+): { mat: StandardMaterial; redraw: () => void } {
+  const tex = new DynamicTexture(name + '-tex', { width: wpx, height: hpx }, scene, true);
+  const ctx = tex.getContext() as CanvasRenderingContext2D;
+  const redraw = () => { draw(ctx, wpx, hpx); tex.update(); };
+  redraw();
+  const m = new StandardMaterial(name, scene);
+  m.emissiveTexture = tex;
+  m.diffuseColor = Color3.Black();
+  m.disableLighting = true;
+  m.specularColor = Color3.Black();
+  return { mat: m, redraw };
 }
 
 /** A floor material with the standard 2m grid; size = mesh dimension in metres. */

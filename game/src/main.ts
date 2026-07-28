@@ -14,7 +14,8 @@ import { buildEngineer } from './player/engineerMesh';
 import { EngineerAnimator } from './player/animator';
 import { PlayerController } from './player/controller';
 import { ThirdPersonRig } from './camera/thirdPersonRig';
-import { buildTestYard } from './world/testYard';
+import { buildNocCampus } from './world/nocCampus';
+import { DOMAINS } from './content/meta';
 import { DebugHud } from './ui/debugHud';
 import { InteractionSystem, promptText } from './interact/interactionSystem';
 import { CarrySystem } from './interact/carry';
@@ -55,7 +56,21 @@ async function boot() {
   scene.physicsEnabled = false;
   const pe = scene.getPhysicsEngine() as unknown as { _step: (dt: number) => void };
 
-  const yard = buildTestYard(scene);
+  const yard = buildNocCampus(scene, () => {
+    const r = readiness(COURSE.topics);
+    const rec = recommended(COURSE.topics);
+    return {
+      overall: r.overall,
+      attempted: r.attempted,
+      total: r.total,
+      domains: DOMAINS.map((d) => ({
+        label: d.label,
+        accent: d.accent,
+        pct: r.per.find((p) => p.d.key === d.key)?.pct ?? 0,
+      })),
+      recommendedTitle: rec?.title ?? null,
+    };
+  });
   const input = new InputMap(engine, canvas);
   const parts = buildEngineer(scene);
   const player = new PlayerController(scene, yard.spawn, parts.root);
@@ -81,11 +96,11 @@ async function boot() {
       kicker: 'Terminal',
       title: 'Yard status',
       bodyHtml:
-        `<pre>site: TEST-YARD-01        state: <b>NOMINAL</b>\n` +
-        `player systems ..... ok\ncamera rig ......... ok\nhavok world ........ ok</pre>` +
+        `<pre>site: NOC-CAMPUS-01       state: <b>NOMINAL</b>\n` +
+        `ops floor .......... staffed\ndashboard wall ..... live\nfield shuttle ...... standing by</pre>` +
         `<div>${esc('Every machine in a mission opens a panel like this one — logs, configs, gauges.')}</div>`,
       actions: [
-        { label: 'Log to journal', onSelect: () => journal.add('Yard status: all systems nominal.') },
+        { label: 'Log to journal', onSelect: () => journal.add('NOC status: all systems nominal.') },
         { label: 'Close' },
       ],
     }),
@@ -224,6 +239,7 @@ async function boot() {
       pos: () => { const p = player.position; return { x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3) }; },
       grounded: () => player.grounded,
       speed: () => +player.planarSpeed.toFixed(2),
+      teleport: (x: number, y: number, z: number) => player.teleport(new Vector3(x, y, z)),
     },
     cam: () => ({ alpha: +rig.camera.alpha.toFixed(3), beta: +rig.camera.beta.toFixed(3), radius: +rig.camera.radius.toFixed(2) }),
     cratePos: (i: number) => { const c = yard.crates[i]; return c ? { x: +c.position.x.toFixed(2), y: +c.position.y.toFixed(2), z: +c.position.z.toFixed(2) } : null; },

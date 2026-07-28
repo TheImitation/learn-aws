@@ -46,7 +46,7 @@ function skyDome(scene: Scene): Mesh {
   g.addColorStop(1.0, '#06080f');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 4, 512);
-  tex.update(false);
+  tex.update();
 
   const m = new StandardMaterial('sky-m', scene);
   m.emissiveTexture = tex;
@@ -82,7 +82,7 @@ function windowsTexture(scene: Scene): DynamicTexture {
     }
   }
   ctx.globalAlpha = 1;
-  tex.update(false);
+  tex.update();
   return tex;
 }
 
@@ -181,7 +181,8 @@ export function buildAtmosphere(
   shadows.normalBias = 0.02;
   shadows.setDarkness(0.45);
   shadows.filter = CascadedShadowGenerator.FILTER_PCF;
-  shadows.filteringQuality = CascadedShadowGenerator.QUALITY_MEDIUM;
+  shadows.filteringQuality = CascadedShadowGenerator.QUALITY_HIGH;
+  camera.maxZ = 700; // sky dome fits; tighter depth range = cleaner decals/shadows
 
   const registerMesh = (m: AbstractMesh) => {
     if (isEnvShell(m)) return;
