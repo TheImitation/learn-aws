@@ -536,6 +536,7 @@ export function jobBoardKiosk(scene: Scene, at: Vector3, yaw = 0): Machine {
   // local +z with rotation π so it points back toward the approach side
   const face = MeshBuilder.CreatePlane('jb-face', { width: 1.98, height: 1.03 }, scene);
   face.parent = root; face.position.set(0, 1.75, 0.045); face.rotation.y = Math.PI;
+  face.metadata = { noOutline: true };
   face.material = drawnMat(scene, 'jb-board', (ctx, w, h) => {
     ctx.fillStyle = '#0a0f14'; ctx.fillRect(0, 0, w, h);
     ctx.font = '700 26px ui-monospace, Menlo, monospace';
@@ -577,14 +578,17 @@ export function statusConsole(scene: Scene, at: Vector3, yaw = 0): Machine {
   const face = MeshBuilder.CreatePlane('sc-face', { width: 1.1, height: 0.65 }, scene);
   face.parent = root; face.position.set(0, 1.35, 0.045);
   face.rotation.y = Math.PI; face.rotation.x = 0.15;
+  face.metadata = { noOutline: true };
   face.material = drawnMat(scene, 'sc-term' + Math.random(), (ctx, w, h) => {
-    ctx.fillStyle = '#0a1410'; ctx.fillRect(0, 0, w, h);
-    ctx.font = '400 20px ui-monospace, Menlo, monospace';
+    ctx.fillStyle = '#0d1a14'; ctx.fillRect(0, 0, w, h);
+    ctx.font = '700 24px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     const lines = ['field-term v3.2', '$ probe --all', '$ run traffic-test', '$ diagnose'];
-    lines.forEach((l, i) => { ctx.fillStyle = i ? '#3f7d63' : '#7d8aa5'; ctx.fillText(l, 12, 12 + i * 28); });
-    ctx.fillStyle = '#5fd29a'; ctx.fillRect(12, 12 + 4 * 28, 12, 20);
+    lines.forEach((l, i) => { ctx.fillStyle = i ? '#7fe8b4' : '#a8b8d6'; ctx.fillText(l, 12, 10 + i * 30); });
+    ctx.fillStyle = '#8affc4'; ctx.fillRect(12, 10 + 4 * 30, 14, 22);
   }, 256, 160);
+  // (verified live) this face renders emissive as color×texture — white restores it
+  (face.material as StandardMaterial).emissiveColor = Color3.White();
   const setLamp = lamp(scene, root, new Vector3(0.5, 1.85, 0));
   return { root, anchor: at.add(new Vector3(0, 1.2, 0)), setLamp };
 }

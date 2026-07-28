@@ -60,6 +60,9 @@ export class InteractionSystem {
 
   private outline(node: TransformNode, on: boolean) {
     for (const mesh of node.getChildMeshes(false) as AbstractMesh[]) {
+      // thin drawn-screen planes opt out — the inflated outline copy of a flat
+      // plane renders in front of it and blanks the texture
+      if ((mesh.metadata as { noOutline?: boolean } | null)?.noOutline) continue;
       const m = mesh as AbstractMesh & { renderOutline: boolean; outlineColor: Color3; outlineWidth: number };
       m.renderOutline = on;
       if (on) { m.outlineColor = OUTLINE; m.outlineWidth = 0.02; }
