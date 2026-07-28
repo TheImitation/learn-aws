@@ -1,5 +1,6 @@
-import { Vector3 } from '@babylonjs/core';
+import { TransformNode, Vector3 } from '@babylonjs/core';
 import { sfx } from '../core/sfx';
+import { serviceBadge, serviceForLabel } from '../world/badges';
 import type { Carryable } from './carry';
 
 export type SocketVerdict =
@@ -21,6 +22,7 @@ export class Socket {
   readonly spec: SocketSpec;
   occupant: Carryable | null = null;
   private flash = 0;
+  private badge: TransformNode | null = null; // AWS service badge while seated
 
   constructor(spec: SocketSpec) {
     this.spec = spec;
@@ -41,6 +43,16 @@ export class Socket {
     this.occupant = c;
     c.root.position.set(this.spec.at.x, this.spec.at.y + c.halfHeight + 0.05, this.spec.at.z);
     c.root.rotation.set(0, 0, 0);
+    // seated real services earn their AWS badge (parented to the module, so
+    // mission teardown disposes it with everything else)
+    const svc = serviceForLabel(c.label);
+    if (svc) {
+      this.badge = serviceBadge(c.root.getScene(), Vector3.Zero(), svc);
+      if (this.badge) {
+        this.badge.parent = c.root;
+        this.badge.position.set(0, 1.9 - (c.halfHeight + 0.05), 0);
+      }
+    }
     this.spec.ring.setState('ok');
     this.spec.onChange();
   }
@@ -49,6 +61,8 @@ export class Socket {
   takeOut(): Carryable | null {
     const c = this.occupant;
     if (!c) return null;
+    this.badge?.dispose(false, true);
+    this.badge = null;
     this.occupant = null;
     this.spec.ring.setState('empty');
     this.spec.onChange();

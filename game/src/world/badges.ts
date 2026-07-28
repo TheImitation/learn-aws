@@ -61,7 +61,48 @@ export const SERVICES: Record<string, ServiceDef> = {
   cloudwatch: { abbrev: 'CW', label: 'CloudWatch', color: MGMT },
   cloudtrail: { abbrev: 'CT', label: 'CloudTrail', color: MGMT },
   cloudformation: { abbrev: 'CFN', label: 'CloudFormation', color: MGMT },
+  gwep: { abbrev: 'GWE', label: 'Gateway Endpoint', color: NETWORK },
+  tgw: { abbrev: 'TGW', label: 'Transit Gateway', color: NETWORK },
+  vpn: { abbrev: 'VPN', label: 'Site-to-Site VPN', color: NETWORK },
+  dx: { abbrev: 'DX', label: 'Direct Connect', color: NETWORK },
+  ssm: { abbrev: 'SSM', label: 'Systems Manager', color: MGMT },
+  config: { abbrev: 'CFG', label: 'AWS Config', color: MGMT },
+  snowball: { abbrev: 'SBL', label: 'AWS Snowball', color: STORAGE },
 };
+
+/** Service inference from a module's human label — most-specific first. Trap
+ *  modules ("a bigger bucket") name no real service and stay badge-less,
+ *  which is truthful: badges mark services, not correct answers. */
+const LABEL_SERVICE: [string, string][] = [
+  ['dead-letter', 'dlq'],
+  ['cloudfront', 'cloudfront'], ['route 53', 'route53'], ['global accelerator', 'ga'],
+  ['privatelink', 'privatelink'], ['interface endpoint', 'privatelink'],
+  ['gateway endpoint', 'gwep'], ['gateway vpc endpoint', 'gwep'],
+  ['transit gateway', 'tgw'], ['nat gateway', 'nat'], ['internet gateway', 'igw'],
+  ['load balancer', 'alb'], ['auto scaling', 'asg'], ['spot instance', 'ec2'],
+  ['fargate', 'ecs'], ['lambda', 'lambda'], ['ec2', 'ec2'],
+  ['secrets manager', 'secrets'], ['parameter store', 'ssm'], ['session manager', 'ssm'],
+  ['guardduty', 'guardduty'], ['security group', 'sg'], ['network acl', 'nacl'],
+  ['cognito', 'cognito'], ['iam', 'iam'], ['kms', 'kms'], ['waf', 'waf'],
+  ['eventbridge', 'eventbridge'], ['event bus', 'eventbridge'],
+  ['step functions', 'stepfunctions'], ['kinesis', 'kinesis'],
+  ['api gateway', 'apigw'], ['sqs', 'sqs'], ['queue', 'sqs'], ['sns', 'sns'],
+  ['deep archive', 'glacier'], ['glacier', 'glacier'],
+  ['snowball', 'snowball'], ['backup', 'backup'],
+  ['ebs', 'ebs'], ['efs', 'efs'], ['s3', 's3'],
+  ['aurora', 'aurora'], ['dynamodb', 'dynamodb'],
+  ['elasticache', 'elasticache'], ['redis', 'elasticache'], ['memcached', 'elasticache'],
+  ['read replica', 'rds'], ['multi-az', 'rds'], ['standby', 'rds'], ['rds', 'rds'],
+  ['cloudwatch', 'cloudwatch'], ['cloudtrail', 'cloudtrail'],
+  ['aws config', 'config'], ['cloudformation', 'cloudformation'],
+  ['direct connect', 'dx'], ['vpn', 'vpn'],
+];
+
+export function serviceForLabel(label: string): string | null {
+  const l = label.toLowerCase();
+  for (const [needle, key] of LABEL_SERVICE) if (l.includes(needle)) return key;
+  return null;
+}
 
 /** Kind-based defaults — ONLY kinds whose service is unambiguous across every
  *  mission that uses them. Anything context-dependent (shelfUnit, badgeDoor)
