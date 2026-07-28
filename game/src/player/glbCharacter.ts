@@ -26,7 +26,8 @@ const RUN_SPAN = 1.9; //    m/s of blend room up to sprint speed
 
 export async function loadWorkerCharacter(scene: Scene): Promise<CharacterRig | null> {
   try {
-    const result = await SceneLoader.ImportMeshAsync('', '/assets/', 'engineer.glb', scene);
+    // BASE_URL-aware: '/' in dev, '/learn-aws/' on GitHub Pages
+    const result = await SceneLoader.ImportMeshAsync('', import.meta.env.BASE_URL + 'assets/', 'engineer.glb', scene);
     const glbRoot = result.meshes[0];
     const root = new TransformNode('engineer', scene);
 
