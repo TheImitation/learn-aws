@@ -9,6 +9,7 @@ import {
   TransformNode,
   Vector3,
 } from '@babylonjs/core';
+import { drawnMat, hazardTexture } from './textures';
 
 /** Diegetic machine factories — the "cloud campus" prop vocabulary. Each returns its
  *  root, a token anchor (where FlowSim tokens dock), and optional lamp/update hooks. */
@@ -52,6 +53,15 @@ export function serverRack(scene: Scene, at: Vector3, yaw = 0): Machine {
   const body = MeshBuilder.CreateBox('rack-b', { width: 0.9, height: 1.9, depth: 0.7 }, scene);
   body.parent = root; body.position.y = 0.95; body.material = solid(scene, 'rack-m', '#232733');
   new PhysicsAggregate(body, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  const trim = solid(scene, 'rack-trim', '#3a4152');
+  const plinth = MeshBuilder.CreateBox('rack-pl', { width: 1.0, height: 0.12, depth: 0.8 }, scene);
+  plinth.parent = root; plinth.position.y = 0.06; plinth.material = trim;
+  for (let i = 0; i < 3; i++) { // top vent fins
+    const fin = MeshBuilder.CreateBox('rack-fin', { width: 0.7, height: 0.04, depth: 0.09 }, scene);
+    fin.parent = root; fin.position.set(0, 1.93, -0.18 + i * 0.18); fin.material = trim;
+  }
+  const handle = MeshBuilder.CreateBox('rack-h', { width: 0.04, height: 0.34, depth: 0.04 }, scene);
+  handle.parent = root; handle.position.set(-0.38, 1.1, 0.37); handle.material = trim;
   const ledMats: StandardMaterial[] = [];
   for (let i = 0; i < 4; i++) {
     const led = MeshBuilder.CreateBox('led', { width: 0.62, height: 0.05, depth: 0.02 }, scene);
@@ -59,11 +69,27 @@ export function serverRack(scene: Scene, at: Vector3, yaw = 0): Machine {
     const lm = glow(scene, 'led-m', i % 2 ? '#57c7e3' : '#2c6e4f');
     led.material = lm; ledMats.push(lm);
   }
+  // spinning intake fan — the rack is alive
+  const fanPivot = new TransformNode('rack-fan', scene);
+  fanPivot.parent = root; fanPivot.position.set(0.24, 1.72, 0.365);
+  const bladeM = solid(scene, 'rack-blade', '#151821');
+  for (const r of [0, Math.PI / 2]) {
+    const blade = MeshBuilder.CreateBox('rack-fb', { width: 0.24, height: 0.045, depth: 0.012 }, scene);
+    blade.parent = fanPivot; blade.rotation.z = r; blade.material = bladeM;
+  }
+  const fanRim = MeshBuilder.CreateTorus('rack-fr', { diameter: 0.28, thickness: 0.025, tessellation: 14 }, scene);
+  fanRim.parent = root; fanRim.position.set(0.24, 1.72, 0.365); fanRim.rotation.x = Math.PI / 2;
+  fanRim.material = trim;
   const setLamp = lamp(scene, root, new Vector3(0, 2.02, 0));
   let t = Math.random() * 10;
   return {
     root, anchor: at.add(new Vector3(0, 1.0, 0)), setLamp,
-    update: (dt) => { t += dt; ledMats[0].emissiveColor.g = 0.55 + Math.sin(t * 9) * 0.25; ledMats[2].emissiveColor.b = 0.6 + Math.sin(t * 13 + 1) * 0.3; },
+    update: (dt) => {
+      t += dt;
+      fanPivot.rotation.z += dt * 9;
+      ledMats[0].emissiveColor.g = 0.55 + Math.sin(t * 9) * 0.25;
+      ledMats[2].emissiveColor.b = 0.6 + Math.sin(t * 13 + 1) * 0.3;
+    },
   };
 }
 
@@ -147,13 +173,31 @@ export function dbTower(scene: Scene, at: Vector3): Machine {
   const root = new TransformNode('db', scene);
   root.position.copyFrom(at);
   const m = solid(scene, 'db-m', '#4b3f68');
+  const seam = solid(scene, 'db-s', '#332b47');
   for (let i = 0; i < 3; i++) {
     const disc = MeshBuilder.CreateCylinder('db-d', { diameter: 1.0, height: 0.42, tessellation: 18 }, scene);
     disc.parent = root; disc.position.y = 0.25 + i * 0.5; disc.material = m;
     if (i === 0) new PhysicsAggregate(disc, PhysicsShapeType.CYLINDER, { mass: 0 }, scene);
+    if (i < 2) {
+      const gap = MeshBuilder.CreateCylinder('db-gap', { diameter: 0.94, height: 0.08, tessellation: 18 }, scene);
+      gap.parent = root; gap.position.y = 0.5 + i * 0.5; gap.material = seam;
+    }
   }
+  // slow data ring — reads as replication heartbeat
+  const ringM = glow(scene, 'db-ring', '#8f7ae6');
+  const ring = MeshBuilder.CreateTorus('db-r', { diameter: 1.08, thickness: 0.035, tessellation: 22 }, scene);
+  ring.parent = root; ring.position.y = 0.75; ring.material = ringM;
   const setLamp = lamp(scene, root, new Vector3(0, 1.75, 0));
-  return { root, anchor: at.add(new Vector3(0, 1.0, 0)), setLamp };
+  let t = Math.random() * 5;
+  return {
+    root, anchor: at.add(new Vector3(0, 1.0, 0)), setLamp,
+    update: (dt) => {
+      t += dt;
+      ring.position.y = 0.35 + ((t * 0.35) % 1) * 0.8;
+      const k = 0.45 + 0.3 * Math.sin(t * 3);
+      ringM.emissiveColor.set(0.56 * k, 0.48 * k, 0.9 * k);
+    },
+  };
 }
 
 /** The chaos-drill lever: pull it to fail an Availability Zone. */
@@ -163,6 +207,15 @@ export function chaosLever(scene: Scene, at: Vector3, yaw = 0): Machine & { setP
   const base = MeshBuilder.CreateBox('ch-base', { width: 0.6, height: 0.5, depth: 0.45 }, scene);
   base.parent = root; base.position.y = 0.25; base.material = solid(scene, 'ch-b', '#5a2330');
   new PhysicsAggregate(base, PhysicsShapeType.BOX, { mass: 0 }, scene);
+  // hazard-painted drill plate
+  const plateM = new StandardMaterial('ch-plate', scene);
+  const plateT = hazardTexture(scene, 'ch-plate-t' + Math.random(), '#c9a13b', '#2a1518');
+  plateT.uScale = 2;
+  plateM.diffuseTexture = plateT;
+  plateM.specularColor = Color3.Black();
+  const plate = MeshBuilder.CreateGround('ch-plate', { width: 1.5, height: 1.2 }, scene);
+  plate.parent = root; plate.position.y = 0.045; plate.material = plateM;
+  plate.metadata = { noShadow: true };
   const arm = MeshBuilder.CreateBox('ch-arm', { width: 0.08, height: 0.7, depth: 0.08 }, scene);
   arm.parent = root; arm.position.y = 0.75; arm.rotation.x = -0.55;
   arm.material = solid(scene, 'ch-a', '#c8cdd8');
@@ -478,7 +531,33 @@ export function jobBoardKiosk(scene: Scene, at: Vector3, yaw = 0): Machine {
     new PhysicsAggregate(leg, PhysicsShapeType.BOX, { mass: 0 }, scene);
   }
   const panel = MeshBuilder.CreateBox('jb-panel', { width: 2.1, height: 1.15, depth: 0.08 }, scene);
-  panel.parent = root; panel.position.y = 1.75; panel.material = glow(scene, 'jb-g', '#1d4030');
+  panel.parent = root; panel.position.y = 1.75; panel.material = solid(scene, 'jb-back', '#12151d');
+  // kiosks are placed with yaw π facing the plaza — the readable face goes on
+  // local +z with rotation π so it points back toward the approach side
+  const face = MeshBuilder.CreatePlane('jb-face', { width: 1.98, height: 1.03 }, scene);
+  face.parent = root; face.position.set(0, 1.75, 0.045); face.rotation.y = Math.PI;
+  face.material = drawnMat(scene, 'jb-board', (ctx, w, h) => {
+    ctx.fillStyle = '#0a0f14'; ctx.fillRect(0, 0, w, h);
+    ctx.font = '700 26px ui-monospace, Menlo, monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = '#5fd29a';
+    ctx.fillText('OPEN TICKETS', 18, 14);
+    ctx.strokeStyle = '#1d4030'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(16, 48); ctx.lineTo(w - 16, 48); ctx.stroke();
+    const rows: [string, string, string][] = [
+      ['INC-2107', 'SEV-2', '#e8c07a'],
+      ['INC-2301', 'SEV-3', '#5fd29a'],
+      ['INC-1288', 'SEV-1', '#e85f5f'],
+      ['INC-2455', 'SEV-3', '#5fd29a'],
+      ['INC-1930', 'SEV-2', '#e8c07a'],
+    ];
+    ctx.font = '400 21px ui-monospace, Menlo, monospace';
+    rows.forEach(([inc, sev, c], i) => {
+      const y = 62 + i * 34;
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(26, y + 10, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#9fb3d1'; ctx.fillText(`${inc}  ${sev}  awaiting engineer`, 44, y);
+    });
+  }, 512, 256);
   const header = MeshBuilder.CreateBox('jb-head', { width: 2.1, height: 0.16, depth: 0.09 }, scene);
   header.parent = root; header.position.y = 2.42; header.material = glow(scene, 'jb-h', '#5fd29a');
   const setLamp = lamp(scene, root, new Vector3(1.15, 2.42, 0));
@@ -494,7 +573,18 @@ export function statusConsole(scene: Scene, at: Vector3, yaw = 0): Machine {
   new PhysicsAggregate(post, PhysicsShapeType.BOX, { mass: 0 }, scene);
   const screen = MeshBuilder.CreateBox('sc-screen', { width: 1.2, height: 0.75, depth: 0.07 }, scene);
   screen.parent = root; screen.position.y = 1.35; screen.rotation.x = -0.15;
-  screen.material = glow(scene, 'sc-g', '#173226');
+  screen.material = solid(scene, 'sc-back', '#12151d');
+  const face = MeshBuilder.CreatePlane('sc-face', { width: 1.1, height: 0.65 }, scene);
+  face.parent = root; face.position.set(0, 1.35, 0.045);
+  face.rotation.y = Math.PI; face.rotation.x = 0.15;
+  face.material = drawnMat(scene, 'sc-term' + Math.random(), (ctx, w, h) => {
+    ctx.fillStyle = '#0a1410'; ctx.fillRect(0, 0, w, h);
+    ctx.font = '400 20px ui-monospace, Menlo, monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    const lines = ['field-term v3.2 · site 07', '$ probe --all', '$ run traffic-test', '$ diagnose'];
+    lines.forEach((l, i) => { ctx.fillStyle = i ? '#3f7d63' : '#7d8aa5'; ctx.fillText(l, 12, 12 + i * 28); });
+    ctx.fillStyle = '#5fd29a'; ctx.fillRect(12, 12 + 4 * 28, 12, 20);
+  }, 256, 160);
   const setLamp = lamp(scene, root, new Vector3(0.5, 1.85, 0));
   return { root, anchor: at.add(new Vector3(0, 1.2, 0)), setLamp };
 }

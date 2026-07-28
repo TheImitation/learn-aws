@@ -1,4 +1,4 @@
-import { Vector3 } from '@babylonjs/core';
+import { Color3, MeshBuilder, StandardMaterial, Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import {
   aimPointer, azPlate, badgeDoor, chaosLever, crowdGate, dbTower, internetGate, moduleBox,
@@ -188,6 +188,7 @@ export class SpecMission extends MissionBase {
     this.wireLevers();
     this.wireTerminal();
     this.wireSim();
+    this.buildCables();
     this.applyLamps();
   }
 
@@ -525,6 +526,51 @@ export class SpecMission extends MissionBase {
         this.evalBeat(beat);
       }
     };
+  }
+
+  /** Physical cable runs tracing the sim graph — the architecture is readable
+   *  in the world itself. Sagging floor cables between connected node anchors. */
+  private buildCables() {
+    const s = this.d.scene;
+    const anchorOf = (id: string): Vector3 | null => {
+      const def = (this.spec.sim ?? []).find((n) => n.id === id);
+      if (!def) return null;
+      return def.machine
+        ? this.machines.get(def.machine)!.anchor.clone()
+        : this.v(def.at!).add(new Vector3(0, 0.95, 0));
+    };
+    let mat: StandardMaterial | null = null;
+    const drawn = new Set<string>();
+    for (const def of this.spec.sim ?? []) {
+      const from = anchorOf(def.id);
+      if (!from) continue;
+      for (const r of def.route) {
+        if (r.to === 'deliver' || r.to === 'drop') continue;
+        const key = [def.id, r.to].sort().join('>');
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        const to = anchorOf(r.to);
+        if (!to) continue;
+        if (!mat) {
+          mat = new StandardMaterial('cable-m', s);
+          mat.diffuseColor = Color3.FromHexString('#10141d');
+          mat.emissiveColor = Color3.FromHexString('#16283c');
+          mat.specularColor = Color3.Black();
+        }
+        const mid = from.add(to).scale(0.5);
+        const path = [
+          from,
+          new Vector3(from.x * 0.7 + mid.x * 0.3, 0.35, from.z * 0.7 + mid.z * 0.3),
+          new Vector3(mid.x, 0.07, mid.z),
+          new Vector3(to.x * 0.7 + mid.x * 0.3, 0.35, to.z * 0.7 + mid.z * 0.3),
+          to,
+        ];
+        const tube = MeshBuilder.CreateTube('cable', { path, radius: 0.028, tessellation: 8 }, s);
+        tube.material = mat;
+        tube.isPickable = false;
+        this.ownNode(tube);
+      }
+    }
   }
 
   /* ------------------------------------------------------------ mechanics */

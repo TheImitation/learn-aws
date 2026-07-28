@@ -48,9 +48,36 @@ export function buildEngineer(scene: Scene): EngineerParts {
   hat.position.y = 1.1;
   const brim = add(MeshBuilder.CreateCylinder('brim', { diameter: 0.36, height: 0.025, tessellation: 14 }, scene), body, hatY);
   brim.position.y = 1.05;
-  // tool bag
+  // headlamp on the hat + goggles band — this engineer works nights
+  const lampGlow = new StandardMaterial('eng-lamp', scene);
+  lampGlow.emissiveColor = Color3.FromHexString('#f2e3b3');
+  lampGlow.diffuseColor = Color3.Black();
+  const lampBody = add(MeshBuilder.CreateBox('hl', { width: 0.08, height: 0.05, depth: 0.04 }, scene), body, navy);
+  lampBody.position.set(0, 1.11, 0.13);
+  const lampLens = add(MeshBuilder.CreateBox('hl-l', { width: 0.06, height: 0.035, depth: 0.012 }, scene), body, lampGlow as StandardMaterial);
+  lampLens.position.set(0, 1.11, 0.152);
+  const goggles = add(MeshBuilder.CreateBox('gg', { width: 0.235, height: 0.045, depth: 0.05 }, scene), body, navy);
+  goggles.position.set(0, 1.0, 0.09);
+  // tool bag + straps + a stub antenna (the pager never sleeps)
   const bag = add(MeshBuilder.CreateBox('bag', { width: 0.24, height: 0.26, depth: 0.1 }, scene), body, bagB);
   bag.position.set(0, 0.66, -0.16);
+  for (const sx of [-0.09, 0.09]) {
+    const strap = add(MeshBuilder.CreateBox('strap', { width: 0.05, height: 0.4, depth: 0.22 }, scene), body, bagB);
+    strap.position.set(sx, 0.72, -0.045);
+  }
+  const antenna = add(MeshBuilder.CreateCylinder('ant', { diameter: 0.018, height: 0.34, tessellation: 6 }, scene), body, navy);
+  antenna.position.set(-0.09, 0.92, -0.2);
+  const antTipM = new StandardMaterial('eng-ant', scene);
+  antTipM.emissiveColor = Color3.FromHexString('#5fd29a');
+  antTipM.diffuseColor = Color3.Black();
+  const antTip = add(MeshBuilder.CreateSphere('ant-t', { diameter: 0.035, segments: 6 }, scene), body, antTipM as StandardMaterial);
+  antTip.position.set(-0.09, 1.1, -0.2);
+  let tBlink = 0;
+  scene.onBeforeRenderObservable.add(() => {
+    tBlink += scene.getEngine().getDeltaTime() / 1000;
+    const on = (tBlink % 2.2) < 0.12;
+    antTipM.emissiveColor.copyFrom(Color3.FromHexString(on ? '#8affc4' : '#1d4030'));
+  });
 
   // limbs on pivots
   const pivot = (name: string, x: number, y: number) => {
@@ -72,6 +99,16 @@ export function buildEngineer(scene: Scene): EngineerParts {
   limb(armR, 0.09, vest);
   limb(legL, 0.12, navy);
   limb(legR, 0.12, navy);
+  // gloves + boots
+  const glove = (p: TransformNode) => {
+    const gm = add(MeshBuilder.CreateBox('glove', { width: 0.1, height: 0.09, depth: 0.1 }, scene), p, navy);
+    gm.position.y = -0.42;
+  };
+  const boot = (p: TransformNode) => {
+    const bm = add(MeshBuilder.CreateBox('boot', { width: 0.13, height: 0.09, depth: 0.2 }, scene), p, bagB);
+    bm.position.set(0, -0.44, 0.03);
+  };
+  glove(armL); glove(armR); boot(legL); boot(legR);
 
   return { root, body, armL, armR, legL, legR };
 }
