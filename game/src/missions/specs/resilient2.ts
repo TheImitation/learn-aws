@@ -435,7 +435,7 @@ export const BACKUP_SPEC: MissionSpec = {
   summary: 'Symptom: ad-hoc per-service backups — inconsistent, unverifiable, and deletable by anyone with credentials. Fix: AWS Backup — one policy-based backup PLAN with tag-based resource selection covering EBS, RDS, DynamoDB, and EFS together, central compliance reporting, retention rules, and cross-Region (ideally cross-account) copies so a Region outage or a compromised account can’t take the backups with it. Vault Lock in COMPLIANCE mode makes recovery points immutable — ransomware and admins alike can’t delete them.',
   level: [
     { id: 'estate', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
-    { id: 'vault', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#8f7ae6', true] },
+    { id: 'vault', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#8f7ae6', true], service: 'backup' },
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [4, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
@@ -577,9 +577,9 @@ export const MIGRATE_SPEC: MissionSpec = {
   objectiveDone: 'INC-9414 closed — trucks for the bulk, DataSync for the deltas.',
   summary: 'Symptom: 500 TB against a 463-day wire and a two-week deadline, plus a month of nightly NFS deltas. Fix: match transfer to volume and frequency — AWS Snowball devices move the 500 TB OFFLINE (ship, load, AWS ingests: days, not years), while AWS DataSync handles the ONLINE incremental NFS→EFS sync nightly with verification and bandwidth throttling. Big and one-off goes by truck; ongoing and incremental goes by wire.',
   level: [
-    { id: 'archive', kind: 'shelfUnit', at: [-4.5, 1.5], yaw: Math.PI / 2, args: ['#e8a657'] },
+    { id: 'archive', kind: 'shelfUnit', at: [-4.5, 1.5], yaw: Math.PI / 2, args: ['#e8a657'], service: 'none' },
     { id: 'link', kind: 'internetGate', at: [1, 1.5], yaw: Math.PI / 2 },
-    { id: 'cloud', kind: 'shelfUnit', at: [6, 1.5], yaw: -Math.PI / 2, args: ['#57c7e3'] },
+    { id: 'cloud', kind: 'shelfUnit', at: [6, 1.5], yaw: -Math.PI / 2, args: ['#57c7e3'], service: 's3' },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
   decor: [

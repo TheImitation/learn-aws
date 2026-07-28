@@ -573,7 +573,7 @@ export const COGNITO_SPEC: MissionSpec = {
   summary: 'Symptom: a homemade passwords table (no MFA, no social login) and a plan to embed AWS keys in a mobile app for S3 uploads. Fix: a Cognito USER POOL for end-user sign-up/sign-in (MFA, Google federation, hosted UI; the API verifies the issued JWT) plus a Cognito IDENTITY POOL to exchange that verified identity for TEMPORARY, scoped AWS credentials for the direct S3 upload. IAM stays for AWS principals — never mint IAM users for app customers.',
   level: [
     { id: 'app', kind: 'serverRack', at: [-4, 1.5], yaw: Math.PI / 2 },
-    { id: 'uploader', kind: 'shelfUnit', at: [5.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'] },
+    { id: 'uploader', kind: 'shelfUnit', at: [5.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'], service: 's3' },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
   decor: [
@@ -707,7 +707,7 @@ export const CLOUDTRAIL_SPEC: MissionSpec = {
   summary: 'Symptom: a destructive API call with no trace — no who, no where, no when. Fix: a multi-Region CloudTrail trail recording management events to S3 (who called which API, from which IP, when — across all Regions), hardened against tampering with S3 Object Lock/MFA-delete and CloudTrail log-file validation. CloudWatch graphs metrics, Config tracks resource STATE — only CloudTrail records the ACTOR.',
   level: [
     { id: 'wreck', kind: 'serverRack', at: [3.5, 1.5], yaw: Math.PI / 2 },
-    { id: 'vault', kind: 'shelfUnit', at: [-4.5, 2], yaw: Math.PI / 2, args: ['#8f7ae6', true] },
+    { id: 'vault', kind: 'shelfUnit', at: [-4.5, 2], yaw: Math.PI / 2, args: ['#8f7ae6', true], service: 's3' },
     { id: 'lever', kind: 'chaosLever', at: [3, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
@@ -855,7 +855,7 @@ export const COMPLIANT_SPEC: MissionSpec = {
   objectiveDone: 'INC-4571 closed — drift detected, corrected, and documented.',
   summary: 'Symptom: recurring configuration drift (a bucket going public) caught late by humans. Fix: AWS Config — a recorder of resource configuration state with RULES that evaluate continuously and an AUTOMATIC REMEDIATION action that flips the bucket private within minutes, plus the full resource timeline auditors need. CloudTrail tells you who made the change; Config knows the resource is STILL wrong and can fix it. Detection without remediation is a todo list.',
   level: [
-    { id: 'bucket', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'] },
+    { id: 'bucket', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'], service: 's3' },
     { id: 'desk', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
     { id: 'dial', kind: 'aimPointer', at: [0.5, -2] },
     { id: 'lever', kind: 'chaosLever', at: [4, -4.2] },

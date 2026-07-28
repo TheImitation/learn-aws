@@ -14,7 +14,7 @@ export const ATHENA_SPEC: MissionSpec = {
   objectiveDone: 'INC-8330 closed — serverless SQL over Parquet.',
   summary: 'Symptom: occasional ad-hoc SQL paying for an always-on warehouse, scanning raw JSON end to end. Fix: Amazon Athena — serverless SQL directly over the S3 data lake, pay per query, no cluster — over data converted to a COLUMNAR format (Parquet/ORC) and partitioned, so each query scans only the columns and partitions it needs. Redshift stays the right answer for the OTHER shape: heavy, repeated, all-day BI joins over terabytes.',
   level: [
-    { id: 'lake', kind: 'shelfUnit', at: [-4.5, 1.5], yaw: Math.PI / 2, args: ['#57c7e3'] },
+    { id: 'lake', kind: 'shelfUnit', at: [-4.5, 1.5], yaw: Math.PI / 2, args: ['#57c7e3'], service: 's3' },
     { id: 'cluster', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2 },
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
@@ -508,7 +508,7 @@ export const S3PROTECT_SPEC: MissionSpec = {
   objectiveDone: 'INC-5900 closed — every overwrite undoable, every backup untouchable.',
   summary: 'Symptom: a mass overwrite with no undo, plus a regulatory demand for admin-proof immutability. Fix: S3 VERSIONING — every overwrite/delete keeps the previous version, so recovery is “restore prior versions”, and it must be ON BEFORE the accident; plus S3 OBJECT LOCK in COMPLIANCE mode with a 7-year retention on the backup objects — undeletable by everyone including root, for the whole period. S3’s 11-nines durability protects against hardware, not against you; versioning and lock protect against people.',
   level: [
-    { id: 'bucket', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'] },
+    { id: 'bucket', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'], service: 's3' },
     { id: 'letter', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },

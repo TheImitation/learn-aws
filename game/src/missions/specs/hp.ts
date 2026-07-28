@@ -15,7 +15,7 @@ export const CDN_SPEC: MissionSpec = {
   summary: 'Symptom: one-Region S3 serving the planet raw, and never-read logs parked in Standard for seven years. Fix: CloudFront in front of the bucket — edge locations cache near users, cutting latency and origin load (first hit per edge is a cache miss that fills from origin; tune TTLs). Cold logs transition by lifecycle rule to Glacier Deep Archive: hours-long retrieval is fine for data you hope never to read. S3 stays the durable origin; the CDN does the running around.',
   level: [
     { id: 'users', kind: 'crowdGate', at: [-8, 0], yaw: Math.PI / 2 },
-    { id: 'bucket', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'] },
+    { id: 'bucket', kind: 'shelfUnit', at: [4.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'], service: 's3' },
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],

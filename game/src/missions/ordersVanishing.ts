@@ -3,6 +3,7 @@ import type { Topic } from '@content';
 import { recordProgress } from '../core/progress';
 import { conveyor, crowdGate, dlqBin, serverRack, statusConsole, type Machine } from '../world/kit';
 import { crateStack, floorZone, hazardStrip, siteLight, zoneSign } from '../world/decor';
+import { serviceBadge } from '../world/badges';
 import type { TransformNode } from '@babylonjs/core';
 import { QuizTerminal } from '../ui/quizTerminal';
 import { esc } from '../ui/uiShell';
@@ -92,6 +93,7 @@ export class OrdersVanishingMission {
     const term = statusConsole(s, o.add(new Vector3(-4, 0, -6.5)), Math.PI);
     if (worker.update) this.updaters.push(worker.update);
     this.m = { gate, worker, term };
+    this.decorNodes.push(serviceBadge(s, o.add(new Vector3(6, 2.55, 0)), 'ec2')!);
     const glow = (name: string, hex: string) => {
       const mat = new StandardMaterial(name, s);
       mat.emissiveColor = Color3.FromHexString(hex);
@@ -304,6 +306,8 @@ export class OrdersVanishingMission {
     this.provision = p;
     if (p === 'queue') {
       this.conveyorM = conveyor(this.d.scene, this.d.origin.add(new Vector3(-7.2, 0, 0)), 11.4);
+      const sqsBadge = serviceBadge(this.d.scene, new Vector3(5.7, 2.3, 0), 'sqs')!;
+      sqsBadge.parent = this.conveyorM.root; // rides the belt's lifecycle
     } else if (p === 'bigworker') {
       this.m.worker.root.scaling.setAll(1.3);
     }
@@ -312,6 +316,8 @@ export class OrdersVanishingMission {
   private attachDlq() {
     this.dlqAttached = true;
     this.bin = dlqBin(this.d.scene, this.d.origin.add(new Vector3(5.5, 0, 2.2)));
+    const dlqBadge = serviceBadge(this.d.scene, new Vector3(0, 1.9, 0), 'dlq')!;
+    dlqBadge.parent = this.bin.root;
     this.bin.setLamp?.('ok');
     this.d.journal.add('Dead-letter bin attached: after 3 failed receives, poison orders are set aside instead of blocking the line.');
     this.d.ui.open({

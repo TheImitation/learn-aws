@@ -344,8 +344,8 @@ export const IAM_SPEC: MissionSpec = {
   summary: 'Symptom: a long-lived access key in a public gist — and rotating to a fresh key with the same policy just reloads the same gun. Fix: an IAM ROLE for the CI instance — temporary, automatically-rotated credentials via STS, so there is no long-lived secret to leak, scoped to LEAST PRIVILEGE (assets write, nothing else), so even a stolen credential can’t touch payroll. AdministratorAccess on a pipeline is a blast radius, root keys in a pipeline are a resignation letter, and an explicit Deny (SCP/boundary) always beats an Allow.',
   level: [
     { id: 'ci', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
-    { id: 'assets', kind: 'badgeDoor', at: [4.5, 3], yaw: -Math.PI / 2, args: ['#5fd29a'] },
-    { id: 'payroll', kind: 'badgeDoor', at: [4.5, -0.5], yaw: -Math.PI / 2, args: ['#e85f5f'] },
+    { id: 'assets', kind: 'badgeDoor', at: [4.5, 3], yaw: -Math.PI / 2, args: ['#5fd29a'], service: 'iam' },
+    { id: 'payroll', kind: 'badgeDoor', at: [4.5, -0.5], yaw: -Math.PI / 2, args: ['#e85f5f'], service: 'iam' },
     { id: 'lever', kind: 'chaosLever', at: [0, -4.5] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],

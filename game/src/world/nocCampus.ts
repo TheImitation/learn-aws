@@ -288,15 +288,18 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
   }
   const roof = MeshBuilder.CreateBox('nc-canopy-r', { width: 4.2, height: 0.14, depth: 3.4 }, scene);
   roof.parent = canopy; roof.position.set(0, 2.97, 0); roof.rotation.z = 0.045; roof.material = steelLight;
-  const jbSign = MeshBuilder.CreatePlane('nc-jb-sign', { width: 2.6, height: 0.5 }, scene);
-  jbSign.parent = canopy; jbSign.position.set(0, 3.35, -1.55);
+  const jbSign = MeshBuilder.CreatePlane('nc-jb-sign', { width: 2.6, height: 0.78 }, scene);
+  jbSign.parent = canopy; jbSign.position.set(0, 3.45, -1.55);
   jbSign.material = drawnMat(scene, 'nc-jb-sign', (ctx, w, h) => {
     ctx.fillStyle = '#101620'; ctx.fillRect(0, 0, w, h);
-    ctx.font = '700 72px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '700 68px ui-monospace, Menlo, monospace';
     ctx.fillStyle = '#e8c07a';
-    ctx.fillText('JOB BOARD', w / 2, h / 2 + 2);
-  }, 512, 96);
+    ctx.fillText('JOB BOARD', w / 2, 46);
+    ctx.font = '700 30px ui-monospace, Menlo, monospace';
+    ctx.fillStyle = '#8da3c4';
+    ctx.fillText('take a ticket · start a mission', w / 2, 112);
+  }, 512, 150);
   jbSign.material.backFaceCulling = false;
 
   // warm plaza light + cool bullpen light (scene light budget: hemi+sun+these = 4)
@@ -423,16 +426,19 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
   }
 
   // ============ loading dock (south-east) ============
-  const dockSign = MeshBuilder.CreatePlane('nc-dock-sign', { width: 4.2, height: 0.6 }, scene);
+  const dockSign = MeshBuilder.CreatePlane('nc-dock-sign', { width: 4.2, height: 0.82 }, scene);
   dockSign.position.set(20, 3.2, -27.2);
   dockSign.rotation.y = Math.PI; // read from the north (dock side)
   dockSign.material = drawnMat(scene, 'nc-dock-sign', (ctx, w, h) => {
     ctx.fillStyle = '#141821'; ctx.fillRect(0, 0, w, h);
-    ctx.font = '700 56px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '700 54px ui-monospace, Menlo, monospace';
     ctx.fillStyle = '#e8801f';
-    ctx.fillText('RECEIVING · DOCK 1', w / 2, h / 2);
-  }, 768, 96);
+    ctx.fillText('RECEIVING · DOCK 1', w / 2, 48);
+    ctx.font = '700 30px ui-monospace, Menlo, monospace';
+    ctx.fillStyle = '#8a6a3c';
+    ctx.fillText('crates are pushable · that is all', w / 2, 116);
+  }, 768, 150);
   dockSign.material.backFaceCulling = false;
   const container = (x: number, z: number, yawRad: number, hex: string) => {
     const c = MeshBuilder.CreateBox('nc-container', { width: 2.5, height: 2.5, depth: 5.6 }, scene);
@@ -458,15 +464,18 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
   pallet.position.set(16.5, 0.07, -21.5); pallet.material = wood;
 
   // ============ training-course sign ============
-  const trainSign = MeshBuilder.CreatePlane('nc-train-sign', { width: 3.4, height: 0.5 }, scene);
-  trainSign.position.set(10, 2.6, -7.1); trainSign.rotation.y = Math.PI;
+  const trainSign = MeshBuilder.CreatePlane('nc-train-sign', { width: 3.4, height: 0.78 }, scene);
+  trainSign.position.set(10, 2.7, -7.1); trainSign.rotation.y = Math.PI;
   trainSign.material = drawnMat(scene, 'nc-train-sign', (ctx, w, h) => {
     ctx.fillStyle = '#141821'; ctx.fillRect(0, 0, w, h);
-    ctx.font = '700 52px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '700 50px ui-monospace, Menlo, monospace';
     ctx.fillStyle = '#9db4d6';
-    ctx.fillText('FIELD TRAINING COURSE', w / 2, h / 2);
-  }, 768, 96);
+    ctx.fillText('FIELD TRAINING COURSE', w / 2, 48);
+    ctx.font = '700 30px ui-monospace, Menlo, monospace';
+    ctx.fillStyle = '#5d6f8f';
+    ctx.fillText('movement practice — nothing graded', w / 2, 116);
+  }, 768, 150);
   trainSign.material.backFaceCulling = false;
   for (const px of [8.5, 11.5]) {
     const post = MeshBuilder.CreateBox('nc-train-p', { width: 0.1, height: 2.6, depth: 0.1 }, scene);
@@ -531,6 +540,28 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
     lens.lookAt(new Vector3(0, 0.4, 0));
     lens.material = warmLamp;
   }
+
+  // ============ area placards (what is this corner for?) ============
+  const placard = (x: number, z: number, yawRad: number, titleText: string, sub: string, accent: string) => {
+    const post = MeshBuilder.CreateBox('nc-placard-p', { width: 0.1, height: 1.5, depth: 0.1 }, scene);
+    post.position.set(x, 0.75, z); post.material = steel;
+    const p = MeshBuilder.CreatePlane('nc-placard', { width: 1.7, height: 0.62 }, scene);
+    p.position.set(x, 1.75, z); p.rotation.y = yawRad;
+    p.material = drawnMat(scene, 'nc-placard-' + titleText, (ctx, w, h) => {
+      ctx.fillStyle = '#141821'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = accent; ctx.fillRect(0, 0, 10, h);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.font = '700 44px ui-monospace, Menlo, monospace';
+      ctx.fillStyle = accent;
+      ctx.fillText(titleText, 30, 46);
+      ctx.font = '700 27px ui-monospace, Menlo, monospace';
+      ctx.fillStyle = '#7d8aa5';
+      ctx.fillText(sub, 30, 106);
+    }, 512, 150);
+    p.metadata = { noShadow: true };
+  };
+  placard(-13.6, 8.5, -Math.PI / 2, 'OPS BULLPEN', 'day shift’s desks — quiet now', '#9db4d6');
+  placard(-4.6, -12.4, Math.PI, 'KAFFEINE', 'morale support unit', '#e8c07a');
 
   // ============ light posts + planters ============
   for (const [x, z] of [[-1, 11], [7, 11], [15, -2], [23, -2], [-15, 10.5], [-6, -8]] as const) {

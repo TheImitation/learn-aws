@@ -176,7 +176,7 @@ export const VPC_ENDPOINTS_SPEC: MissionSpec = {
     { id: 'analytics', kind: 'serverRack', at: [-5, 2], yaw: Math.PI / 2 },
     { id: 'nat', kind: 'natAirlock', at: [-1, 2], yaw: Math.PI / 2 },
     { id: 'igw', kind: 'internetGate', at: [2.5, 2], yaw: Math.PI / 2 },
-    { id: 's3', kind: 'shelfUnit', at: [6.5, 2], yaw: -Math.PI / 2, args: ['#e8a657'] },
+    { id: 's3', kind: 'shelfUnit', at: [6.5, 2], yaw: -Math.PI / 2, args: ['#e8a657'], service: 's3' },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
   decor: [

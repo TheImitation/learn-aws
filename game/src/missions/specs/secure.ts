@@ -190,7 +190,7 @@ export const KMS_SPEC: MissionSpec = {
   summary: 'Symptom: a plaintext snapshot leaked — raw storage readable by whoever copies it. Fix: encrypt at rest with a customer-managed KMS key (CMK): the volume and every snapshot become ciphertext, decryption is gated by the key policy + IAM, every key use lands in CloudTrail, and you control rotation. AWS-managed keys encrypt too, but you can’t scope their policy or schedule their rotation — the mandate said CONTROLLED. TLS already covers transit; KMS covers rest.',
   level: [
     { id: 'app', kind: 'serverRack', at: [-3, 2], yaw: Math.PI / 2 },
-    { id: 'snaps', kind: 'shelfUnit', at: [5, 2], yaw: -Math.PI / 2, args: ['#8f7ae6'] },
+    { id: 'snaps', kind: 'shelfUnit', at: [5, 2], yaw: -Math.PI / 2, args: ['#8f7ae6'], service: 's3' },
     { id: 'lever', kind: 'chaosLever', at: [1, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],

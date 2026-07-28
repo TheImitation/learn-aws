@@ -99,23 +99,27 @@ async function boot() {
   const toaster = new Toaster();
 
   // --- Phase 2 demo interactables (replaced by real machines in Phase 3) ---
+  const campusGuideSpec = {
+    id: 'campus-guide',
+    kicker: 'NOC campus',
+    title: 'Campus guide',
+    bodyHtml:
+      `<pre>job board ........ take a ticket — <b>start here</b>\n` +
+      `dashboard wall ... exam readiness · domain progress\n` +
+      `training course .. movement practice (east side)\n` +
+      `loading dock ..... pushable crates · pure props\n` +
+      `east gate ........ the shuttle leaves on dispatch</pre>` +
+      `<div>${esc('Loop: ticket → shuttle to the broken site → probe machines → diagnose → physical fix → traffic test → quiz sign-off. Mastered topics raise the readiness score on the wall.')}</div>`,
+    actions: [
+      { label: 'Note it in the journal', onSelect: () => journal.add('Campus guide: job board starts missions; the wall tracks exam readiness.') },
+      { label: 'Close' },
+    ],
+  };
   interaction.add({
     id: 'status-board',
     node: yard.statusBoard,
-    prompt: 'Read status board',
-    onInteract: () => ui.open({
-      id: 'status-board',
-      kicker: 'Terminal',
-      title: 'Yard status',
-      bodyHtml:
-        `<pre>site: NOC-CAMPUS-01       state: <b>NOMINAL</b>\n` +
-        `ops floor .......... staffed\ndashboard wall ..... live\nfield shuttle ...... standing by</pre>` +
-        `<div>${esc('Every machine in a mission opens a panel like this one — logs, configs, gauges.')}</div>`,
-      actions: [
-        { label: 'Log to journal', onSelect: () => journal.add('NOC status: all systems nominal.') },
-        { label: 'Close' },
-      ],
-    }),
+    prompt: 'Campus guide',
+    onInteract: () => ui.open(campusGuideSpec),
   });
   interaction.add({
     id: 'toolbox',
@@ -177,6 +181,24 @@ async function boot() {
     ],
   });
   wireAudioUnlock();
+
+  // First boot only: a 20-second orientation so the campus explains itself.
+  if (!localStorage.getItem('learnaws.hub-welcome')) {
+    localStorage.setItem('learnaws.hub-welcome', '1');
+    ui.open({
+      id: 'welcome',
+      kicker: 'Night shift orientation',
+      title: 'Welcome to the NOC',
+      bodyHtml:
+        `<pre> ▸ JOB BOARD ....... glowing kiosk ahead — take a ticket,\n` +
+        `                   a shuttle drops you at the broken site\n` +
+        ` ▸ DASHBOARD WALL . live exam readiness + domain progress\n` +
+        ` ▸ TRAINING COURSE  movement practice, east side\n` +
+        ` ▸ everything else  dock · bullpen · coffee — set dressing</pre>` +
+        `<div>${esc('Fix sites, pass the sign-off quiz, watch readiness climb. 48 tickets cover all four SAA exam domains.')}</div>`,
+      actions: [{ label: 'Got it — to the job board' }],
+    });
+  }
 
   let skipObservableTick = false;
   let humScan = 0;

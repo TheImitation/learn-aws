@@ -2,6 +2,7 @@ import { Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import { crowdGate, routeBoard, shelfUnit, statusConsole } from '../world/kit';
 import { barrels, floorZone, siteLight, zoneSign } from '../world/decor';
+import { serviceBadge } from '../world/badges';
 import { esc } from '../ui/uiShell';
 import { MissionBase, type MissionStep, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
@@ -85,6 +86,8 @@ export class StorageBillMission extends MissionBase {
       board: this.own(routeBoard(s, o.add(new Vector3(-3, 0, -6.5)), 0)),
       term: this.own(statusConsole(s, o.add(new Vector3(-7, 0, -6.5)), Math.PI)),
     };
+    // all three tiers are S3 — same service, different storage class
+    for (const z of [-4, 0, 4]) this.ownNode(serviceBadge(s, o.add(new Vector3(1.5, 2.55, z)), 's3')!);
     // set dressing (physics-free)
     this.ownNode(zoneSign(s, o.add(new Vector3(1.5, 0, 7)), 0, 'storage tiers', '#67ad5b'));
     this.ownNode(floorZone(s, o.add(new Vector3(4.2, 0, -4)), 2.4, 2.6, '#2a1c10', 'hot'));

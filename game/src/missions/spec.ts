@@ -9,6 +9,7 @@ import {
   barrels, cableTray, crateStack, floorZone, gantry, hazardStrip, pipeRun,
   serverRow, siteLight, ventBlock, zoneSign,
 } from '../world/decor';
+import { KIND_SERVICE, serviceBadge } from '../world/badges';
 import type { Carryable } from '../interact/carry';
 import { Socket } from '../interact/sockets';
 import { sfx } from '../core/sfx';
@@ -31,6 +32,9 @@ export interface MachineDef {
   at: V2;
   yaw?: number;
   args?: (string | number | boolean)[]; // kind-specific extras (shelf accent, azPlate size…)
+  /** AWS service badge over the machine. Omit = kind default (KIND_SERVICE);
+   *  'none' suppresses; any SERVICES key overrides (shelfUnit/badgeDoor NEED this). */
+  service?: string;
 }
 
 /** Set dressing — never interactable, never physical (see world/decor.ts). */
@@ -263,6 +267,11 @@ export class SpecMission extends MissionBase {
       }
       this.own(m);
       this.machines.set(def.id, m);
+      const svc = def.service ?? KIND_SERVICE[def.kind];
+      if (svc && svc !== 'none') {
+        const b = serviceBadge(s, at.add(new Vector3(0, 2.55, 0)), svc);
+        if (b) this.ownNode(b);
+      }
     }
     // alarm strobes on opposite corners, bound for the site's lifetime
     for (const [bx, bz] of [[-8.5, 6.5], [8.5, -6.5]] as const) {
