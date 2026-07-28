@@ -48,6 +48,8 @@ export function openOptionsPanel(ui: UiShell, toast: (t: string) => void) {
       opt(`Invert Y: ${OPTIONS.invertY ? 'ON' : 'OFF'}`, () => set('invertY', !OPTIONS.invertY)),
       opt(`Stick deadzone: ${OPTIONS.deadzone.toFixed(2)}`, () =>
         set('deadzone', cycle([0.1, 0.15, 0.2, 0.25, 0.3] as const, OPTIONS.deadzone))),
+      opt(`Diagnostics overlay: ${OPTIONS.debugHud ? 'on' : 'off'}`, () =>
+        set('debugHud', !OPTIONS.debugHud)),
       opt(`SFX volume: ${Math.round(OPTIONS.sfxVolume * 100)}%`, () => {
         set('sfxVolume', cycle([0, 0.25, 0.5, 0.75, 1] as const, OPTIONS.sfxVolume));
         sfx.toastOk();

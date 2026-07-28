@@ -11,6 +11,7 @@ export interface Options {
   keyJump: number;
   keySprint: number;
   keyJournal: number;
+  debugHud: boolean; // the fps/speed/hints overlay (off for players)
   profile: 'A' | 'B' | 'C';
 }
 
@@ -24,6 +25,7 @@ const DEFAULTS: Options = {
   keyJump: 32, //    Space
   keySprint: 16, //  Shift
   keyJournal: 9, //  Tab
+  debugHud: false,
   profile: 'A',
 };
 

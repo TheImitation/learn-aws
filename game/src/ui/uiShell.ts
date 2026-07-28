@@ -153,9 +153,9 @@ export class UiShell {
     else if (input.back || input.pause) { sfx.close(); this.close(); }
   }
 
-  setPrompt(p: { text: string; device: 'kbm' | 'pad' } | null) {
+  setPrompt(p: { text: string; device: 'kbm' | 'pad' | 'touch' } | null) {
     if (!p) { this.chip.classList.remove('show'); return; }
-    this.chipKey.textContent = p.device === 'pad' ? 'X' : keyName(OPTIONS.keyInteract);
+    this.chipKey.textContent = p.device === 'pad' ? 'X' : p.device === 'touch' ? 'ACT' : keyName(OPTIONS.keyInteract);
     this.chipText.textContent = p.text;
     this.chip.classList.add('show');
   }

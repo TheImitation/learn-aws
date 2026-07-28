@@ -7,6 +7,7 @@ import {
   XboxInput,
 } from '@babylonjs/core';
 import { OPTIONS } from '../core/options';
+import { TouchControls } from './touchControls';
 
 /** Abstract per-frame input, device-agnostic. Movement is intent (magnitude ≤ 1);
  *  look is the camera delta for THIS frame in radians (sensitivity already applied). */
@@ -23,7 +24,7 @@ export interface InputState {
   navY: -1 | 0 | 1; //  +1 = down
   confirm: boolean; //  edge: Enter / E / south button
   back: boolean; //     edge: Esc / east button
-  lastDevice: 'kbm' | 'pad';
+  lastDevice: 'kbm' | 'pad' | 'touch';
 }
 
 /** Debug override for scripted verification (preview evals set this via __game). */
@@ -81,12 +82,17 @@ export class InputMap {
   private prevNav = { x: 0, y: 0 }; // digital direction (incl. stick flicks) for edge detection
   private debug: DebugInput | null = null;
 
+  readonly touch: TouchControls;
+
   constructor(engine: Engine, canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.dsm = new DeviceSourceManager(engine);
+    this.touch = new TouchControls(canvas);
 
     // Mouse look only while pointer-locked (click the canvas to capture).
+    // Touch players never want pointer lock — their taps are game input.
     canvas.addEventListener('click', () => {
+      if (this.state.lastDevice === 'touch') return;
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
     });
     window.addEventListener('mousemove', (e) => {
@@ -107,6 +113,7 @@ export class InputMap {
    *  closing keypress/click counts as recent user activation; if the browser
    *  refuses anyway, the existing click-to-capture path still works. */
   relockPointer() {
+    if (this.state.lastDevice === 'touch') return;
     if (document.pointerLockElement === this.canvas) return;
     try {
       const p = this.canvas.requestPointerLock() as unknown as Promise<void> | undefined;
@@ -171,6 +178,22 @@ export class InputMap {
       if (dny) navLY = dny;
       if (plx || ply || prx || pry || jump || sprint || interact || journal || pause || back) s.lastDevice = 'pad';
       break;
+    }
+
+    // --- touch (virtual stick + drag-look + buttons; levels, edges below) ---
+    if (this.touch.enabled) {
+      const t = this.touch;
+      const tlen = Math.hypot(t.move.x, t.move.y);
+      if (tlen > OPTIONS.deadzone && tlen > Math.hypot(mx, my)) { mx = t.move.x; my = t.move.y; }
+      const [tdx, tdy] = t.consumeLook();
+      lx += tdx * MOUSE_SENS * OPTIONS.sensitivity;
+      ly += tdy * MOUSE_SENS * OPTIONS.sensitivity;
+      if (t.jumpHeld) { jump = true; confirm = true; }
+      if (t.sprintOn) sprint = true;
+      if (t.interactHeld) { interact = true; confirm = true; }
+      if (t.journalHeld) journal = true;
+      if (t.pauseHeld) { pause = true; back = true; }
+      if (t.used || tdx || tdy || tlen > OPTIONS.deadzone) { s.lastDevice = 'touch'; t.used = false; }
     }
 
     // clamp move intent to the unit disc; apply invert-Y to the vertical look
