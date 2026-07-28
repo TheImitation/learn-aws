@@ -5,6 +5,10 @@ import {
   natAirlock, routerArm, serverRack, shelfUnit, socketRing, statusConsole, strobeBeacon,
   supplyPallet, type Machine,
 } from '../world/kit';
+import {
+  barrels, cableTray, crateStack, floorZone, gantry, hazardStrip, pipeRun,
+  serverRow, siteLight, ventBlock, zoneSign,
+} from '../world/decor';
 import type { Carryable } from '../interact/carry';
 import { Socket } from '../interact/sockets';
 import { sfx } from '../core/sfx';
@@ -27,6 +31,25 @@ export interface MachineDef {
   at: V2;
   yaw?: number;
   args?: (string | number | boolean)[]; // kind-specific extras (shelf accent, azPlate size…)
+}
+
+/** Set dressing — never interactable, never physical (see world/decor.ts). */
+export type DecorKind =
+  | 'sign' | 'zone' | 'hazard' | 'racks' | 'tray' | 'pipe' | 'light'
+  | 'crates' | 'barrels' | 'vent' | 'gantry';
+
+export interface DecorDef {
+  kind: DecorKind;
+  at: V2;
+  yaw?: number;
+  to?: V2; //      tray/pipe endpoint
+  text?: string; // sign/zone label
+  accent?: string;
+  hex?: string;
+  w?: number; //   zone/hazard/gantry width
+  d?: number; //   zone/hazard depth
+  n?: number; //   racks count
+  h?: number; //   tray height
 }
 
 export interface ProbeDef {
@@ -115,6 +138,7 @@ export interface MissionSpec {
   objectiveDone: string;
   summary: string;
   level: MachineDef[]; // must include a 'statusConsole' with id 'term'
+  decor?: DecorDef[]; //  per-level set dressing on top of the domain theme
   probes: ProbeDef[];
   pallet?: { at: V2; yaw?: number; modules: ModuleDef[] };
   sockets?: SocketDef[];
@@ -156,6 +180,7 @@ export class SpecMission extends MissionBase {
     super(deps, topic);
     this.spec = spec;
     this.buildLevel();
+    this.buildDecor();
     this.buildPallet();
     this.buildSockets();
     this.buildDials();
@@ -243,6 +268,27 @@ export class SpecMission extends MissionBase {
       const b = strobeBeacon(s, this.v([bx, bz]));
       this.ownNode(b.root);
       this.d.alarm.bindBeacon(b.setLevel);
+    }
+  }
+
+  private buildDecor() {
+    const s = this.d.scene;
+    for (const d of this.spec.decor ?? []) {
+      const at = this.v(d.at);
+      const yaw = d.yaw ?? 0;
+      switch (d.kind) {
+        case 'sign': this.ownNode(zoneSign(s, at, yaw, d.text ?? '', d.accent)); break;
+        case 'zone': this.ownNode(floorZone(s, at, d.w ?? 4, d.d ?? 3, d.hex ?? '#1a2333', d.text, yaw)); break;
+        case 'hazard': this.ownNode(hazardStrip(s, at, d.w ?? 4, d.d ?? 0.9, yaw)); break;
+        case 'racks': this.ownNode(serverRow(s, at, yaw, d.n ?? 4, d.accent ?? '#57c7e3')); break;
+        case 'tray': this.ownNode(cableTray(s, at, this.v(d.to ?? d.at), d.h ?? 2.6)); break;
+        case 'pipe': this.ownNode(pipeRun(s, at, this.v(d.to ?? d.at), d.hex)); break;
+        case 'light': this.ownNode(siteLight(s, at, yaw)); break;
+        case 'crates': this.ownNode(crateStack(s, at, yaw, d.hex)); break;
+        case 'barrels': this.ownNode(barrels(s, at, d.hex)); break;
+        case 'vent': this.ownNode(ventBlock(s, at, yaw)); break;
+        case 'gantry': this.ownNode(gantry(s, at, yaw, d.w ?? 12, d.accent ?? '#5a8fd1')); break;
+      }
     }
   }
 

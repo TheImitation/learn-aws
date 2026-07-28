@@ -1,5 +1,6 @@
-import { Scene, Vector3 } from '@babylonjs/core';
+import { Scene, TransformNode, Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
+import { applyTheme } from '../world/themes';
 import { FlowSim } from '../sim/flowSim';
 import { InteractionSystem } from '../interact/interactionSystem';
 import { CarrySystem } from '../interact/carry';
@@ -48,6 +49,8 @@ export class MissionManager {
   readonly origin = SITE_ORIGIN;
   private current: { id: string; mission: ActiveMission } | null = null;
   private factories = new Map<string, MissionFactory>();
+  private themeRoot: TransformNode | null = null;
+  private themeDomain: string | null = null;
 
   constructor(
     private deps: Omit<MissionDeps, 'origin' | 'onReturn'>,
@@ -76,6 +79,12 @@ export class MissionManager {
     const factory = this.factories.get(id);
     const topic = this.topics.find((t) => t.id === id);
     if (!factory || !topic) return;
+    // domain set-dressing around the pad (kept while consecutive tickets share a domain)
+    if (topic.examDomain !== this.themeDomain) {
+      this.themeRoot?.dispose(false, true);
+      this.themeRoot = applyTheme(this.deps.scene, SITE_ORIGIN, topic.examDomain);
+      this.themeDomain = topic.examDomain;
+    }
     const mission = factory({ ...this.deps, origin: SITE_ORIGIN.clone(), onReturn: () => this.returnToHub() }, topic);
     this.current = { id, mission };
     this.teleport(SITE_SPAWN.clone());
