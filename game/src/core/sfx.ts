@@ -74,6 +74,84 @@ function thud(dur: number, vol = 1, at = 0, cutoff = 800) {
   src.start(t0);
 }
 
+/* ------------------------------------------------------------- ambience --
+ * Continuous layer: low room tone, a machine hum that swells near racks, and
+ * stride-timed footsteps. Same rules as one-shots: silent until the context
+ * unlocks on a real gesture, so scripted simStep evals stay quiet. */
+
+interface AmbNodes {
+  noiseGain: GainNode;
+  humGain: GainNode;
+}
+let amb: AmbNodes | null = null;
+
+function ensureAmbience(): AmbNodes | null {
+  const c = ensure();
+  if (!c || c.state !== 'running' || !master) return null;
+  if (amb) return amb;
+  // brown-noise room tone (2 s loop)
+  const len = c.sampleRate * 2;
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const data = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++) {
+    const white = Math.random() * 2 - 1;
+    last = (last + 0.02 * white) / 1.02;
+    data[i] = last * 3.5;
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buf;
+  noise.loop = true;
+  const noiseLp = c.createBiquadFilter();
+  noiseLp.type = 'lowpass';
+  noiseLp.frequency.value = 220;
+  const noiseGain = c.createGain();
+  noiseGain.gain.value = 0;
+  noise.connect(noiseLp).connect(noiseGain).connect(master);
+  noise.start();
+  // machine hum: two detuned low oscillators
+  const humGain = c.createGain();
+  humGain.gain.value = 0;
+  for (const [f, v] of [[87, 1], [174, 0.35], [261, 0.12]] as const) {
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const g = c.createGain();
+    g.gain.value = v;
+    o.connect(g).connect(humGain);
+    o.start();
+  }
+  humGain.connect(master);
+  amb = { noiseGain, humGain };
+  return amb;
+}
+
+let strideClock = 0;
+
+export const ambience = {
+  /** Call once per tick from main. humDist = planar metres to the nearest
+   *  humming machine (Infinity when none). */
+  update(dt: number, s: { grounded: boolean; speed: number; humDist: number }) {
+    const a = ensureAmbience();
+    if (!a) return;
+    const vol = OPTIONS.sfxVolume;
+    a.noiseGain.gain.value = vol * 0.045;
+    const near = Number.isFinite(s.humDist) ? Math.max(0, 1 - s.humDist / 9) : 0;
+    const target = vol * 0.11 * near * near;
+    a.humGain.gain.value += (target - a.humGain.gain.value) * Math.min(1, dt * 6);
+    // footsteps, stride-timed (~0.85 m per step)
+    if (s.grounded && s.speed > 0.6) {
+      strideClock -= (dt * s.speed) / 0.85;
+      if (strideClock <= 0) {
+        thud(0.05, 0.16 + Math.min(0.14, s.speed * 0.03), 0, 320);
+        strideClock = 1;
+      }
+    } else {
+      strideClock = Math.min(strideClock, 0.25);
+    }
+  },
+};
+
 export const sfx = {
   focus: () => note(880, 0.03, { wave: 'sine', vol: 0.25 }),
   open: () => note(440, 0.07, { vol: 0.5, glideTo: 560 }),

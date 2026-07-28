@@ -25,7 +25,7 @@ import { UiShell, esc } from './ui/uiShell';
 import { Journal } from './ui/journal';
 import { Toaster } from './ui/toast';
 import { openOptionsPanel } from './ui/optionsPanel';
-import { wireAudioUnlock } from './core/sfx';
+import { ambience, wireAudioUnlock } from './core/sfx';
 import { OPTIONS } from './core/options';
 import { FlowSim } from './sim/flowSim';
 import { jobBoardKiosk } from './world/kit';
@@ -167,6 +167,8 @@ async function boot() {
   wireAudioUnlock();
 
   let skipObservableTick = false;
+  let humScan = 0;
+  let humDist = Infinity;
   const tick = (dt: number) => {
     input.update(dt);
     const st = input.state;
@@ -204,6 +206,21 @@ async function boot() {
     toaster.update(dt);
     sim.update(dt);
     manager.update(dt);
+    // ambience: room tone + hum swell near racks/dbs + stride footsteps
+    humScan -= dt;
+    if (humScan <= 0) {
+      humScan = 0.3;
+      let best = Infinity;
+      for (const m of scene.meshes) {
+        if (m.name !== 'rack-b' && m.name !== 'db-d' && m.name !== 'nc-vend') continue;
+        const p = m.getAbsolutePosition();
+        const dx = p.x - player.position.x; const dz = p.z - player.position.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < best) best = d2;
+      }
+      humDist = Number.isFinite(best) ? Math.sqrt(best) : Infinity;
+    }
+    ambience.update(dt, { grounded: player.grounded, speed: ui.isOpen ? 0 : player.planarSpeed, humDist });
     pe._step(Math.min(dt, 1 / 30));
     hud.update({
       fps: engine.getFps(),
