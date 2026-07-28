@@ -12,6 +12,7 @@ import { buildAtmosphere } from './core/atmosphere';
 import { InputMap, type DebugInput } from './input/inputMap';
 import { buildEngineer } from './player/engineerMesh';
 import { EngineerAnimator } from './player/animator';
+import { loadWorkerCharacter } from './player/glbCharacter';
 import { PlayerController } from './player/controller';
 import { ThirdPersonRig } from './camera/thirdPersonRig';
 import { buildNocCampus } from './world/nocCampus';
@@ -72,16 +73,27 @@ async function boot() {
     };
   });
   const input = new InputMap(engine, canvas);
-  const parts = buildEngineer(scene);
-  const player = new PlayerController(scene, yard.spawn, parts.root);
-  const animator = new EngineerAnimator(parts);
+  // rigged Quaternius Worker (CC0) with procedural box-engineer fallback
+  const glbChar = await loadWorkerCharacter(scene);
+  let charRoot;
+  let charUpdate: (dt: number, speed: number, grounded: boolean, yawRate: number) => void;
+  if (glbChar) {
+    charRoot = glbChar.root;
+    charUpdate = (dt, s, g, y) => glbChar.update(dt, s, g, y);
+  } else {
+    const parts = buildEngineer(scene);
+    const animator = new EngineerAnimator(parts);
+    charRoot = parts.root;
+    charUpdate = (dt, s, g, y) => animator.update(dt, s, g, y);
+  }
+  const player = new PlayerController(scene, yard.spawn, charRoot);
   const rig = new ThirdPersonRig(scene, yard.spawn);
   buildAtmosphere(scene, sun, hemi, rig.camera);
   const hud = new DebugHud();
   const ui = new UiShell();
   const journal = new Journal();
   const interaction = new InteractionSystem();
-  const carry = new CarrySystem(parts.root);
+  const carry = new CarrySystem(charRoot);
   const grab = new GrabControl();
   const alarm = new AlarmSystem();
   const toaster = new Toaster();
@@ -175,18 +187,18 @@ async function boot() {
     if (ui.isOpen) {
       // Panel mode: player frozen, world keeps simulating, UI consumes navigation.
       ui.handleNav(st);
-      animator.update(dt, 0, true, 0);
+      charUpdate(dt, 0, true, 0);
       ui.setPrompt(null);
     } else if (grab.active) {
       // Hands on a mechanism: move axis steers it, interact releases.
       grab.tick(dt, st);
-      animator.update(dt, 0, true, 0);
+      charUpdate(dt, 0, true, 0);
       rig.update(dt, st.look, player.position);
       ui.setPrompt(grab.active ? { text: grab.prompt, device: st.lastDevice } : null);
     } else {
       const { forward, right } = rig.basis();
       player.update(dt, st, forward, right);
-      animator.update(dt, player.planarSpeed, player.grounded, player.yawRate);
+      charUpdate(dt, player.planarSpeed, player.grounded, player.yawRate);
       rig.update(dt, st.look, player.position);
       interaction.update(player.position, player.facingYaw);
       if (st.interact) {
