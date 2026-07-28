@@ -581,7 +581,7 @@ export function statusConsole(scene: Scene, at: Vector3, yaw = 0): Machine {
     ctx.fillStyle = '#0a1410'; ctx.fillRect(0, 0, w, h);
     ctx.font = '400 20px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    const lines = ['field-term v3.2 · site 07', '$ probe --all', '$ run traffic-test', '$ diagnose'];
+    const lines = ['field-term v3.2', '$ probe --all', '$ run traffic-test', '$ diagnose'];
     lines.forEach((l, i) => { ctx.fillStyle = i ? '#3f7d63' : '#7d8aa5'; ctx.fillText(l, 12, 12 + i * 28); });
     ctx.fillStyle = '#5fd29a'; ctx.fillRect(12, 12 + 4 * 28, 12, 20);
   }, 256, 160);
