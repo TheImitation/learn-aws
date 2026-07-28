@@ -57,6 +57,8 @@ export class UiShell {
   private buttons: HTMLButtonElement[] = [];
   private focusIdx = 0;
   private grace = 0; // ticks to ignore confirm/back right after opening (held-key bleed)
+  private hadPointerLock = false; // mouse was captured when the panel opened
+  private relockPending = false; //  → re-capture once we're back in the game
 
   constructor() {
     const style = document.createElement('style');
@@ -82,6 +84,13 @@ export class UiShell {
   get focusedLabel() { return this.buttons[this.focusIdx]?.textContent ?? null; }
 
   open(spec: PanelSpec) {
+    // Freeing the mouse for the panel loses pointer lock; remember whether we
+    // had it so closing can restore it. The intent must survive panel chains,
+    // which happen BOTH as open-over-open (job board → ticket) and as
+    // close-then-open in one tick (relockPending briefly set).
+    this.hadPointerLock = document.pointerLockElement != null || this.relockPending
+      || (this.current != null && this.hadPointerLock);
+    this.relockPending = false;
     document.exitPointerLock?.();
     this.current = spec;
     this.grace = 8;
@@ -118,10 +127,19 @@ export class UiShell {
   }
 
   close() {
+    if (this.current) this.relockPending = this.hadPointerLock;
+    this.hadPointerLock = false;
     this.current = null;
     this.overlay.classList.remove('open');
     this.overlay.innerHTML = '';
     this.buttons = [];
+  }
+
+  /** True once after a panel closed that had stolen an active pointer lock. */
+  consumeRelock(): boolean {
+    const r = this.relockPending;
+    this.relockPending = false;
+    return r;
   }
 
   /** Route UI navigation while a panel is open. */

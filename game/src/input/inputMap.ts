@@ -103,6 +103,17 @@ export class InputMap {
 
   setDebugInput(d: DebugInput | null) { this.debug = d; }
 
+  /** Re-capture the mouse (after a UI panel closes). Succeeds because the
+   *  closing keypress/click counts as recent user activation; if the browser
+   *  refuses anyway, the existing click-to-capture path still works. */
+  relockPointer() {
+    if (document.pointerLockElement === this.canvas) return;
+    try {
+      const p = this.canvas.requestPointerLock() as unknown as Promise<void> | undefined;
+      p?.catch?.(() => { /* no activation — fall back to click-to-capture */ });
+    } catch { /* same fallback */ }
+  }
+
   /** Poll devices and produce this frame's InputState. */
   update(dt: number) {
     const s = this.state;

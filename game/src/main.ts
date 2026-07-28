@@ -184,6 +184,8 @@ async function boot() {
   const tick = (dt: number) => {
     input.update(dt);
     const st = input.state;
+    // a panel that stole the mouse capture just closed — take it back
+    if (!ui.isOpen && ui.consumeRelock()) input.relockPointer();
     if (ui.isOpen) {
       // Panel mode: player frozen, world keeps simulating, UI consumes navigation.
       ui.handleNav(st);
