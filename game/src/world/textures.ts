@@ -86,8 +86,12 @@ export function drawnMat(
   tex.update();
   const m = new StandardMaterial(name, scene);
   if (emissive) {
+    // Unlit screen recipe — settled by an in-scene A/B/C/D test (this engine
+    // build): diffuseTexture AND emissiveTexture set, emissiveColor left black,
+    // diffuseColor default white, disableLighting on. Every other combination
+    // rendered blown-white or blacked-out. Don't simplify without re-testing.
+    m.diffuseTexture = tex;
     m.emissiveTexture = tex;
-    m.diffuseColor = Color3.Black();
     m.disableLighting = true;
   } else {
     m.diffuseTexture = tex;
@@ -106,8 +110,8 @@ export function liveMat(
   const redraw = () => { draw(ctx, wpx, hpx); tex.update(); };
   redraw();
   const m = new StandardMaterial(name, scene);
+  m.diffuseTexture = tex;
   m.emissiveTexture = tex;
-  m.diffuseColor = Color3.Black();
   m.disableLighting = true;
   m.specularColor = Color3.Black();
   return { mat: m, redraw };

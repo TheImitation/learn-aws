@@ -17,6 +17,7 @@ import '@babylonjs/loaders/glTF';
 export interface CharacterRig {
   root: TransformNode; //  feet origin, front = +Z (PlayerController contract)
   update(dt: number, speed: number, grounded: boolean, yawRate: number): void;
+  playInteract?(): void; // one-shot flourish (button press / plug / probe)
 }
 
 const HEIGHT = 1.3; //      metres — matched to the capsule (h≈1.2 + hover)
@@ -63,12 +64,20 @@ export async function loadWorkerCharacter(scene: Scene): Promise<CharacterRig | 
     }
     idle.setWeightForAllAnimatables(1);
 
+    const interact = find('Interact');
     let wIdle = 1;
     let wWalk = 0;
     let wRun = 0;
     return {
       root,
+      playInteract() {
+        if (!interact) return;
+        interact.stop();
+        interact.start(false, 1.35, interact.from, interact.to, false);
+        interact.setWeightForAllAnimatables(1);
+      },
       update(dt, speed, grounded) {
+        const flourish = interact?.isPlaying ? 1 : 0;
         let tIdle = 0;
         let tWalk = 0;
         let tRun = 0;
@@ -80,6 +89,8 @@ export async function loadWorkerCharacter(scene: Scene): Promise<CharacterRig | 
         if (!grounded) { // brief airtime: soft mid-stride, no flailing
           tIdle = 0; tWalk = 0.9; tRun = 0.1;
         }
+        // while the interact flourish plays (standing), it owns the pose
+        if (flourish && speed < 0.25) { tIdle = 0.05; tWalk = 0; tRun = 0; }
         const s = Math.min(1, dt * 9);
         wIdle += (tIdle - wIdle) * s;
         wWalk += (tWalk - wWalk) * s;

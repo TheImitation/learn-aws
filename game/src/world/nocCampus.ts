@@ -138,7 +138,7 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
   };
   const plaza = MeshBuilder.CreateDisc('nc-plaza', { radius: 3.6, tessellation: 40 }, scene);
   plaza.rotation.x = Math.PI / 2;
-  plaza.position.set(3, 0.03, 8.5);
+  plaza.position.set(0.8, 0.03, 8.5);
   plaza.material = plazaPaint;
   plaza.metadata = { noShadow: true };
   strip(1.5, 6.5, 1.6, 7, 0.55); //    spawn → plaza
@@ -185,8 +185,8 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
     ctx.fillStyle = '#5fd29a';
     ctx.fillText('NETWORK OPERATIONS CENTER', w / 2, h / 2);
   }, 1024, 96);
-  (title.material as StandardMaterial).emissiveTexture!.hasAlpha = true;
-  (title.material as StandardMaterial).useAlphaFromDiffuseTexture = false;
+  (title.material as StandardMaterial).diffuseTexture!.hasAlpha = true;
+  (title.material as StandardMaterial).useAlphaFromDiffuseTexture = true;
   title.material.backFaceCulling = false;
 
   // three live screens
@@ -277,8 +277,10 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
   }
 
   // ============ job-board plaza: canopy + sign (kiosk itself is added by main) ============
+  // (kiosk + canopy sit at x 0.3 — between the wall screens, so neither the
+  // readiness gauge nor the domain board is blocked from the spawn approach)
   const canopy = new TransformNode('nc-canopy', scene);
-  canopy.position.set(3, 0, 8.5);
+  canopy.position.set(0.3, 0, 8.5);
   for (const [dx, dz] of [[-1.7, -1.3], [1.7, -1.3], [-1.7, 1.3], [1.7, 1.3]] as const) {
     const post = MeshBuilder.CreateBox('nc-canopy-p', { width: 0.16, height: 2.9, depth: 0.16 }, scene);
     post.parent = canopy; post.position.set(dx, 1.45, dz); post.material = steel;
@@ -298,7 +300,7 @@ export function buildNocCampus(scene: Scene, data: () => NocData): Campus {
   jbSign.material.backFaceCulling = false;
 
   // warm plaza light + cool bullpen light (scene light budget: hemi+sun+these = 4)
-  const plazaLight = new PointLight('nc-plaza-light', new Vector3(3, 3.6, 8.5), scene);
+  const plazaLight = new PointLight('nc-plaza-light', new Vector3(0.8, 3.6, 8.5), scene);
   plazaLight.diffuse = Color3.FromHexString('#e8c07a');
   plazaLight.intensity = 0.55;
   plazaLight.range = 16;

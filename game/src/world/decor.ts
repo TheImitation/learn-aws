@@ -76,8 +76,8 @@ export function floorZone(
       ctx.globalAlpha = 0.8;
       ctx.fillText(label.toUpperCase().slice(0, 18), wpx / 2, hpx / 2);
     }, 1024, 160);
-    (tp.material as StandardMaterial).emissiveTexture!.hasAlpha = true;
-    (tp.material as StandardMaterial).opacityTexture = (tp.material as StandardMaterial).emissiveTexture;
+    (tp.material as StandardMaterial).diffuseTexture!.hasAlpha = true;
+    (tp.material as StandardMaterial).useAlphaFromDiffuseTexture = true;
     tp.metadata = { noShadow: true };
   }
   return root;

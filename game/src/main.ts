@@ -156,7 +156,7 @@ async function boot() {
   const quizTerminal = new QuizTerminal(ui);
   const board = new JobBoard(ui, journal, quizTerminal, COURSE.topics,
     Object.fromEntries(Object.keys(MISSIONS).map((id) => [id, missionHook(id)])));
-  const kiosk = jobBoardKiosk(scene, new Vector3(3, 0, 8.5), Math.PI);
+  const kiosk = jobBoardKiosk(scene, new Vector3(0.3, 0, 8.5), Math.PI);
   kiosk.setLamp?.('ok');
   interaction.add({
     id: 'job-board',
@@ -203,7 +203,8 @@ async function boot() {
       interaction.update(player.position, player.facingYaw);
       if (st.interact) {
         // focused interactable wins; on empty ground, put the carried module down
-        if (!interaction.tryInteract() && carry.held) carry.drop(player.position, player.facingYaw);
+        if (interaction.tryInteract()) glbChar?.playInteract?.();
+        else if (carry.held) { carry.drop(player.position, player.facingYaw); glbChar?.playInteract?.(); }
       } else if (st.journal) ui.open(journal.panelSpec());
       else if (st.pause) ui.open(pauseSpec());
       const f = interaction.focused;

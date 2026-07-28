@@ -587,8 +587,6 @@ export function statusConsole(scene: Scene, at: Vector3, yaw = 0): Machine {
     lines.forEach((l, i) => { ctx.fillStyle = i ? '#7fe8b4' : '#a8b8d6'; ctx.fillText(l, 12, 10 + i * 30); });
     ctx.fillStyle = '#8affc4'; ctx.fillRect(12, 10 + 4 * 30, 14, 22);
   }, 256, 160);
-  // (verified live) this face renders emissive as color×texture — white restores it
-  (face.material as StandardMaterial).emissiveColor = Color3.White();
   const setLamp = lamp(scene, root, new Vector3(0.5, 1.85, 0));
   return { root, anchor: at.add(new Vector3(0, 1.2, 0)), setLamp };
 }
