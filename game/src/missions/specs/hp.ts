@@ -391,8 +391,8 @@ export const ECS_SPEC: MissionSpec = {
   objectiveDone: 'INC-6015 closed — same image everywhere, no hosts anywhere.',
   summary: 'Symptom: dependency drift breaking every environment, plus dread of managing container hosts. Fix: container images (the app + exact dependencies + runtime in one portable unit — identical on laptop, test, and prod; the ECS task definition declares image, CPU/memory, ports) running on the FARGATE launch type: serverless containers with no instances to provision, patch, or right-size. Containers share the host kernel, start in seconds, and pack densely — the VM-per-app alternative wastes all three.',
   level: [
-    { id: 'pipeline', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
-    { id: 'ops', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2 },
+    { id: 'pipeline', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2, service: 'none' },
+    { id: 'ops', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2, service: 'none' },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
   decor: [

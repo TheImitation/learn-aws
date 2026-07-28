@@ -141,7 +141,7 @@ export const AURORA_SPEC: MissionSpec = {
   objectiveDone: 'INC-9210 closed — reads spread, failover automatic.',
   summary: 'Symptom: a writer saturated by reads and a failover story that involves waking people. Fix: Aurora Replicas — they serve read traffic off the SAME shared storage layer (Aurora keeps six copies across three AZs; compute is separate from storage) and one is AUTOMATICALLY PROMOTED if the writer dies: read scaling and fast failover from the same feature. A bigger writer buys neither. Bursty-by-day, idle-by-night capacity is Aurora Serverless v2’s ticket.',
   level: [
-    { id: 'writer', kind: 'dbTower', at: [3.5, 1.5] },
+    { id: 'writer', kind: 'dbTower', at: [3.5, 1.5], service: 'aurora' },
     { id: 'app', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
