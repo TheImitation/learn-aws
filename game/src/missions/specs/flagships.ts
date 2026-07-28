@@ -21,6 +21,12 @@ export const PATCH_NIGHT_SPEC: MissionSpec = {
     { id: 'igw', kind: 'internetGate', at: [-7, 2.5], yaw: Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'egress control', accent: '#d15656' },
+    { kind: 'zone', at: [-4.5, 2.5], w: 5, d: 4, hex: '#14202e', text: 'public subnet' },
+    { kind: 'zone', at: [3, 0.2], w: 6, d: 5, hex: '#1a1626', text: 'private subnet' },
+    { kind: 'light', at: [-8.5, -3], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'fleet', machine: 'fleet', prompt: 'Inspect the app fleet',
@@ -175,6 +181,12 @@ export const CHECKOUT_SPEC: MissionSpec = {
     { id: 'gate', kind: 'crowdGate', at: [-8, -3], yaw: Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [0, -4.5] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7.5], text: 'checkout aisle', accent: '#5a8fd1' },
+    { kind: 'zone', at: [-8, -0.5], w: 3.5, d: 7, hex: '#16233a', text: 'customer queue' },
+    { kind: 'tray', at: [-4.5, 1.5], to: [4.5, 1.5], h: 3.1 },
+    { kind: 'hazard', at: [0, -5.8], w: 3, d: 0.8 },
   ],
   probes: [
     {
@@ -336,6 +348,12 @@ export const IAM_SPEC: MissionSpec = {
     { id: 'payroll', kind: 'badgeDoor', at: [4.5, -0.5], yaw: -Math.PI / 2, args: ['#e85f5f'] },
     { id: 'lever', kind: 'chaosLever', at: [0, -4.5] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [-2, 7], text: 'credential desk', accent: '#d15656' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 4, hex: '#2a1616', text: 'ci floor' },
+    { kind: 'hazard', at: [3.2, -0.5], w: 2.5, d: 0.7, yaw: Math.PI / 2 },
+    { kind: 'light', at: [-8.5, 3], yaw: Math.PI / 2 },
   ],
   probes: [
     {

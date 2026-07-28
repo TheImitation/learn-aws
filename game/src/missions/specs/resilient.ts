@@ -20,6 +20,12 @@ export const CLOUDWATCH_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'observability deck', accent: '#5a8fd1' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 4, hex: '#16233a', text: 'on-call desk' },
+    { kind: 'racks', at: [8.8, 2], yaw: -Math.PI / 2, n: 3, accent: '#7ab3e0' },
+    { kind: 'hazard', at: [3.5, -2.8], w: 4, d: 0.7 },
+  ],
   probes: [
     {
       id: 'fleet', machine: 'fleet', prompt: 'Inspect checkout fleet',
@@ -149,6 +155,13 @@ export const SNS_SPEC: MissionSpec = {
     { id: 'billing', kind: 'serverRack', at: [5, 1.5], yaw: -Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [4, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'fan-out floor', accent: '#5a8fd1' },
+    { kind: 'zone', at: [-5, 1.5], w: 4, d: 3.5, hex: '#16233a', text: 'orders' },
+    { kind: 'zone', at: [5, 1.5], w: 4, d: 3.5, hex: '#16233a', text: 'billing' },
+    { kind: 'tray', at: [0, 0], to: [-5, 1.5], h: 2.8 },
+    { kind: 'tray', at: [0, 0], to: [5, 1.5], h: 2.8 },
   ],
   probes: [
     {
@@ -292,6 +305,12 @@ export const DR_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [4, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [-5, 7], text: 'region a', accent: '#5a8fd1' },
+    { kind: 'sign', at: [5, 7], text: 'region b', accent: '#5a8fd1' },
+    { kind: 'zone', at: [0, 1.5], w: 4, d: 5, hex: '#16233a', text: 'failover corridor' },
+    { kind: 'hazard', at: [4, -5.4], w: 3, d: 0.7 },
+  ],
   probes: [
     {
       id: 'regA', machine: 'regA', prompt: 'Inspect the primary Region',
@@ -417,6 +436,12 @@ export const STEPFN_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'workflow bay', accent: '#5a8fd1' },
+    { kind: 'pipe', at: [3.5, 1.5], to: [-4.5, 1.5] },
+    { kind: 'pipe', at: [-4.5, 1.5], to: [0.5, -1.2] },
+    { kind: 'zone', at: [3.5, -1], w: 4.5, d: 3.5, hex: '#16233a', text: 'batch window' },
   ],
   probes: [
     {
@@ -551,6 +576,12 @@ export const STATELESS_SPEC: MissionSpec = {
     { id: 'alb', kind: 'routerArm', at: [-3.5, 1.5] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'session lab', accent: '#5a8fd1' },
+    { kind: 'zone', at: [3.5, 1.5], w: 4.5, d: 4, hex: '#16233a', text: 'sticky sessions' },
+    { kind: 'hazard', at: [3.5, -2.9], w: 4, d: 0.7 },
+    { kind: 'light', at: [-8.5, -4], yaw: Math.PI / 2 },
   ],
   probes: [
     {

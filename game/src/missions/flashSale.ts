@@ -4,6 +4,7 @@ import {
   aimPointer, crowdGate, dbTower, moduleBox, serverRack, socketRing, statusConsole,
   strobeBeacon, supplyPallet, type CarryModule,
 } from '../world/kit';
+import { floorZone, pipeRun, siteLight, zoneSign } from '../world/decor';
 import type { Carryable } from '../interact/carry';
 import { Socket } from '../interact/sockets';
 import { esc } from '../ui/uiShell';
@@ -138,6 +139,11 @@ export class FlashSaleMission extends MissionBase {
       term: this.own(statusConsole(s, o.add(new Vector3(-7, 0, -6.5)), Math.PI)),
     };
     this.own(supplyPallet(s, o.add(new Vector3(-6.5, 0, -3.6))));
+    // set dressing (physics-free)
+    this.ownNode(zoneSign(s, o.add(new Vector3(0, 0, 7)), 0, 'flash sale floor', '#33b38c'));
+    this.ownNode(floorZone(s, o.add(new Vector3(-8, 0, 0)), 3.5, 7, '#12332a', 'checkout rush'));
+    this.ownNode(pipeRun(s, o.add(new Vector3(-3, 0, 0)), o.add(new Vector3(3, 0, 1.8))));
+    this.ownNode(siteLight(s, o.add(new Vector3(8.5, 0, -5)), -Math.PI / 2));
 
     // pointer target angles (front = +Z yaw convention)
     const px = 0, pz = -0.6;

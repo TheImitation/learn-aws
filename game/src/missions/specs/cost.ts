@@ -19,6 +19,12 @@ export const LAMBDA_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [3.5, 7], text: 'compute floor', accent: '#67ad5b' },
+    { kind: 'zone', at: [3.5, 1.5], w: 5, d: 4.5, hex: '#1c2415', text: 'idle fleet' },
+    { kind: 'barrels', at: [8.5, -2] },
+    { kind: 'light', at: [-8.5, 3], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'fleet', machine: 'fleet', prompt: 'Inspect the thumbnail fleet',
@@ -134,6 +140,12 @@ export const PURCHASE_SPEC: MissionSpec = {
     { id: 'board', kind: 'serverRack', at: [-4.5, 2.5], yaw: Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [-4.5, 7], text: 'capacity planning', accent: '#67ad5b' },
+    { kind: 'zone', at: [-4.5, 2.5], w: 5, d: 4, hex: '#1c2415', text: 'steady baseline' },
+    { kind: 'crates', at: [8, 2] },
+    { kind: 'light', at: [8.5, -6.5], yaw: -Math.PI / 2 },
   ],
   probes: [
     {
@@ -268,6 +280,12 @@ export const ASG_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'auto scaling group', accent: '#67ad5b' },
+    { kind: 'zone', at: [-8, 0], w: 4, d: 6, hex: '#1c2415', text: 'morning surge' },
+    { kind: 'hazard', at: [3.5, -1.5], w: 4, d: 0.8 },
+    { kind: 'light', at: [8.5, 0], yaw: -Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'fleet', machine: 'fleet', prompt: 'Inspect the fleet',
@@ -375,6 +393,12 @@ export const BILLWATCH_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'billing ops', accent: '#67ad5b' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 4, hex: '#1c2415', text: 'cost anomaly desk' },
+    { kind: 'barrels', at: [8.5, -6] },
+    { kind: 'crates', at: [8.5, 4] },
   ],
   probes: [
     {
@@ -492,6 +516,12 @@ export const COMPUTE_SPEC: MissionSpec = {
   level: [
     { id: 'board', kind: 'serverRack', at: [-4.5, 2.5], yaw: Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [-4.5, 7], text: 'compute selection', accent: '#67ad5b' },
+    { kind: 'zone', at: [0, 0], w: 6, d: 4, hex: '#1c2415', text: 'workload triage' },
+    { kind: 'crates', at: [7.5, -3] },
+    { kind: 'barrels', at: [7.5, 3] },
   ],
   probes: [
     {
@@ -624,6 +654,12 @@ export const SCALEUPOUT_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'capacity bay', accent: '#67ad5b' },
+    { kind: 'hazard', at: [3.5, -2.8], w: 5, d: 0.8 },
+    { kind: 'racks', at: [-8.9, 5], yaw: Math.PI / 2, n: 3, accent: '#9ad657' },
+    { kind: 'light', at: [8.5, -6], yaw: -Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'mono', machine: 'mono', prompt: 'Inspect the monolith',
@@ -751,6 +787,12 @@ export const ORG_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'account structure', accent: '#67ad5b' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 4, hex: '#1c2415', text: 'audit corner' },
+    { kind: 'tray', at: [-7, 6], to: [7, 6], h: 2.7 },
+    { kind: 'barrels', at: [8, -6.2] },
   ],
   probes: [
     {

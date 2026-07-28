@@ -19,6 +19,12 @@ export const EVENTBRIDGE_SPEC: MissionSpec = {
     { id: 'cronbox', kind: 'serverRack', at: [-4.5, 1.5], yaw: Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'event routing', accent: '#5a8fd1' },
+    { kind: 'tray', at: [-4.5, 1.5], to: [3.5, 1.5], h: 2.9 },
+    { kind: 'zone', at: [0.5, 2.8], w: 5, d: 2.5, hex: '#16233a', text: 'rule matrix' },
+    { kind: 'barrels', at: [8, -5] },
+  ],
   probes: [
     {
       id: 'router', machine: 'router', prompt: 'Inspect the router monolith',
@@ -134,6 +140,12 @@ export const CFN_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'infra as code', accent: '#5a8fd1' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 4, d: 3.5, hex: '#16233a', text: 'staging' },
+    { kind: 'zone', at: [3.5, 1.5], w: 4, d: 3.5, hex: '#16233a', text: 'production' },
+    { kind: 'crates', at: [8, 4] },
   ],
   probes: [
     {
@@ -268,6 +280,12 @@ export const PICKMSG_SPEC: MissionSpec = {
     { id: 'board', kind: 'serverRack', at: [-4.5, 2.5], yaw: Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
     { id: 'lever', kind: 'chaosLever', at: [5.5, -4.2] },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'messaging depot', accent: '#5a8fd1' },
+    { kind: 'zone', at: [-8, 2.5], w: 3.5, d: 6, hex: '#16233a', text: 'parcel intake' },
+    { kind: 'hazard', at: [5.5, -5.5], w: 3, d: 0.8 },
+    { kind: 'crates', at: [7.5, 3] },
   ],
   probes: [
     {
@@ -422,6 +440,12 @@ export const BACKUP_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [4, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [4.5, 7], text: 'backup vault', accent: '#5a8fd1' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 4, hex: '#16233a', text: 'estate audit' },
+    { kind: 'barrels', at: [8, -5] },
+    { kind: 'light', at: [-8.5, 5], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'estate', machine: 'estate', prompt: 'Inspect the backup estate',
@@ -557,6 +581,12 @@ export const MIGRATE_SPEC: MissionSpec = {
     { id: 'link', kind: 'internetGate', at: [1, 1.5], yaw: Math.PI / 2 },
     { id: 'cloud', kind: 'shelfUnit', at: [6, 1.5], yaw: -Math.PI / 2, args: ['#57c7e3'] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'migration dock', accent: '#5a8fd1' },
+    { kind: 'hazard', at: [0.75, 3.4], w: 9, d: 0.9 },
+    { kind: 'zone', at: [-4.5, -1.5], w: 5, d: 3.5, hex: '#16233a', text: 'petabyte staging' },
+    { kind: 'crates', at: [8, -4.5], hex: '#7a6a4c' },
   ],
   probes: [
     {

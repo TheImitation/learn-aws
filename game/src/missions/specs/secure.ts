@@ -23,6 +23,12 @@ export const SG_VS_NACL_SPEC: MissionSpec = {
     { id: 'web', kind: 'serverRack', at: [4.5, 0], yaw: Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'rule evaluation', accent: '#d15656' },
+    { kind: 'zone', at: [0, 0], w: 2.6, d: 8.5, hex: '#20242e' },
+    { kind: 'hazard', at: [4.5, -4.2], w: 3.5, d: 0.7 },
+    { kind: 'light', at: [-8.5, -4], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'gate', machine: 'gate', prompt: 'Inspect the traffic',
@@ -188,6 +194,12 @@ export const KMS_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [1, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [1, 7], text: 'key management', accent: '#d15656' },
+    { kind: 'zone', at: [5, 2], w: 4, d: 3.5, hex: '#2a1616', text: 'snapshot shelf' },
+    { kind: 'hazard', at: [1, -5.5], w: 3, d: 0.7 },
+    { kind: 'barrels', at: [-8.5, -3], hex: '#6a4a7a' },
+  ],
   probes: [
     {
       id: 'snaps', machine: 'snaps', prompt: 'Inspect snapshot shelf',
@@ -307,6 +319,12 @@ export const SECRETS_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [0.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'secrets office', accent: '#d15656' },
+    { kind: 'zone', at: [-3, 1.8], w: 4, d: 3.5, hex: '#2a1616', text: 'the repo' },
+    { kind: 'pipe', at: [0.5, -1.2], to: [3.5, 1.5] },
+    { kind: 'light', at: [8.5, -5], yaw: -Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'app', machine: 'app', prompt: 'Inspect app rack',
@@ -424,6 +442,12 @@ export const DETECT_SPEC: MissionSpec = {
     { id: 'victim', kind: 'serverRack', at: [3.5, 1.5], yaw: Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [3, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'threat detection', accent: '#d15656' },
+    { kind: 'zone', at: [3.5, 1.5], w: 4.5, d: 4, hex: '#2a1616', text: 'crypto den' },
+    { kind: 'racks', at: [8.8, -3], yaw: -Math.PI / 2, n: 3, accent: '#e87a7a' },
+    { kind: 'hazard', at: [3, -5.4], w: 3, d: 0.7 },
   ],
   probes: [
     {
@@ -555,6 +579,12 @@ export const SSM_SPEC: MissionSpec = {
     { id: 'fleet', kind: 'serverRack', at: [4.5, 1.5], yaw: Math.PI / 2 },
     { id: 'dial', kind: 'aimPointer', at: [0.5, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [1, 7], text: 'access control', accent: '#d15656' },
+    { kind: 'zone', at: [-2.5, 1.5], w: 4, d: 3.5, hex: '#2a1616', text: 'bastion legacy' },
+    { kind: 'zone', at: [4.5, 1.5], w: 4, d: 3.5, hex: '#14202e', text: 'fleet' },
+    { kind: 'light', at: [-8.5, -4], yaw: Math.PI / 2 },
   ],
   probes: [
     {

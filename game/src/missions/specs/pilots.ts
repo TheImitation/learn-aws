@@ -23,6 +23,12 @@ export const MULTIAZ_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [0, -4.5] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [-4.5, 7], text: 'primary hall', accent: '#5a8fd1' },
+    { kind: 'sign', at: [4.5, 7], text: 'standby hall', accent: '#5a8fd1' },
+    { kind: 'hazard', at: [0, -5.7], w: 3.5, d: 0.8 },
+    { kind: 'light', at: [-8.7, -5], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'gate', machine: 'gate', prompt: 'Inspect the traffic',
@@ -173,6 +179,12 @@ export const VPC_ENDPOINTS_SPEC: MissionSpec = {
     { id: 's3', kind: 'shelfUnit', at: [6.5, 2], yaw: -Math.PI / 2, args: ['#e8a657'] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [-1, 7], text: 'private route', accent: '#d15656' },
+    { kind: 'zone', at: [-1, 5], w: 8, d: 2, hex: '#1c2415', text: 'toll road' },
+    { kind: 'barrels', at: [8.5, -4] },
+    { kind: 'light', at: [8.5, 4], yaw: -Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'analytics', machine: 'analytics', prompt: 'Inspect analytics fleet',
@@ -312,6 +324,13 @@ export const DNS_ROUTING_SPEC: MissionSpec = {
     { id: 'aps1', kind: 'serverRack', at: [2, 4.5], yaw: Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [-1, -4.5] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [-4, 7], text: 'routing policies', accent: '#5a8fd1' },
+    { kind: 'zone', at: [2, -4.5], w: 3.5, d: 3, hex: '#16233a', text: 'us-east-1' },
+    { kind: 'zone', at: [3.5, 0], w: 3.5, d: 3, hex: '#16233a', text: 'eu-central-1' },
+    { kind: 'zone', at: [2, 4.5], w: 3.5, d: 3, hex: '#16233a', text: 'ap-south-1' },
+    { kind: 'light', at: [8.5, -6], yaw: -Math.PI / 2 },
   ],
   probes: [
     {

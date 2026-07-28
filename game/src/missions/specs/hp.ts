@@ -19,6 +19,12 @@ export const CDN_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [4.5, 7], text: 'media origin', accent: '#33b38c' },
+    { kind: 'zone', at: [-8, 0], w: 3.5, d: 7, hex: '#12332a', text: 'global audience' },
+    { kind: 'racks', at: [8.8, -4], yaw: -Math.PI / 2, n: 3, accent: '#5fd29a' },
+    { kind: 'light', at: [8.5, 5], yaw: -Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'bucket', machine: 'bucket', prompt: 'Inspect the media bucket',
@@ -143,6 +149,12 @@ export const PANTRY_SPEC: MissionSpec = {
     { id: 'sessions', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'data pantry', accent: '#33b38c' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 4, d: 4, hex: '#12332a', text: 'orders' },
+    { kind: 'zone', at: [4.5, 1.5], w: 4, d: 4, hex: '#12332a', text: 'sessions' },
+    { kind: 'barrels', at: [8, -5.5] },
+  ],
   probes: [
     {
       id: 'orders', machine: 'orders', prompt: 'Inspect the orders workload',
@@ -257,6 +269,12 @@ export const BLOCKFILE_SPEC: MissionSpec = {
     { id: 'db', kind: 'dbTower', at: [-4.5, 1.5] },
     { id: 'fleet', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'storage lab', accent: '#33b38c' },
+    { kind: 'pipe', at: [-4.5, 1.5], to: [-2, -1.2] },
+    { kind: 'pipe', at: [4.5, 1.5], to: [2, -1.2] },
+    { kind: 'crates', at: [8, 4] },
   ],
   probes: [
     {
@@ -377,6 +395,12 @@ export const ECS_SPEC: MissionSpec = {
     { id: 'ops', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2 },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'container bay', accent: '#33b38c' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 4, hex: '#12332a', text: 'build pipeline' },
+    { kind: 'hazard', at: [0.5, -2.4], w: 4, d: 0.7 },
+    { kind: 'crates', at: [7.5, -4], hex: '#4a5a7a' },
+  ],
   probes: [
     {
       id: 'pipeline', machine: 'pipeline', prompt: 'Inspect the pipeline',
@@ -486,6 +510,12 @@ export const APIGW_SPEC: MissionSpec = {
     { id: 'backend', kind: 'serverRack', at: [4.5, 1.5], yaw: -Math.PI / 2 },
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [-4.5, 7], text: 'api front door', accent: '#33b38c' },
+    { kind: 'zone', at: [-1, -0.5], w: 6, d: 2.5, hex: '#12332a', text: 'rate-limit line' },
+    { kind: 'racks', at: [8.8, 4], yaw: -Math.PI / 2, n: 3, accent: '#5fd29a' },
+    { kind: 'light', at: [8.5, 0], yaw: -Math.PI / 2 },
   ],
   probes: [
     {

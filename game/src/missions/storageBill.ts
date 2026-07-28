@@ -1,6 +1,7 @@
 import { Vector3 } from '@babylonjs/core';
 import type { Topic } from '@content';
 import { crowdGate, routeBoard, shelfUnit, statusConsole } from '../world/kit';
+import { barrels, floorZone, siteLight, zoneSign } from '../world/decor';
 import { esc } from '../ui/uiShell';
 import { MissionBase, type MissionStep, type TicketInfo } from './base';
 import type { MissionDeps } from './manager';
@@ -84,6 +85,13 @@ export class StorageBillMission extends MissionBase {
       board: this.own(routeBoard(s, o.add(new Vector3(-3, 0, -6.5)), 0)),
       term: this.own(statusConsole(s, o.add(new Vector3(-7, 0, -6.5)), Math.PI)),
     };
+    // set dressing (physics-free)
+    this.ownNode(zoneSign(s, o.add(new Vector3(1.5, 0, 7)), 0, 'storage tiers', '#67ad5b'));
+    this.ownNode(floorZone(s, o.add(new Vector3(4.2, 0, -4)), 2.4, 2.6, '#2a1c10', 'hot'));
+    this.ownNode(floorZone(s, o.add(new Vector3(4.2, 0, 0)), 2.4, 2.6, '#14202e', 'cool'));
+    this.ownNode(floorZone(s, o.add(new Vector3(4.2, 0, 4)), 2.4, 2.6, '#1a1626', 'deep vault'));
+    this.ownNode(barrels(s, o.add(new Vector3(8, 0, -5))));
+    this.ownNode(siteLight(s, o.add(new Vector3(-8.5, 0, -4)), Math.PI / 2));
   }
 
   private wireSim() {

@@ -19,6 +19,12 @@ export const ATHENA_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [-4.5, 7], text: 'data lake', accent: '#33b38c' },
+    { kind: 'zone', at: [-4.5, 1.5], w: 5, d: 5, hex: '#12332a', text: 'scan zone' },
+    { kind: 'tray', at: [-7, 6], to: [7, 6], h: 2.8 },
+    { kind: 'barrels', at: [8, -5] },
+  ],
   probes: [
     {
       id: 'lake', machine: 'lake', prompt: 'Inspect the data lake',
@@ -140,6 +146,12 @@ export const AURORA_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [3.5, 7], text: 'database hall', accent: '#33b38c' },
+    { kind: 'zone', at: [-4.5, -1], w: 5, d: 4, hex: '#12332a', text: 'read traffic' },
+    { kind: 'pipe', at: [3.5, 1.5], to: [0.5, -1.2] },
+    { kind: 'light', at: [-8.5, -4], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'writer', machine: 'writer', prompt: 'Inspect the writer',
@@ -254,6 +266,12 @@ export const KINESIS_SPEC: MissionSpec = {
     { id: 'pipe', kind: 'serverRack', at: [3.5, 1.5], yaw: Math.PI / 2 },
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [3.5, 7], text: 'ingest pipeline', accent: '#33b38c' },
+    { kind: 'zone', at: [-8, 0], w: 3.5, d: 7, hex: '#12332a', text: 'event flood' },
+    { kind: 'pipe', at: [-8, 0.5], to: [3.5, 1] },
+    { kind: 'hazard', at: [0.5, -2.5], w: 4, d: 0.7 },
   ],
   probes: [
     {
@@ -373,6 +391,12 @@ export const GA_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.4] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'global entry', accent: '#33b38c' },
+    { kind: 'zone', at: [3.5, -2], w: 4.5, d: 3.2, hex: '#12332a', text: 'us-east-1' },
+    { kind: 'zone', at: [4.5, 2], w: 4.5, d: 3.2, hex: '#12332a', text: 'eu-central-1' },
+    { kind: 'light', at: [-8.5, 4], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'players', machine: 'players', prompt: 'Inspect the players',
@@ -489,6 +513,12 @@ export const S3PROTECT_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [-2, -2] },
     { id: 'lever', kind: 'chaosLever', at: [3.5, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [4.5, 7], text: 'artifact vault', accent: '#33b38c' },
+    { kind: 'zone', at: [-4.5, -1], w: 5, d: 4, hex: '#12332a', text: 'deploy staging' },
+    { kind: 'hazard', at: [3.5, -3], w: 4, d: 0.7 },
+    { kind: 'crates', at: [8, 4], hex: '#7a5a3a' },
   ],
   probes: [
     {

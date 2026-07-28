@@ -20,6 +20,12 @@ export const NET_BOUNDARIES_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [0.5, -2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [-1.5, 7], text: 'network boundary', accent: '#d15656' },
+    { kind: 'zone', at: [-7, 1.5], w: 4, d: 4, hex: '#14202e', text: 'public edge' },
+    { kind: 'zone', at: [3.5, 1.5], w: 4, d: 4, hex: '#2a1616', text: 'app tier' },
+    { kind: 'hazard', at: [4.5, -3.2], w: 3.5, d: 0.7 },
+  ],
   probes: [
     {
       id: 'app', machine: 'app', prompt: 'Inspect app tier',
@@ -151,6 +157,12 @@ export const EDGE_SPEC: MissionSpec = {
     { id: 'app', kind: 'serverRack', at: [4.5, 0], yaw: Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [3, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'edge defense', accent: '#d15656' },
+    { kind: 'zone', at: [-8, 0], w: 3.5, d: 7, hex: '#2a1616', text: 'attack surface' },
+    { kind: 'hazard', at: [0.5, -3.4], w: 5, d: 0.8 },
+    { kind: 'light', at: [8.5, 4], yaw: -Math.PI / 2 },
   ],
   probes: [
     {
@@ -293,6 +305,12 @@ export const CONNECT_SPEC: MissionSpec = {
     { id: 'lever', kind: 'chaosLever', at: [3, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7.5], text: 'transit hub', accent: '#d15656' },
+    { kind: 'tray', at: [-6, 3], to: [0, 0], h: 2.8 },
+    { kind: 'tray', at: [0, 4.5], to: [0, 0], h: 2.8 },
+    { kind: 'tray', at: [6, 3], to: [0, 0], h: 2.8 },
+  ],
   probes: [
     {
       id: 'vpcA', machine: 'vpcA', prompt: 'Inspect VPC A',
@@ -416,6 +434,12 @@ export const HYBRID_SPEC: MissionSpec = {
     { id: 'vpc', kind: 'serverRack', at: [6, 1.5], yaw: -Math.PI / 2 },
     { id: 'lever', kind: 'chaosLever', at: [3, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'hybrid link', accent: '#d15656' },
+    { kind: 'zone', at: [-6.5, 1.5], w: 4.5, d: 4, hex: '#241a10', text: 'on-prem cage' },
+    { kind: 'zone', at: [6, 1.5], w: 4.5, d: 4, hex: '#14202e', text: 'aws vpc' },
+    { kind: 'pipe', at: [-6.5, 1.5], to: [6, 1.5] },
   ],
   probes: [
     {
@@ -552,6 +576,12 @@ export const COGNITO_SPEC: MissionSpec = {
     { id: 'uploader', kind: 'shelfUnit', at: [5.5, 1.5], yaw: -Math.PI / 2, args: ['#e8a657'] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
   ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'identity desk', accent: '#d15656' },
+    { kind: 'zone', at: [-4, 1.5], w: 4, d: 3.5, hex: '#2a1616', text: 'diy auth' },
+    { kind: 'zone', at: [5.5, 1.5], w: 4, d: 3.5, hex: '#14202e', text: 'user uploads' },
+    { kind: 'light', at: [-8.5, -4], yaw: Math.PI / 2 },
+  ],
   probes: [
     {
       id: 'app', machine: 'app', prompt: 'Inspect the sign-in flow',
@@ -680,6 +710,12 @@ export const CLOUDTRAIL_SPEC: MissionSpec = {
     { id: 'vault', kind: 'shelfUnit', at: [-4.5, 2], yaw: Math.PI / 2, args: ['#8f7ae6', true] },
     { id: 'lever', kind: 'chaosLever', at: [3, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'audit trail', accent: '#d15656' },
+    { kind: 'zone', at: [3.5, 1.5], w: 4.5, d: 4, hex: '#2a1616', text: 'crime scene' },
+    { kind: 'hazard', at: [3.5, -1.2], w: 4.5, d: 0.6 },
+    { kind: 'barrels', at: [-8.5, -4], hex: '#5a5a7a' },
   ],
   probes: [
     {
@@ -824,6 +860,12 @@ export const COMPLIANT_SPEC: MissionSpec = {
     { id: 'dial', kind: 'aimPointer', at: [0.5, -2] },
     { id: 'lever', kind: 'chaosLever', at: [4, -4.2] },
     { id: 'term', kind: 'statusConsole', at: [-7, -6.5], yaw: Math.PI },
+  ],
+  decor: [
+    { kind: 'sign', at: [0, 7], text: 'compliance floor', accent: '#d15656' },
+    { kind: 'zone', at: [4.5, 4], w: 4, d: 2.5, hex: '#2a1616', text: 'quarantine' },
+    { kind: 'hazard', at: [4, -5.4], w: 3, d: 0.7 },
+    { kind: 'crates', at: [-8.5, 4] },
   ],
   probes: [
     {

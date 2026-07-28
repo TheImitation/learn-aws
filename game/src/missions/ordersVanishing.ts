@@ -2,6 +2,8 @@ import { Color3, Mesh, MeshBuilder, PhysicsAggregate, PhysicsShapeType, Standard
 import type { Topic } from '@content';
 import { recordProgress } from '../core/progress';
 import { conveyor, crowdGate, dlqBin, serverRack, statusConsole, type Machine } from '../world/kit';
+import { crateStack, floorZone, hazardStrip, siteLight, zoneSign } from '../world/decor';
+import type { TransformNode } from '@babylonjs/core';
 import { QuizTerminal } from '../ui/quizTerminal';
 import { esc } from '../ui/uiShell';
 import type { MissionDeps } from './manager';
@@ -58,6 +60,7 @@ export class OrdersVanishingMission {
   private test: { beat: Beat; mode: 'sync' | 'physical'; total: number; needed: number; delivered: number; quarantined: number; started: number; running: boolean } | null = null;
   private poisonFailedOnce = false;
   private peakDepth = 0;
+  private decorNodes: TransformNode[] = [];
 
   constructor(deps: MissionDeps, topic: Topic) {
     this.d = deps;
@@ -71,6 +74,8 @@ export class OrdersVanishingMission {
 
   dispose() {
     for (const id of this.interactableIds) this.d.interaction.remove(id);
+    for (const n of this.decorNodes) n.dispose(false, true);
+    this.decorNodes = [];
     for (const m of Object.values(this.m)) m.root.dispose();
     this.conveyorM?.root.dispose();
     this.bin?.root.dispose();
@@ -96,6 +101,14 @@ export class OrdersVanishingMission {
     };
     this.parcelMat = glow('parcel-m', '#57c7e3');
     this.poisonMat = glow('poison-m', '#e85f5f');
+    // set dressing (physics-free)
+    this.decorNodes.push(
+      zoneSign(s, o.add(new Vector3(0, 0, 7)), 0, 'parcel line', '#5a8fd1'),
+      hazardStrip(s, o.add(new Vector3(-1.5, 0, 1.6)), 11, 0.7),
+      floorZone(s, o.add(new Vector3(5.5, 0, 3.9)), 2.6, 2, '#2a1616', 'dead letter'),
+      crateStack(s, o.add(new Vector3(8.5, 0, 5)), 0.5),
+      siteLight(s, o.add(new Vector3(-8.5, 0, -5)), Math.PI / 2),
+    );
   }
 
   private wireSim() {
