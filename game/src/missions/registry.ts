@@ -17,6 +17,12 @@ import { ATHENA_SPEC, AURORA_SPEC, GA_SPEC, KINESIS_SPEC, S3PROTECT_SPEC } from 
 import {
   ASG_SPEC, BILLWATCH_SPEC, COMPUTE_SPEC, LAMBDA_SPEC, ORG_SPEC, PURCHASE_SPEC, SCALEUPOUT_SPEC,
 } from './specs/cost';
+import {
+  API_PROXY_SPEC, DDB_KEY_SPEC, IDEMPOTENT_SPEC, JWT_SPEC, SECRETS_CODE_SPEC, STEPFN_RETRY_SPEC,
+} from './specs/dev1';
+import {
+  CANARY_SPEC, PIPELINE_SPEC, SAM_SPEC, STS_SPEC, TUNING_SPEC, XRAY_SPEC,
+} from './specs/dev2';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -71,4 +77,17 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'choose-compute': spec(COMPUTE_SPEC),
   'scale-up-vs-out': spec(SCALEUPOUT_SPEC),
   'govern-accounts': spec(ORG_SPEC),
+  // Developer badge (DVA-C02)
+  'dva-idempotent-lambda': spec(IDEMPOTENT_SPEC),
+  'dva-ddb-hot-partition': spec(DDB_KEY_SPEC),
+  'dva-api-proxy': spec(API_PROXY_SPEC),
+  'dva-stepfn-retry': spec(STEPFN_RETRY_SPEC),
+  'dva-jwt-cognito': spec(JWT_SPEC),
+  'dva-secrets-in-code': spec(SECRETS_CODE_SPEC),
+  'dva-sts-least-priv': spec(STS_SPEC),
+  'dva-sam-drift': spec(SAM_SPEC),
+  'dva-canary-alias': spec(CANARY_SPEC),
+  'dva-pipeline-gates': spec(PIPELINE_SPEC),
+  'dva-xray-tracing': spec(XRAY_SPEC),
+  'dva-lambda-tuning': spec(TUNING_SPEC),
 };

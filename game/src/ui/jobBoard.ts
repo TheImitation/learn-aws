@@ -1,6 +1,6 @@
 import type { Topic } from '@content';
 import { readProgress, recordProgress } from '../core/progress';
-import { DOMAINS, isLocked, LEVEL_NAME, levelOf, orderedTopics, readiness, recommended } from '../content/meta';
+import { DOMAINS, type DomainMeta, isLocked, LEVEL_NAME, levelOf, orderedTopics, readiness, recommended } from '../content/meta';
 import { Journal } from './journal';
 import { QuizTerminal } from './quizTerminal';
 import { esc, UiShell, type PanelAction } from './uiShell';
@@ -23,11 +23,13 @@ export class JobBoard {
     private quiz: QuizTerminal,
     private topics: Topic[],
     private missions: Record<string, MissionHook>,
+    private domains: DomainMeta[] = DOMAINS,
+    private boardName = 'NOC · job board',
   ) {}
 
   open() {
-    const r = readiness(this.topics);
-    const rec = recommended(this.topics);
+    const r = readiness(this.topics, this.domains);
+    const rec = recommended(this.topics, this.domains);
     const bars = r.per.map((x) =>
       `<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0">` +
       `<span style="flex:1;color:#b9c1d0">${esc(x.d.label)} · ${x.d.weight}%</span>` +
@@ -37,7 +39,7 @@ export class JobBoard {
     const gaugeColor = r.overall >= 69 ? '#5fd29a' : '#e8a657';
     const actions: PanelAction[] = [];
     if (rec) actions.push({ label: `▶ Recommended: ${rec.title}`, closes: false, onSelect: () => this.openTicket(rec) });
-    for (const d of DOMAINS) {
+    for (const d of this.domains) {
       const ts = this.topics.filter((t) => t.examDomain === d.key);
       const prog = readProgress();
       const mastered = ts.filter((t) => prog[t.id]?.mastery === 'Mastered').length;
@@ -46,7 +48,7 @@ export class JobBoard {
     actions.push({ label: 'Close' });
     this.ui.open({
       id: 'job-board',
-      kicker: 'NOC · job board',
+      kicker: this.boardName,
       title: 'Open tickets',
       bodyHtml:
         `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">` +
@@ -69,9 +71,9 @@ export class JobBoard {
   }
 
   private openDomain(domainKey: string) {
-    const d = DOMAINS.find((x) => x.key === domainKey)!;
+    const d = this.domains.find((x) => x.key === domainKey)!;
     const prog = readProgress();
-    const ts = orderedTopics(this.topics).filter((t) => t.examDomain === domainKey);
+    const ts = orderedTopics(this.topics, this.domains).filter((t) => t.examDomain === domainKey);
     const actions: PanelAction[] = ts.map((t) => {
       const best = prog[t.id]?.best || 0;
       const mission = this.missions[t.id] ? ' · ⚙ field mission' : '';

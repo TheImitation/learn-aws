@@ -13,6 +13,14 @@ export const DOMAINS: DomainMeta[] = [
   { key: 'Design Cost-Optimized Architectures', label: 'Cost-optimized architectures', accent: '#67ad5b', weight: 20 },
 ];
 
+/** DVA-C02 (Developer – Associate) domains, official weights. */
+export const DEV_DOMAINS: DomainMeta[] = [
+  { key: 'Development with AWS Services', label: 'Development with AWS services', accent: '#e8a03c', weight: 32 },
+  { key: 'Security (Developer)', label: 'Security', accent: '#d15656', weight: 26 },
+  { key: 'Deployment', label: 'Deployment', accent: '#8f7ae6', weight: 24 },
+  { key: 'Troubleshooting and Optimization', label: 'Troubleshooting & optimization', accent: '#33b38c', weight: 18 },
+];
+
 export const LEVEL_NAME: Record<number, string> = { 1: 'Foundational', 2: 'Core', 3: 'Advanced' };
 
 /** Difficulty tier per topic (1 Foundational · 2 Core · 3 Advanced) — v1's CARD levels. */
@@ -29,13 +37,18 @@ export const LEVELS: Record<string, number> = {
   'sg-vs-nacl': 3, 'multiaz-vs-replicas': 3, 'pick-messaging': 2, 'scale-up-vs-out': 2,
   'private-egress-nat': 2, 's3-protection': 2, 'govern-accounts': 3, 'vpc-endpoints': 3,
   'centralize-backups': 2, 'migrate-data': 2, 'stay-compliant': 3, 'ssm-session': 2,
+  // Developer badge (DVA-C02)
+  'dva-api-proxy': 1, 'dva-secrets-in-code': 1, 'dva-sam-drift': 1, 'dva-lambda-tuning': 1,
+  'dva-idempotent-lambda': 2, 'dva-ddb-hot-partition': 2, 'dva-jwt-cognito': 2,
+  'dva-sts-least-priv': 2, 'dva-canary-alias': 2, 'dva-pipeline-gates': 2,
+  'dva-stepfn-retry': 3, 'dva-xray-tracing': 3,
 };
 
 export const levelOf = (id: string) => LEVELS[id] ?? 2;
 
 /** Domain order → tier → course order (v1's learning order). */
-export function orderedTopics(topics: Topic[]): Topic[] {
-  const di = (t: Topic) => { const i = DOMAINS.findIndex((d) => d.key === t.examDomain); return i < 0 ? 99 : i; };
+export function orderedTopics(topics: Topic[], domains: DomainMeta[] = DOMAINS): Topic[] {
+  const di = (t: Topic) => { const i = domains.findIndex((d) => d.key === t.examDomain); return i < 0 ? 99 : i; };
   return topics.map((t, i) => ({ t, i }))
     .sort((a, b) => di(a.t) - di(b.t) || levelOf(a.t.id) - levelOf(b.t.id) || a.i - b.i)
     .map((x) => x.t);
@@ -57,15 +70,15 @@ export function unlockedLevel(topics: Topic[], domainKey: string): number {
 export const isLocked = (topics: Topic[], t: Topic) => levelOf(t.id) > unlockedLevel(topics, t.examDomain);
 
 /** v1's readiness(): per-domain average of best scores, blended by official exam weight. */
-export function readiness(topics: Topic[]) {
+export function readiness(topics: Topic[], domains: DomainMeta[] = DOMAINS) {
   const prog = readProgress();
   const score = (id: string) => prog[id]?.best || 0;
-  const per = DOMAINS.map((d) => {
+  const per = domains.map((d) => {
     const ts = topics.filter((t) => t.examDomain === d.key);
     const avg = ts.length ? ts.reduce((s, t) => s + score(t.id), 0) / ts.length : 0;
     return { d, pct: Math.round(avg) };
   });
-  const wsum = DOMAINS.reduce((s, d) => s + d.weight, 0);
+  const wsum = domains.reduce((s, d) => s + d.weight, 0);
   const overall = Math.round(per.reduce((s, x) => s + x.pct * x.d.weight, 0) / wsum);
   const weakest = per.slice().sort((a, b) => a.pct - b.pct)[0];
   const attempted = topics.filter((t) => (prog[t.id]?.mastery ?? 'Not started') !== 'Not started').length;
@@ -73,7 +86,7 @@ export function readiness(topics: Topic[]) {
 }
 
 /** First unlocked, non-mastered topic in learning order — the "recommended" ticket. */
-export function recommended(topics: Topic[]): Topic | null {
+export function recommended(topics: Topic[], domains: DomainMeta[] = DOMAINS): Topic | null {
   const prog = readProgress();
-  return orderedTopics(topics).find((t) => prog[t.id]?.mastery !== 'Mastered' && !isLocked(topics, t)) ?? null;
+  return orderedTopics(topics, domains).find((t) => prog[t.id]?.mastery !== 'Mastered' && !isLocked(topics, t)) ?? null;
 }

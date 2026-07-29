@@ -105,6 +105,14 @@ const THEMES: Record<string, ThemeSpec> = {
   },
 };
 
+// Developer badge (DVA-C02) domains reuse the closest SAA identity:
+// Development = speed-lab, Security = secure facility, Deployment = logistics
+// dock (shipping!), Troubleshooting = twin-hall datacenter.
+THEMES['Development with AWS Services'] = THEMES['Design High-Performing Architectures'];
+THEMES['Security (Developer)'] = THEMES['Design Secure Architectures'];
+THEMES['Deployment'] = THEMES['Design Cost-Optimized Architectures'];
+THEMES['Troubleshooting and Optimization'] = THEMES['Design Resilient Architectures'];
+
 export function applyTheme(scene: Scene, origin: Vector3, domainKey: string): TransformNode {
   const root = new TransformNode('theme-' + domainKey, scene);
   const t = THEMES[domainKey] ?? THEMES['Design Resilient Architectures'];

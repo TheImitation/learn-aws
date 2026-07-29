@@ -30,13 +30,15 @@ import { ambience, wireAudioUnlock } from './core/sfx';
 import { OPTIONS } from './core/options';
 import { FlowSim } from './sim/flowSim';
 import { jobBoardKiosk } from './world/kit';
+import { zoneSign } from './world/decor';
 import { ObjectiveBanner } from './ui/objective';
 import { MISSIONS } from './missions/registry';
 import { MissionManager } from './missions/manager';
 import { JobBoard } from './ui/jobBoard';
 import { QuizTerminal } from './ui/quizTerminal';
-import { readiness, recommended, isLocked, unlockedLevel } from './content/meta';
+import { DEV_DOMAINS, readiness, recommended, isLocked, unlockedLevel } from './content/meta';
 import { COURSE } from '@content';
+import { DEV_COURSE } from './content/devCourse';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
 const engine = new Engine(canvas, true, { stencil: true });
@@ -142,9 +144,10 @@ async function boot() {
   const objective = new ObjectiveBanner();
   objective.set('NOC', 'Take a ticket at the job board');
 
+  const allTopics = [...COURSE.topics, ...DEV_COURSE.topics];
   const manager = new MissionManager(
     { scene, sim, ui, journal, interaction, objective, carry, grab, alarm, toast: toaster },
-    COURSE.topics,
+    allTopics,
     (feet) => player.teleport(feet),
     yard.spawn.clone(),
   );
@@ -165,8 +168,23 @@ async function boot() {
   interaction.add({
     id: 'job-board',
     node: kiosk.root,
-    prompt: 'Open job board',
+    prompt: 'Open job board (Architect)',
     onInteract: () => board.open(),
+  });
+
+  // --- Developer badge track (DVA-C02): its own kiosk + board ---
+  const devBoard = new JobBoard(ui, journal, quizTerminal, DEV_COURSE.topics,
+    Object.fromEntries(DEV_COURSE.topics.map((t) => [t.id, missionHook(t.id)])),
+    DEV_DOMAINS, 'NOC · developer board');
+  const devKiosk = jobBoardKiosk(scene, new Vector3(4.2, 0, 8.5), Math.PI);
+  devKiosk.setLamp?.('ok');
+  zoneSign(scene, new Vector3(4.2, 0, 10.1), 0, 'developer badge · dva', '#e8a03c');
+  zoneSign(scene, new Vector3(-1.4, 0, 10.1), 0, 'architect badge · saa', '#5fd29a');
+  interaction.add({
+    id: 'dev-board',
+    node: devKiosk.root,
+    prompt: 'Open developer board (DVA)',
+    onInteract: () => devBoard.open(),
   });
 
   const pauseSpec = () => ({

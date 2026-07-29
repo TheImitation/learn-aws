@@ -68,6 +68,12 @@ export const SERVICES: Record<string, ServiceDef> = {
   ssm: { abbrev: 'SSM', label: 'Systems Manager', color: MGMT },
   config: { abbrev: 'CFG', label: 'AWS Config', color: MGMT },
   snowball: { abbrev: 'SBL', label: 'AWS Snowball', color: STORAGE },
+  xray: { abbrev: 'XR', label: 'AWS X-Ray', color: MGMT },
+  codepipeline: { abbrev: 'CP', label: 'CodePipeline', color: COMPUTE },
+  codebuild: { abbrev: 'CB', label: 'CodeBuild', color: COMPUTE },
+  codedeploy: { abbrev: 'CD', label: 'CodeDeploy', color: COMPUTE },
+  sam: { abbrev: 'SAM', label: 'AWS SAM', color: MGMT },
+  sts: { abbrev: 'STS', label: 'AWS STS', color: SECURITY },
 };
 
 /** Service inference from a module's human label — most-specific first. Trap
