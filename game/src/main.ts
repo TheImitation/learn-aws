@@ -29,16 +29,16 @@ import { openOptionsPanel } from './ui/optionsPanel';
 import { ambience, wireAudioUnlock } from './core/sfx';
 import { OPTIONS } from './core/options';
 import { FlowSim } from './sim/flowSim';
-import { jobBoardKiosk } from './world/kit';
+import { jobBoardKiosk, statusConsole } from './world/kit';
 import { zoneSign } from './world/decor';
 import { ObjectiveBanner } from './ui/objective';
 import { MISSIONS } from './missions/registry';
 import { MissionManager } from './missions/manager';
 import { JobBoard } from './ui/jobBoard';
 import { QuizTerminal } from './ui/quizTerminal';
-import { DEV_DOMAINS, readiness, recommended, isLocked, unlockedLevel } from './content/meta';
+import { readiness, recommended, isLocked, unlockedLevel } from './content/meta';
 import { COURSE } from '@content';
-import { DEV_COURSE } from './content/devCourse';
+import { BADGES, playableBadges } from './content/badgeCatalog';
 
 const canvas = document.getElementById('app') as HTMLCanvasElement;
 const engine = new Engine(canvas, true, { stencil: true });
@@ -106,8 +106,9 @@ async function boot() {
     kicker: 'NOC campus',
     title: 'Campus guide',
     bodyHtml:
-      `<pre>job board ........ take a ticket — <b>start here</b>\n` +
-      `dashboard wall ... exam readiness · domain progress\n` +
+      `<pre>cert hall ........ 4 badge kiosks — <b>start here</b>\n` +
+      `badge directory .. the full AWS suite + roadmaps\n` +
+      `dashboard wall ... SAA readiness · domain progress\n` +
       `training course .. movement practice (east side)\n` +
       `loading dock ..... pushable crates · pure props\n` +
       `east gate ........ the shuttle leaves on dispatch</pre>` +
@@ -144,7 +145,7 @@ async function boot() {
   const objective = new ObjectiveBanner();
   objective.set('NOC', 'Take a ticket at the job board');
 
-  const allTopics = [...COURSE.topics, ...DEV_COURSE.topics];
+  const allTopics = BADGES.flatMap((b) => b.topics);
   const manager = new MissionManager(
     { scene, sim, ui, journal, interaction, objective, carry, grab, alarm, toast: toaster },
     allTopics,
@@ -161,30 +162,57 @@ async function boot() {
     statusLine: () => manager.step ?? '',
   });
   const quizTerminal = new QuizTerminal(ui);
-  const board = new JobBoard(ui, journal, quizTerminal, COURSE.topics,
-    Object.fromEntries(Object.keys(MISSIONS).map((id) => [id, missionHook(id)])));
-  const kiosk = jobBoardKiosk(scene, new Vector3(0.3, 0, 8.5), Math.PI);
-  kiosk.setLamp?.('ok');
-  interaction.add({
-    id: 'job-board',
-    node: kiosk.root,
-    prompt: 'Open job board (Architect)',
-    onInteract: () => board.open(),
+
+  // --- The Certification Hall: one labeled kiosk per playable badge, plus a
+  // directory board covering the entire official AWS suite. ---
+  const kioskXs = [-5.55, -1.65, 2.25, 6.15];
+  playableBadges().forEach((b, i) => {
+    const bBoard = new JobBoard(ui, journal, quizTerminal, b.topics,
+      Object.fromEntries(b.topics.map((t) => [t.id, missionHook(t.id)])),
+      b.domains, `NOC · ${b.name} board`);
+    const x = kioskXs[i] ?? (i * 4 - 6);
+    const k = jobBoardKiosk(scene, new Vector3(x, 0, 8.5), Math.PI);
+    k.setLamp?.('ok');
+    zoneSign(scene, new Vector3(x, 0, 10.1), 0, `${b.name.toLowerCase()} · ${b.code.toLowerCase()}`, b.accent);
+    interaction.add({
+      id: `board-${b.id}`,
+      node: k.root,
+      prompt: `Job board — ${b.name} (${b.code})`,
+      onInteract: () => bBoard.open(),
+    });
   });
 
-  // --- Developer badge track (DVA-C02): its own kiosk + board ---
-  const devBoard = new JobBoard(ui, journal, quizTerminal, DEV_COURSE.topics,
-    Object.fromEntries(DEV_COURSE.topics.map((t) => [t.id, missionHook(t.id)])),
-    DEV_DOMAINS, 'NOC · developer board');
-  const devKiosk = jobBoardKiosk(scene, new Vector3(4.2, 0, 8.5), Math.PI);
-  devKiosk.setLamp?.('ok');
-  zoneSign(scene, new Vector3(4.2, 0, 10.1), 0, 'developer badge · dva', '#e8a03c');
-  zoneSign(scene, new Vector3(-1.4, 0, 10.1), 0, 'architect badge · saa', '#5fd29a');
+  // badge directory: what each badge teaches, playable or planned
+  const dirConsole = statusConsole(scene, new Vector3(10.2, 0, 8.8), Math.PI);
+  dirConsole.setLamp?.('ok');
+  zoneSign(scene, new Vector3(10.2, 0, 10.1), 0, 'badge directory', '#d7e3f5');
+  const dirBody = () => {
+    let html = '';
+    for (const lvl of ['Foundational', 'Associate', 'Professional', 'Specialty'] as const) {
+      const list = BADGES.filter((b) => b.level === lvl);
+      if (!list.length) continue;
+      html += `<div style="margin:9px 0 3px;color:#7d8aa5;font-size:11px;letter-spacing:.08em">${lvl.toUpperCase()}</div>`;
+      for (const b of list) {
+        if (b.status === 'playable') {
+          const r = readiness(b.topics, b.domains);
+          html += `<div style="font-size:12px;margin:3px 0"><b style="color:${b.accent}">${esc(b.code)}</b> ${esc(b.name)} — <b>${b.topics.length} tickets · at the kiosks</b> · readiness ${r.overall}%<br><span style="color:#6b7280">${esc(b.blurb)}</span></div>`;
+        } else {
+          html += `<div style="font-size:12px;margin:3px 0;color:#6b7280"><b>${esc(b.code)}</b> ${esc(b.name)} — track under construction<br>${esc(b.domains.map((d) => `${d.label} ${d.weight}%`).join(' · '))}</div>`;
+        }
+      }
+    }
+    html += `<div style="margin-top:9px">${esc('One kiosk = one badge. Its tickets teach exactly that exam\'s domains, weighted like the real thing.')}</div>`;
+    return html;
+  };
   interaction.add({
-    id: 'dev-board',
-    node: devKiosk.root,
-    prompt: 'Open developer board (DVA)',
-    onInteract: () => devBoard.open(),
+    id: 'badge-directory',
+    node: dirConsole.root,
+    prompt: 'Badge directory — the full AWS suite',
+    onInteract: () => ui.open({
+      id: 'badge-directory', kicker: 'Certification Hall', title: 'The AWS badge suite',
+      bodyHtml: dirBody(),
+      actions: [{ label: 'Close' }],
+    }),
   });
 
   const pauseSpec = () => ({
@@ -208,8 +236,8 @@ async function boot() {
       kicker: 'Night shift orientation',
       title: 'Welcome to the NOC',
       bodyHtml:
-        `<pre> ▸ JOB BOARD ....... glowing kiosk ahead — take a ticket,\n` +
-        `                   a shuttle drops you at the broken site\n` +
+        `<pre> ▸ CERT HALL ....... one kiosk per AWS badge — take a\n` +
+        `                   ticket, a shuttle drops you on site\n` +
         ` ▸ DASHBOARD WALL . live exam readiness + domain progress\n` +
         ` ▸ TRAINING COURSE  movement practice, east side\n` +
         ` ▸ everything else  dock · bullpen · coffee — set dressing</pre>` +

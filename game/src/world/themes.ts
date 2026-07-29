@@ -113,6 +113,17 @@ THEMES['Security (Developer)'] = THEMES['Design Secure Architectures'];
 THEMES['Deployment'] = THEMES['Design Cost-Optimized Architectures'];
 THEMES['Troubleshooting and Optimization'] = THEMES['Design Resilient Architectures'];
 
+THEMES['Cloud Concepts'] = THEMES['Design High-Performing Architectures'];
+THEMES['Security and Compliance'] = THEMES['Design Secure Architectures'];
+THEMES['Cloud Technology and Services'] = THEMES['Design Resilient Architectures'];
+THEMES['Billing, Pricing, and Support'] = THEMES['Design Cost-Optimized Architectures'];
+THEMES['Monitoring, Logging, and Remediation'] = THEMES['Design Resilient Architectures'];
+THEMES['Reliability and Business Continuity'] = THEMES['Design Resilient Architectures'];
+THEMES['Deployment, Provisioning, and Automation'] = THEMES['Design Cost-Optimized Architectures'];
+THEMES['Security and Compliance (Ops)'] = THEMES['Design Secure Architectures'];
+THEMES['Networking and Content Delivery (Ops)'] = THEMES['Design High-Performing Architectures'];
+THEMES['Cost and Performance Optimization'] = THEMES['Design Cost-Optimized Architectures'];
+
 export function applyTheme(scene: Scene, origin: Vector3, domainKey: string): TransformNode {
   const root = new TransformNode('theme-' + domainKey, scene);
   const t = THEMES[domainKey] ?? THEMES['Design Resilient Architectures'];

@@ -23,6 +23,14 @@ import {
 import {
   CANARY_SPEC, PIPELINE_SPEC, SAM_SPEC, STS_SPEC, TUNING_SPEC, XRAY_SPEC,
 } from './specs/dev2';
+import {
+  CLF_AZ_SPEC, CLF_ELASTIC_SPEC, CLF_MANAGED_SPEC, CLF_PRICING_SPEC, CLF_ROOT_SPEC,
+  CLF_SERVICES_SPEC, CLF_SHARED_SPEC, CLF_SUPPORT_SPEC,
+} from './specs/clf1';
+import {
+  SOA_ALARM_SPEC, SOA_HEALTH_SPEC, SOA_PATCH_SPEC, SOA_RESTORE_SPEC, SOA_RIGHTSIZE_SPEC,
+  SOA_RUNBOOK_SPEC, SOA_TEMPLATE_SPEC, SOA_VPC_SPEC,
+} from './specs/soa1';
 
 const spec = (s: MissionSpec): MissionFactory => (deps, topic) => new SpecMission(deps, topic, s);
 
@@ -90,4 +98,22 @@ export const MISSIONS: Record<string, MissionFactory> = {
   'dva-pipeline-gates': spec(PIPELINE_SPEC),
   'dva-xray-tracing': spec(XRAY_SPEC),
   'dva-lambda-tuning': spec(TUNING_SPEC),
+  // Cloud Practitioner (CLF-C02)
+  'clf-elasticity': spec(CLF_ELASTIC_SPEC),
+  'clf-regions-azs': spec(CLF_AZ_SPEC),
+  'clf-shared-responsibility': spec(CLF_SHARED_SPEC),
+  'clf-account-hygiene': spec(CLF_ROOT_SPEC),
+  'clf-core-services': spec(CLF_SERVICES_SPEC),
+  'clf-managed-vs-diy': spec(CLF_MANAGED_SPEC),
+  'clf-pricing-models': spec(CLF_PRICING_SPEC),
+  'clf-support-plans': spec(CLF_SUPPORT_SPEC),
+  // CloudOps (SysOps)
+  'soa-alarm-fatigue': spec(SOA_ALARM_SPEC),
+  'soa-runbook-automation': spec(SOA_RUNBOOK_SPEC),
+  'soa-restore-drill': spec(SOA_RESTORE_SPEC),
+  'soa-asg-health': spec(SOA_HEALTH_SPEC),
+  'soa-launch-templates': spec(SOA_TEMPLATE_SPEC),
+  'soa-patch-fleet': spec(SOA_PATCH_SPEC),
+  'soa-vpc-debug': spec(SOA_VPC_SPEC),
+  'soa-rightsize': spec(SOA_RIGHTSIZE_SPEC),
 };

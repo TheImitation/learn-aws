@@ -21,6 +21,24 @@ export const DEV_DOMAINS: DomainMeta[] = [
   { key: 'Troubleshooting and Optimization', label: 'Troubleshooting & optimization', accent: '#33b38c', weight: 18 },
 ];
 
+/** CLF-C02 (Cloud Practitioner) domains, official weights. */
+export const CLF_DOMAINS: DomainMeta[] = [
+  { key: 'Cloud Concepts', label: 'Cloud concepts', accent: '#8da3c4', weight: 24 },
+  { key: 'Security and Compliance', label: 'Security & compliance', accent: '#d15656', weight: 30 },
+  { key: 'Cloud Technology and Services', label: 'Technology & services', accent: '#33b38c', weight: 34 },
+  { key: 'Billing, Pricing, and Support', label: 'Billing, pricing & support', accent: '#67ad5b', weight: 12 },
+];
+
+/** CloudOps Engineer – Associate (formerly SysOps), classic six domains. */
+export const SOA_DOMAINS: DomainMeta[] = [
+  { key: 'Monitoring, Logging, and Remediation', label: 'Monitoring & remediation', accent: '#7ab3e0', weight: 20 },
+  { key: 'Reliability and Business Continuity', label: 'Reliability & continuity', accent: '#5a8fd1', weight: 16 },
+  { key: 'Deployment, Provisioning, and Automation', label: 'Deployment & automation', accent: '#8f7ae6', weight: 18 },
+  { key: 'Security and Compliance (Ops)', label: 'Security & compliance', accent: '#d15656', weight: 16 },
+  { key: 'Networking and Content Delivery (Ops)', label: 'Networking & delivery', accent: '#c98ae8', weight: 18 },
+  { key: 'Cost and Performance Optimization', label: 'Cost & performance', accent: '#67ad5b', weight: 12 },
+];
+
 export const LEVEL_NAME: Record<number, string> = { 1: 'Foundational', 2: 'Core', 3: 'Advanced' };
 
 /** Difficulty tier per topic (1 Foundational · 2 Core · 3 Advanced) — v1's CARD levels. */
@@ -42,6 +60,12 @@ export const LEVELS: Record<string, number> = {
   'dva-idempotent-lambda': 2, 'dva-ddb-hot-partition': 2, 'dva-jwt-cognito': 2,
   'dva-sts-least-priv': 2, 'dva-canary-alias': 2, 'dva-pipeline-gates': 2,
   'dva-stepfn-retry': 3, 'dva-xray-tracing': 3,
+  // Cloud Practitioner (CLF-C02) — all foundational
+  'clf-elasticity': 1, 'clf-regions-azs': 1, 'clf-shared-responsibility': 1, 'clf-account-hygiene': 1,
+  'clf-core-services': 1, 'clf-managed-vs-diy': 1, 'clf-pricing-models': 1, 'clf-support-plans': 1,
+  // CloudOps (SysOps)
+  'soa-alarm-fatigue': 1, 'soa-runbook-automation': 2, 'soa-restore-drill': 1, 'soa-asg-health': 2,
+  'soa-launch-templates': 2, 'soa-patch-fleet': 2, 'soa-vpc-debug': 2, 'soa-rightsize': 1,
 };
 
 export const levelOf = (id: string) => LEVELS[id] ?? 2;
