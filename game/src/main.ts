@@ -325,7 +325,7 @@ async function boot() {
   (window as unknown as Record<string, unknown>).__game = {
     engine,
     scene,
-    contentTopics: COURSE.topics.length,
+    contentTopics: allTopics.length,
     fps: () => engine.getFps(),
     simStep: (seconds: number) => {
       const n = Math.max(1, Math.round(seconds * 60));
@@ -374,7 +374,7 @@ async function boot() {
       unlockedLevel: (domainKey: string) => unlockedLevel(COURSE.topics, domainKey),
       isLocked: (id: string) => { const t = COURSE.topics.find((x) => x.id === id); return t ? isLocked(COURSE.topics, t) : null; },
     },
-    topicQuiz: (id: string) => COURSE.topics.find((t) => t.id === id)?.quiz ?? null,
+    topicQuiz: (id: string) => allTopics.find((t) => t.id === id)?.quiz ?? null,
   };
 
   engine.runRenderLoop(() => scene.render());
