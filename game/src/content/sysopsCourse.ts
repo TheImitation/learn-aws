@@ -6,7 +6,7 @@ import type { Topic } from '@content';
  *  Security & Compliance 16 · Networking & Content Delivery 18 ·
  *  Cost & Performance Optimization 12. */
 
-const t = (o: { id: string; title: string; examDomain: string; summary: string; quiz: Topic['quiz'] }): Topic =>
+const t = (o: { id: string; title: string; examDomain: string; summary: string; primer: string; quiz: Topic['quiz'] }): Topic =>
   ({ ...o, blocks: [], connections: [], stages: [] });
 
 export const SOA_DOMAIN = {
@@ -26,6 +26,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'Alarms Worth Waking For',
       examDomain: SOA_DOMAIN.mon,
       summary: '200 alarms that cry wolf train humans to ignore the one that matters. Alarm on symptoms customers feel, use composite alarms, and page only on actionable signal.',
+      primer: 'Alerting is a signal-to-noise discipline. Page on SYMPTOMS customers feel — error rate, latency — not on infrastructure trivia like CPU on an autoscaled fleet (that\'s a dashboard line, maybe a scaling input, never a page). CloudWatch COMPOSITE ALARMS gate related signals with AND/OR so one incident produces one page instead of a storm. And every page must carry a documented action — if there\'s nothing to DO, it shouldn\'t wake anyone. The failure modes are symmetric: paging on everything trains humans to swipe (and miss the real one); silencing everything trades fatigue for blindness. Precision is the fix, not volume.',
       quiz: [
         { kind: 'single', prompt: 'The team ignores all pages because 195 of 200 daily alarms are noise. The core fix is:',
           options: ['Louder pager sounds', 'Alarm on customer-facing symptoms with sane thresholds; page only on actionable signal', 'More alarms for coverage', 'Rotating who ignores them'],
@@ -46,6 +47,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'Runbooks That Run Themselves',
       examDomain: SOA_DOMAIN.mon,
       summary: 'The disk fills every Tuesday and a human SSHes in to clear it. SSM Automation turns the wiki page into an executable runbook the alarm can trigger at 3 a.m. without you.',
+      primer: 'When an incident has a known trigger and a deterministic fix, it\'s not an on-call duty — it\'s an automation candidate. SSM AUTOMATION runbooks encode the fix as executable steps that a CloudWatch alarm can invoke directly: same steps at 3 a.m. as 3 p.m., no groggy typos on production, full audit log. SSM RUN COMMAND executes across a fleet through the agent — IAM-authorized, logged, no SSH keys, no open port 22. Wiki runbooks are the halfway house: right steps, wrong executor (still needs an awake human). Automate what you\'ve done identically ten times; keep humans for the novel and the judgment calls.',
       quiz: [
         { kind: 'single', prompt: 'A recurring, well-understood remediation (clear temp files, restart a service) should be:',
           options: ['A wiki page', 'An SSM Automation runbook triggered by the CloudWatch alarm', 'A calendar reminder', 'The new hire\'s job'],
@@ -66,6 +68,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'Backups You Have Restored',
       examDomain: SOA_DOMAIN.rel,
       summary: 'A backup you have never restored is a hope, not a plan. Define RPO/RTO, then drill the restore until the numbers are real.',
+      primer: 'Two numbers define recovery. RPO (Recovery Point Objective): how much DATA you can lose — set by backup frequency (nightly backups = up to 24h of loss). RTO (Recovery Time Objective): how long you can be DOWN — set by how fast a restore actually completes. The catch: a backup job\'s green checkmark proves a job ran, not that recovery works. Only a RESTORE DRILL — a timed recovery into a clean environment, verified by the application serving restored data — produces a real RTO, and it surfaces the surprises (missing IAM, undocumented config) while they\'re cheap. Also beware: replication is not backup — it faithfully copies your mistakes in milliseconds.',
       quiz: [
         { kind: 'single', prompt: 'RPO (Recovery Point Objective) answers:',
           options: ['How fast you recover', 'How much data you can afford to lose (time since last good copy)', 'How much backups cost', 'Who is on call'],
@@ -86,6 +89,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'Health Checks That Tell the Truth',
       examDomain: SOA_DOMAIN.rel,
       summary: 'An Auto Scaling group that trusts EC2 status checks will happily keep instances whose app is dead. ELB health checks ask the application itself — and grace periods stop replace-loops.',
+      primer: 'Auto Scaling replaces unhealthy instances — but \'unhealthy\' depends on who you ask. EC2 STATUS CHECKS ask the hypervisor: is the VM reachable? An instance whose app is returning 500s passes them forever. ELB HEALTH CHECKS ask the APPLICATION via your /health endpoint — switch the ASG to ELB checks and app-dead means replaced. The paired setting is the HEALTH-CHECK GRACE PERIOD: it must exceed boot + warmup time, or the ASG judges instances mid-startup, kills them, and replace-loops the fleet. Keep /health meaningful but cheap: it should mean \'able to serve\', without storming your dependencies on every probe.',
       quiz: [
         { kind: 'single', prompt: 'Instances pass EC2 status checks but the app returns 500s. The ASG keeps them because:',
           options: ['It is broken', 'It uses EC2 health checks (is the VM up?) instead of ELB health checks (is the APP up?)', 'Health checks are optional', 'The ALB is down'],
@@ -106,6 +110,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'No More Pet Servers',
       examDomain: SOA_DOMAIN.dep,
       summary: 'The hand-tuned "special" server nobody dares reboot is an outage on a timer. Launch templates + instance refresh make servers cattle: rebuilt from spec, replaced without ceremony.',
+      primer: '\'Pets vs cattle\': a PET is a hand-configured server whose setup lives in someone\'s memory — irreplaceable, feared, an outage on a timer. CATTLE are instances stamped from a definition. LAUNCH TEMPLATES are that definition: AMI, instance type, user data, security groups — versioned and reviewable. Pair them with baked (\'golden\') AMIs so instances boot fast and identical, and roll changes with ASG INSTANCE REFRESH: new template version, gradual batch replacement, rollback by pointing back at the old version. Documenting a pet preserves its mysteries in prose; cloning its disk preserves them in amber. The template ENDS the mystery — config changes become deploys.',
       quiz: [
         { kind: 'single', prompt: 'A launch template is:',
           options: ['A monitoring rule', 'The versioned spec (AMI, size, user data, SGs) an ASG uses to stamp identical instances', 'A billing report', 'A CloudFront setting'],
@@ -126,6 +131,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'Patching at Fleet Scale',
       examDomain: SOA_DOMAIN.sec,
       summary: 'A critical CVE lands. Patch Manager applies it across the fleet in maintenance windows with compliance reporting — no SSH loop, no forgotten box.',
+      primer: 'Fleet patching needs three properties an SSH for-loop can\'t provide. COVERAGE: SSM\'s managed-instance inventory knows the actual fleet — including boxes the hosts file forgot. CONTROL: PATCH MANAGER applies a patch BASELINE (which patches, what severity, how soon) during MAINTENANCE WINDOWS with concurrency limits, so the fleet never all reboots at once. EVIDENCE: per-instance COMPLIANCE REPORTING — the actual answer to \'are we patched?\', regenerated continuously, exportable to the auditor. Remember the responsibility line: AWS never patches your EC2 guest OS. And \'if it works, don\'t patch it\' is not a policy; with an active CVE it\'s an incident scheduled for later.',
       quiz: [
         { kind: 'single', prompt: 'Patching 200 instances for a critical CVE is best done with:',
           options: ['SSH and a for-loop over a hosts file', 'SSM Patch Manager: baselines, maintenance windows, compliance report', 'Terminating everything', 'Waiting for AWS to patch the guest OS'],
@@ -146,6 +152,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'The Networking Checklist',
       examDomain: SOA_DOMAIN.net,
       summary: '"The instance can\'t reach the internet" is always one of four things: route table, internet gateway, security group, or NACL. Check in order; guessing is slower.',
+      primer: '\'The instance can\'t reach the internet\' is a four-item checklist, in order. 1) ROUTE TABLE: does the subnet have a default route (0.0.0.0/0) — to a NAT gateway for private subnets (outbound-only) or an IGW for public ones? No route, no internet, regardless of everything else. 2) SECURITY GROUP: instance-level, STATEFUL — allow the outbound and the return is automatic. 3) NACL: subnet-level, STATELESS — both directions need explicit allows, and forgetting the ephemeral return ports (1024-65535) is the textbook one-way-traffic bug. 4) DNS. Tools that end the guessing: Reachability Analyzer walks the configured path; VPC Flow Logs show real ACCEPTs and REJECTs. Size and reboots never touch any of it.',
       quiz: [
         { kind: 'single', prompt: 'A private-subnet instance can\'t reach the internet. The FIRST thing to check:',
           options: ['Instance size', 'The subnet\'s route table — is there a 0.0.0.0/0 route to a NAT/IGW?', 'The AMI', 'CloudFront'],
@@ -166,6 +173,7 @@ export const SOA_COURSE: { title: string; topics: Topic[] } = {
       title: 'Right-Sizing the Fleet',
       examDomain: SOA_DOMAIN.cost,
       summary: 'The fleet was sized by vibes in 2023 and runs at 4% CPU. Metrics-driven right-sizing and off-hours schedules cut the bill without touching a feature.',
+      primer: 'Right-sizing is measurement, not bravado. CloudWatch (and Compute Optimizer) tell you what a fleet actually uses: sustained single-digit CPU with flat memory and untouched burst credits means you\'re paying for idle heat. Step DOWN against the PEAKS — p99 utilization, not averages, one size at a time with monitoring and a rollback path; averages hide the quarter-end spike that minimum-sizing falls over on. The other easy win is the calendar: dev/test running 24/7 for a 9-to-5 team bills 168 hours for 45 of use — scheduled off-hours stops cut ~70% with zero impact. Metrics decide; schedules don\'t forget.',
       quiz: [
         { kind: 'single', prompt: 'A fleet averaging 4% CPU with flat memory for 90 days is:',
           options: ['Perfectly sized', 'Over-provisioned — right-size down against measured utilization', 'Under-provisioned', 'A security risk'],

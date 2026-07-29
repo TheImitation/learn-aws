@@ -4,7 +4,7 @@ import type { Topic } from '@content';
  *  weights: Cloud Concepts 24 · Security & Compliance 30 · Cloud Technology &
  *  Services 34 · Billing, Pricing & Support 12. */
 
-const t = (o: { id: string; title: string; examDomain: string; summary: string; quiz: Topic['quiz'] }): Topic =>
+const t = (o: { id: string; title: string; examDomain: string; summary: string; primer: string; quiz: Topic['quiz'] }): Topic =>
   ({ ...o, blocks: [], connections: [], stages: [] });
 
 export const CLF_DOMAIN = {
@@ -22,6 +22,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'Why Cloud: Elasticity',
       examDomain: CLF_DOMAIN.concepts,
       summary: 'Buying servers for the biggest day of the year means paying for them every other day. Elasticity matches capacity to demand, hour by hour.',
+      primer: 'The cloud\'s founding trade: CAPITAL expense (buy hardware for the worst case, depreciate it while it idles) becomes VARIABLE expense (rent capacity by the hour as demand arrives). ELASTICITY is the mechanism — capacity grows for the spike and, just as importantly, shrinks back after. That kills the two classic failure modes of guessing: over-provisioning (paying every day for one big day) and under-provisioning (falling over on the day that pays for the year). The headline value propositions to know: stop guessing capacity, trade CapEx for OpEx, and go global in minutes.',
       quiz: [
         { kind: 'single', prompt: 'The core economic shift of cloud computing is:',
           options: ['Cheaper electricity', 'Trading capital expense (buy for peak) for variable expense (pay for use)', 'Free data transfer', 'Faster CPUs'],
@@ -42,6 +43,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'Regions & Availability Zones',
       examDomain: CLF_DOMAIN.concepts,
       summary: 'A Region is a place on the map; an Availability Zone is an isolated datacenter cluster inside it. Surviving a bad day means using more than one AZ.',
+      primer: 'AWS geography has three layers. A REGION is a place on the map (eu-west-1) — chosen for latency to your users and data-residency law. Inside each Region sit multiple AVAILABILITY ZONES: clusters of datacenters with independent power, cooling, and networking, close enough for millisecond replication but isolated enough that one zone\'s bad night doesn\'t spread. Running in TWO AZs is the basic unit of surviving failure — two servers in ONE zone share a fate. EDGE LOCATIONS are the third layer: hundreds of small caching sites (CloudFront) that speed delivery worldwide; your servers and data still live in Regions.',
       quiz: [
         { kind: 'single', prompt: 'An Availability Zone is best described as:',
           options: ['A country', 'One or more isolated datacenters within a Region, with independent power and networking', 'A billing unit', 'A CDN location'],
@@ -62,6 +64,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'The Shared Responsibility Model',
       examDomain: CLF_DOMAIN.security,
       summary: 'AWS secures the cloud itself — buildings, hardware, hypervisor. You secure what you put IN it — data, identities, configurations. Confusing the two is how buckets go public.',
+      primer: 'The Shared Responsibility Model draws one line: AWS is responsible for security OF the cloud — physical datacenters, hardware, and the virtualization layer (you couldn\'t patch a hypervisor if you wanted to). You are responsible for security IN the cloud — your data, IAM identities and MFA, bucket policies, encryption choices, application code, and (on EC2) the guest operating system you run. Managed services shift more of the stack to AWS, but data and access configuration NEVER stop being yours: a world-readable bucket is always a customer misconfiguration. Support plans change response times, not responsibility.',
       quiz: [
         { kind: 'single', prompt: 'Under shared responsibility, patching the physical hypervisor hosts is:',
           options: ['Your job', 'AWS\'s job — security OF the cloud', 'The auditor\'s job', 'Optional'],
@@ -82,6 +85,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'Root Account Hygiene',
       examDomain: CLF_DOMAIN.security,
       summary: 'The root user can do — and lose — everything. Lock it away with MFA, create IAM identities for daily work, and never mint root access keys.',
+      primer: 'Every AWS account has a ROOT user that bypasses all policies and can do anything — including close the account. Hygiene rule one: protect root with MFA (a stolen password alone then fails), use it for the handful of account-level tasks that truly require it, and lock it away. Rule two: daily work happens as scoped IAM identities — named users and roles with least-privilege policies, so mistakes are contained and the audit trail shows WHO did what. Rule three: never create root ACCESS KEYS — an unscopeable, unexpiring API skeleton key. IAM roles cover every legitimate automation need.',
       quiz: [
         { kind: 'single', prompt: 'The root user should be used for:',
           options: ['Daily administration', 'Almost nothing — a few account-level tasks, then locked away with MFA', 'CI/CD pipelines', 'Cost reporting'],
@@ -102,6 +106,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'The Core Service Map',
       examDomain: CLF_DOMAIN.tech,
       summary: 'Four workloads, four homes: virtual machines on EC2, objects in S3, managed databases on RDS, and functions on Lambda. Most architectures start here.',
+      primer: 'Four primitives cover most starting architectures. EC2: resizable virtual machines — a whole OS you control, for long-lived apps. S3: object storage — things fetched by name over HTTP, eleven nines of durability, no servers (images, backups, static sites). RDS: managed relational databases — real engines with backups, patching, and failover run by AWS; you keep schema and queries. LAMBDA: functions — short event-driven code billed by the millisecond, costing nothing idle. The matching skill is recognizing a workload\'s SHAPE: named objects → S3, always-on process → EC2, transactions and joins → RDS, brief bursts on events → Lambda.',
       quiz: [
         { kind: 'single', prompt: 'Store millions of images, each retrieved by name over HTTP. The natural home is:',
           options: ['EC2 instance disk', 'Amazon S3 — durable object storage', 'RDS', 'CloudWatch'],
@@ -122,6 +127,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'Managed vs Do-It-Yourself',
       examDomain: CLF_DOMAIN.tech,
       summary: 'You CAN run your own database, queue, and mail server on EC2. Managed services trade that toil for an API — and shift patching, failover, and backups onto AWS.',
+      primer: 'You can run almost anything yourself on EC2 — a database, a queue, a mail server. Managed services exist because most of that work is UNDIFFERENTIATED HEAVY LIFTING: patching, backups, failover, scaling plumbing that every company does identically and no customer ever notices. RDS versus self-managed MySQL is the canonical example: same engine, but AWS carries the 3 a.m. failover and the backup schedule. The trade is control for toil — you give up OS root access; you gain operations that don\'t depend on one human\'s vacation schedule. Choose DIY when you genuinely need OS-level control; choose managed to spend humans on differentiated work.',
       quiz: [
         { kind: 'single', prompt: 'Choosing RDS over self-managed MySQL on EC2 primarily buys you:',
           options: ['A faster CPU', 'AWS operating the database: patching, backups, failover', 'Free storage', 'Root access to the host'],
@@ -142,6 +148,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'Pricing Models',
       examDomain: CLF_DOMAIN.billing,
       summary: 'On-Demand for the unpredictable, Savings Plans/Reserved for the steady, Spot for the interruptible. Matching workload to model is most of the bill.',
+      primer: 'Compute pricing has three shapes, matched to workload shapes. ON-DEMAND: full flexibility at the premium price — right for unpredictable or brand-new workloads until you learn their baseline. SAVINGS PLANS / RESERVED: commit to a steady baseline for 1-3 years and save up to ~72% — right for the API that\'s run flat for a year; wrong for guesses. SPOT: spare AWS capacity at the deepest discount, reclaimable on a ~2-minute warning — perfect for checkpointed, interruptible batch work; fatal for stateful singletons. And the fourth model everyone forgets: OFF. The cheapest instance is the idle one you stopped.',
       quiz: [
         { kind: 'single', prompt: 'A steady API that has run 24/7 for a year should move to:',
           options: ['On-Demand', 'A Savings Plan / Reserved commitment (up to ~72% off)', 'Spot', 'The free tier'],
@@ -162,6 +169,7 @@ export const CLF_COURSE: { title: string; topics: Topic[] } = {
       title: 'Support Plans',
       examDomain: CLF_DOMAIN.billing,
       summary: 'Basic is docs and billing help. Developer buys guidance. Business buys 24/7 humans and a <1-hour response when production is down. Enterprise adds a named TAM.',
+      primer: 'AWS support is a ladder, priced as a share of your spend. BASIC (free): documentation, billing support, service health, and core Trusted Advisor checks — no technical humans. DEVELOPER: business-hours technical guidance for development questions. BUSINESS: the first 24/7 rung — phone and chat, under-one-hour response for production-down cases, full Trusted Advisor. ENTERPRISE: adds a named Technical Account Manager (TAM) and concierge-level reviews for organizations that need one. Trusted Advisor itself is automated best-practice checks (open security groups, idle spend, missing MFA). Match the rung to the requirement — over-buying support wastes exactly like over-provisioning.',
       quiz: [
         { kind: 'single', prompt: 'Production is down and you need AWS on the phone 24/7 with a <1 hour response. The minimum plan is:',
           options: ['Basic', 'Developer', 'Business', 'Enterprise'],

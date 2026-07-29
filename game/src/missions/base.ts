@@ -2,6 +2,7 @@ import type { Topic } from '@content';
 import { recordProgress } from '../core/progress';
 import { sfx } from '../core/sfx';
 import { QuizTerminal } from '../ui/quizTerminal';
+import { openFieldManual } from '../ui/fieldManual';
 import { esc, type PanelAction } from '../ui/uiShell';
 import type { Machine } from '../world/kit';
 import type { MissionDeps } from './manager';
@@ -112,7 +113,13 @@ export abstract class MissionBase {
       kicker: `${t.sev} · ${t.incident} · reported by ${t.reporter}`,
       title: t.title,
       bodyHtml: t.bodyHtml + `<div>${esc(t.hint)}</div>`,
-      actions: [{ label: 'Accept ticket', onSelect: () => { this.step = 'investigate'; this.refreshObjective(); this.onAccepted?.(); } }],
+      actions: [
+        { label: 'Accept ticket', onSelect: () => { this.step = 'investigate'; this.refreshObjective(); this.onAccepted?.(); } },
+        {
+          label: '📖 Field manual first', closes: false,
+          onSelect: () => openFieldManual(this.d.ui, this.topic, { label: '← Back to briefing', onSelect: () => this.openBriefing() }),
+        },
+      ],
     });
   }
 

@@ -27,6 +27,7 @@ declare module '@content' {
     title: string;
     examDomain: string;
     summary: string;
+    primer?: string; // field-manual concept teaching (new badge tracks)
     blocks: TopicBlock[];
     connections: { id: string; from: string; to: string; flow: string; [k: string]: unknown }[];
     stages: TopicStage[];

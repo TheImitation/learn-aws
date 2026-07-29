@@ -3,6 +3,7 @@ import { readProgress, recordProgress } from '../core/progress';
 import { DOMAINS, type DomainMeta, isLocked, LEVEL_NAME, levelOf, orderedTopics, readiness, recommended } from '../content/meta';
 import { Journal } from './journal';
 import { QuizTerminal } from './quizTerminal';
+import { openFieldManual } from './fieldManual';
 import { esc, UiShell, type PanelAction } from './uiShell';
 
 /** Hooks the job board uses to hand off to a playable field mission. */
@@ -112,9 +113,12 @@ export class JobBoard {
           actions.push({ label: '⚙ Start field mission', closes: false, onSelect: () => mission.start() });
         }
       } else {
-        actions.push({ label: '📖 Study summary', closes: false, onSelect: () => this.openStudy(t) });
         actions.push({ label: '✍ Sign off (quiz)', closes: false, onSelect: () => this.signOff(t) });
       }
+      actions.push({
+        label: '📖 Field manual', closes: false,
+        onSelect: () => openFieldManual(this.ui, t, { label: '← Back to ticket', onSelect: () => this.openTicket(t) }),
+      });
     }
     actions.push({ label: '← Back', closes: false, onSelect: () => this.openDomain(t.examDomain) });
     this.ui.open({
@@ -126,21 +130,6 @@ export class JobBoard {
     });
   }
 
-  private openStudy(t: Topic) {
-    const concepts = [...new Set(t.stages.map((s) => s.concept).filter(Boolean))];
-    this.ui.open({
-      id: `study-${t.id}`,
-      kicker: 'Study notes',
-      title: t.title,
-      bodyHtml:
-        `<div>${esc(t.summary)}</div><div style="height:8px"></div>` +
-        concepts.map((c) => `<div>· ${esc(String(c))}</div>`).join(''),
-      actions: [
-        { label: '✍ Sign off (quiz)', closes: false, onSelect: () => this.signOff(t) },
-        { label: '← Back to ticket', closes: false, onSelect: () => this.openTicket(t) },
-      ],
-    });
-  }
 
   private signOff(t: Topic) {
     this.quiz.start(t, (pct, passed) => {
